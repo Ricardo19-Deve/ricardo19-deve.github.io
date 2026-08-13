@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Magnet Bloom</title>
+  <meta name="description" content="Magnet Bloom is a fast magnetic arcade game for iPhone. Hold to attract, release to pulse, dodge thorns and chase a new high score.">
+  <style>
+    :root { --bg:#07141b; --card:#0d222b; --text:#eaf4f1; --muted:#a9c0c2; --accent:#72e6c1; --gold:#f2ce63; --border:#24444b; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+    main { max-width:900px; margin:0 auto; padding:64px 22px 80px; }
+    .hero,.card { background:var(--card); border:1px solid var(--border); border-radius:24px; padding:36px; }
+    h1 { margin:0 0 12px; font-size:clamp(2.5rem,8vw,4.5rem); color:var(--accent); letter-spacing:-.03em; }
+    h2 { color:var(--gold); margin-top:0; }
+    .tag { font-size:1.2rem; color:var(--muted); max-width:700px; }
+    .actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:28px; }
+    a.button { display:inline-block; padding:12px 18px; border-radius:999px; border:1px solid var(--border); color:var(--text); text-decoration:none; }
+    a.primary { background:var(--accent); color:#062018; border-color:var(--accent); font-weight:700; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; margin-top:20px; }
+    .card { border-radius:18px; padding:24px; }
+    footer { margin-top:28px; color:var(--muted); font-size:.95rem; }
+    a { color:var(--accent); }
+  </style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <h1>Magnet Bloom</h1>
+    <p class="tag">Hold to attract. Release to pulse. Collect energy, avoid thorns and keep your bloom alive in fast arcade runs built for one-handed portrait play.</p>
+    <div class="actions">
+      <a class="button primary" href="support.html">Support</a>
+      <a class="button" href="privacy-policy.html">Privacy Policy</a>
+    </div>
+  </section>
+
+  <section class="grid" aria-label="Game features">
+    <article class="card"><h2>Magnetic control</h2><p>Press and hold to attract. Release at the right moment to send a repulsion pulse through the arena.</p></article>
+    <article class="card"><h2>Arcade survival</h2><p>Collect glowing energy, avoid thorn hazards and adapt as the run becomes more demanding.</p></article>
+    <article class="card"><h2>Chase the Top 10</h2><p>Every completed run lets you enter three initials and compete against your own local high-score table.</p></article>
+  </section>
+
+  <footer>
+    <p>Magnet Bloom is an independent mobile game for iPhone. The game is free to play and may display occasional interstitial advertising through Google AdMob.</p>
+    <p><a href="support.html">Support</a> · <a href="privacy-policy.html">Privacy</a></p>
+  </footer>
+</main>
+</body>
+</html>
