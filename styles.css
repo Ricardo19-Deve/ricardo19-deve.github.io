@@ -111,3 +111,15 @@ html{scroll-padding-top:110px}body{position:relative;isolation:isolate;backgroun
 @media(max-width:950px){.about-feature{grid-template-columns:1fr}.about-tiles{grid-template-columns:repeat(3,1fr)}.about-tile{padding:22px}.about-tile h3{font-size:18px}.tile-icon{position:static;margin-top:10px}}
 @media(max-width:690px){.about-tiles{grid-template-columns:1fr}.about-tile{min-height:0}.tile-icon{position:absolute;right:22px;top:14px}.about-statement{padding:28px}.statement-big{font-size:30px}.about-mini-stats{gap:15px}}
 @media(prefers-reduced-motion:reduce){.about-tile:hover,#experience .role:hover{transform:none}}
+
+/* V6.6 — mobile navigation and anchor spacing */
+html{scroll-padding-top:112px}
+[id]{scroll-margin-top:112px}
+@media(max-width:720px){
+  .glass-nav{top:8px;height:62px;margin-top:8px;padding:0 18px;border-radius:17px!important}
+  .glass-nav .brand{font-size:26px}
+  .mobile-menu-toggle{min-height:40px;min-width:90px;touch-action:manipulation}
+  html{scroll-padding-top:90px}
+  [id]{scroll-margin-top:90px}
+  .top-status-end{display:none}
+}
