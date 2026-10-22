@@ -123,3 +123,6 @@ html{scroll-padding-top:112px}
   [id]{scroll-margin-top:90px}
   .top-status-end{display:none}
 }
+
+/* V6.7: Mobile navigation stays in document flow; never obscures section content. */
+@media(max-width:720px){.top.glass-nav{position:relative;top:auto;z-index:10;margin-top:8px;margin-bottom:12px}html{scroll-padding-top:18px}[id]{scroll-margin-top:18px}}
