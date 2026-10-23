@@ -52,13 +52,13 @@ function animate(now){
       ty=clamp(r.top+Math.min(110,r.height*.4)-55,55,Math.max(55,innerHeight-125));
     }
    }
-   if(mode==="peek"&&peekAt&&now>peekAt){
+   if(mode==="peek"&&peekAt&&now>peekAt&&Math.hypot(tx-x,ty-y)<70){
     peekAt=0;peekRevealed=true;front=true;layer.classList.add("in-front");
     tx=clamp(tx+(travelSide<0?30:-30),5,Math.max(5,innerWidth-125));
     ty=clamp(ty-18,55,Math.max(55,innerHeight-125));mood("curious",now,1300);
    }
    if(now>next&&now>playUntil)choose(now);
-   if(mode==="peek"&&travelTarget&&!travelTarget.isConnected){travelTarget=null;next=0;}
+   if(mode==="peek"&&travelTarget&&!travelTarget.isConnected){travelTarget=null;peekAt=0;next=0;}
    if(now>emotionUntil&&emotion!=="calm")mood("calm",now,3500);
    if(now-idle>11000&&now-knocked>35000&&now>playUntil&&mode!=="peek"){knocked=now;idle=now;tap.hidden=false;mascot.classList.add("knocking");setTimeout(()=>{tap.hidden=true;mascot.classList.remove("knocking");},1300);}
    // Critically damped steering: speed tapers as M approaches a destination.
