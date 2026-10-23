@@ -20,7 +20,7 @@ function choose(now){
   const side=Math.random()<.5?-1:1;travelSide=side;
   tx=clamp(side<0?r.left-70:r.right-80,4,Math.max(4,w-120));
   ty=clamp(r.top+Math.min(110,r.height*.4)-55,55,Math.max(55,h-125));
-  mode="peek";front=false;peekRevealed=false;peekAt=now+rand(1400,2400);mood("peek",now,3000);
+  mode="peek";front=false;peekRevealed=false;peekAt=now+rand(1700,2900);mood("peek",now,3200);
  }else{
   tx=rand(8,Math.max(9,w-130));ty=rand(65,Math.max(66,h-160));front=Math.random()<.65;mood("happy",now,1700);
  }
@@ -54,7 +54,7 @@ function animate(now){
    }
    if(mode==="peek"&&peekAt&&now>peekAt){
     peekAt=0;peekRevealed=true;front=true;layer.classList.add("in-front");
-    tx=clamp(tx+(travelSide<0?-22:22),5,Math.max(5,innerWidth-125));
+    tx=clamp(tx+(travelSide<0?30:-30),5,Math.max(5,innerWidth-125));
     ty=clamp(ty-18,55,Math.max(55,innerHeight-125));mood("curious",now,1300);
    }
    if(now>next&&now>playUntil)choose(now);
@@ -73,8 +73,8 @@ function animate(now){
    vx+=(desiredVX-vx)*responsiveness;vy+=(desiredVY-vy)*responsiveness;
    x=clamp(x+vx*dt,0,Math.max(0,innerWidth-120));
    y=clamp(y+vy*dt,42,Math.max(42,innerHeight-125));
-   if((x===0&&vx<0)||(x===innerWidth-120&&vx>0))vx=0;
-   if((y===42&&vy<0)||(y===innerHeight-125&&vy>0))vy=0;
+   if((x===0&&vx<0)||(x===Math.max(0,innerWidth-120)&&vx>0))vx=0;
+   if((y===42&&vy<0)||(y===Math.max(42,innerHeight-125)&&vy>0))vy=0;
   }else{x=clamp(innerWidth-115,0,innerWidth);y=clamp(innerHeight-145,50,innerHeight);}
   // Body inertia is a damped spring, so the head and torso follow turns smoothly.
   const targetTilt=reduce?0:clamp(vx*.065+Math.sin(clock*.7)*1.4,-13,13);
@@ -111,7 +111,7 @@ function play(px,py){
 mascot.addEventListener("click",()=>play(x+100,y+90));
 window.addEventListener("pointermove",e=>{const now=performance.now(),d=Math.hypot(e.clientX-(x+55),e.clientY-(y+55));if(d<85&&now>playUntil)play(e.clientX,e.clientY);else if(d<205&&now>playUntil&&mode!=="peek"&&now>next-900&&now>curiosityCooldown){curiosityCooldown=now+2100;lastInteraction=now;mode="curious";travelTarget=null;peekAt=0;tx=clamp(e.clientX-80,8,innerWidth-125);ty=clamp(e.clientY-105,55,innerHeight-125);next=now+1750;mood("curious",now,1500);}},{passive:true});
 window.addEventListener("scroll",()=>{const now=performance.now(),d=scrollY-lastScroll;lastScroll=scrollY;idle=now;lastInteraction=now;if(Math.abs(d)>30&&now>playUntil&&Math.random()<.08){mode="surf";next=now+1400;tx=clamp(x+rand(-140,140),8,innerWidth-125);ty=clamp(y+(d>0?-95:95),55,innerHeight-125);mood("excited",now,1300);}},{passive:true});
-window.addEventListener("resize",()=>{next=0;});
+window.addEventListener("resize",()=>{next=0;travelTarget=null;peekAt=0;});
 document.addEventListener("visibilitychange",()=>{last=performance.now();prevX=x;prevY=y;});
 choose(performance.now());requestAnimationFrame(animate);
 })();
