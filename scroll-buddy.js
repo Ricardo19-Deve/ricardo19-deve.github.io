@@ -18,13 +18,27 @@ function choose(now){
   travelTarget=target;
   const r=target.getBoundingClientRect();
   const side=Math.random()<.5?-1:1;travelSide=side;
-  tx=clamp(side<0?r.left-70:r.right-80,4,Math.max(4,w-120));
+  tx=clamp(side<0?r.left-30:r.right-110,4,Math.max(4,w-120));
   ty=clamp(r.top+Math.min(110,r.height*.4)-55,55,Math.max(55,h-125));
   mode="peek";front=false;peekRevealed=false;peekAt=now+rand(1700,2900);mood("peek",now,3200);
  }else{
   tx=rand(8,Math.max(9,w-130));ty=rand(65,Math.max(66,h-160));front=Math.random()<.65;mood("happy",now,1700);
  }
  layer.classList.toggle("in-front",front);
+ updateOcclusion();
+}
+// Cut a real rectangular opening in the mascot layer while M is behind a card.
+// This avoids relying on the page's many independent stacking contexts.
+function updateOcclusion(){
+ if(!travelTarget||!travelTarget.isConnected||front||mode!=="peek"){
+  layer.style.clipPath="";return;
+ }
+ const r=travelTarget.getBoundingClientRect();
+ const left=clamp(r.left,0,innerWidth),right=clamp(r.right,0,innerWidth);
+ const top=clamp(r.top,0,innerHeight),bottom=clamp(r.bottom,0,innerHeight);
+ if(right-left<8||bottom-top<8){layer.style.clipPath="";return;}
+ const w=innerWidth,h=innerHeight;
+ layer.style.clipPath=`polygon(evenodd, 0px 0px, ${w}px 0px, ${w}px ${h}px, 0px ${h}px, 0px 0px, ${left}px ${top}px, ${left}px ${bottom}px, ${right}px ${bottom}px, ${right}px ${top}px, ${left}px ${top}px)`;
 }
 function animateTail(dt,px,py){
  const h=clamp(dt,.008,.033),dx=px-prevX,dy=py-prevY;prevX=px;prevY=py;
@@ -47,14 +61,14 @@ function animate(now){
     const r=travelTarget.getBoundingClientRect();
     if(r.bottom<40||r.top>innerHeight-40){travelTarget=null;next=0;}
     else {
-      const edge=travelSide<0?r.left-70:r.right-80;
+      const edge=travelSide<0?r.left-30:r.right-110;
       tx=clamp(edge,4,Math.max(4,innerWidth-120));
       ty=clamp(r.top+Math.min(110,r.height*.4)-55,55,Math.max(55,innerHeight-125));
     }
    }
    if(mode==="peek"&&peekAt&&now>peekAt&&Math.hypot(tx-x,ty-y)<70){
     peekAt=0;peekRevealed=true;front=true;layer.classList.add("in-front");
-    tx=clamp(tx+(travelSide<0?30:-30),5,Math.max(5,innerWidth-125));
+    tx=clamp(tx+(travelSide<0?-46:46),5,Math.max(5,innerWidth-125));
     ty=clamp(ty-18,55,Math.max(55,innerHeight-125));mood("curious",now,1300);
    }
    if(now>next&&now>playUntil)choose(now);
@@ -88,6 +102,7 @@ function animate(now){
   bodyBob+=bodyBobVelocity*step;
   const bob=bodyBob,tilt=bodyTilt;
   mascot.style.transform=`translate3d(${x.toFixed(1)}px,${(y+bob).toFixed(1)}px,0) rotate(${tilt.toFixed(1)}deg)`;
+  updateOcclusion();
   animateTail(dt,x,y+bob);
   const energy=now<playUntil?3.4:mode==="rest"?.7:mode==="peek"?1.25:1.65;
   parts["arm-left"].style.transform=`rotate(${(-13+Math.sin(clock*energy+1)*11+clamp(-vy*.025,-5,5)).toFixed(1)}deg)`;
