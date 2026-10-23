@@ -60,7 +60,7 @@ function animate(now){
    if(now>next&&now>playUntil)choose(now);
    if(mode==="peek"&&travelTarget&&!travelTarget.isConnected){travelTarget=null;next=0;}
    if(now>emotionUntil&&emotion!=="calm")mood("calm",now,3500);
-   if(now-idle>7500&&now-knocked>21000&&now>playUntil){knocked=now;idle=now;tap.hidden=false;mascot.classList.add("knocking");setTimeout(()=>{tap.hidden=true;mascot.classList.remove("knocking");},1300);}
+   if(now-idle>11000&&now-knocked>35000&&now>playUntil&&mode!=="peek"){knocked=now;idle=now;tap.hidden=false;mascot.classList.add("knocking");setTimeout(()=>{tap.hidden=true;mascot.classList.remove("knocking");},1300);}
    // Critically damped steering: speed tapers as M approaches a destination.
    const dx=tx-x,dy=ty-y,distance=Math.hypot(dx,dy);
    const maxSpeed=mode==="rest"?45:mode==="peek"?95:mode==="play"?270:155;
