@@ -6,16 +6,18 @@ document.body.appendChild(layer);
 const mascot=layer.querySelector(".mascot-creature"),svg=mascot.querySelector("svg"),tail=mascot.querySelector(".tail-stroke"),tip=mascot.querySelector(".tail-tip"),tap=layer.querySelector(".mascot-tap");
 const parts=Object.fromEntries(["arm-left","arm-right","leg-left","leg-right","ear-left","ear-right","eyes"].map(k=>[k,svg.querySelector("."+k)]));
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),rand=(a,b)=>a+Math.random()*(b-a);
-let x=innerWidth*.65,y=innerHeight*.4,vx=0,vy=0,tx=x,ty=y,clock=0,last=0,next=0,mode="swim",modeUntil=0,playUntil=0,idle=performance.now(),knocked=0,tailX=43,tailY=33,tailVX=0,tailVY=0,prevX=x,prevY=y,front=false,active=true,emotion="curious",emotionUntil=0,lastScroll=scrollY,peekAt=0,lastInteraction=performance.now(),curiosityCooldown=0,bodyTilt=0,bodyTiltVelocity=0,bodyBob=0,bodyBobVelocity=0,blinkNext=performance.now()+rand(2400,5700),blinkUntil=0;
+let x=innerWidth*.65,y=innerHeight*.4,vx=0,vy=0,tx=x,ty=y,clock=0,last=0,next=0,mode="swim",modeUntil=0,playUntil=0,idle=performance.now(),knocked=0,tailX=43,tailY=33,tailVX=0,tailVY=0,prevX=x,prevY=y,front=false,active=true,emotion="curious",emotionUntil=0,lastScroll=scrollY,peekAt=0,lastInteraction=performance.now(),curiosityCooldown=0,travelTarget=null,travelSide=1,bodyTilt=0,bodyTiltVelocity=0,bodyBob=0,bodyBobVelocity=0,blinkNext=performance.now()+rand(2400,5700),blinkUntil=0;
 function cards(){return Array.from(document.querySelectorAll(".card,.role,.cert,.about-tile,.about-statement,.case-teaser,.hero-visual,.game-shot")).filter(e=>{const r=e.getBoundingClientRect();return r.width>100&&r.height>75&&r.bottom>100&&r.top<innerHeight-100;});}
 function mood(name,now,duration=1600){emotion=name;emotionUntil=now+duration;mascot.dataset.mood=name;}
 function choose(now){
  const w=innerWidth,h=innerHeight,visible=cards();
- mode="swim";modeUntil=now+rand(3300,6100);next=modeUntil;
+ mode="swim";travelTarget=null;modeUntil=now+rand(3300,6100);next=modeUntil;
  if(now-lastInteraction>17000&&Math.random()<.3){mode="rest";next=now+rand(2600,4300);tx=clamp(x+rand(-35,35),8,Math.max(8,w-120));ty=clamp(y+rand(-25,25),55,Math.max(55,h-125));mood("sleepy",now,3500);return;}
  if(visible.length&&Math.random()<.55){
-  const r=visible[Math.floor(Math.random()*visible.length)].getBoundingClientRect();
-  const side=Math.random()<.5?-1:1;
+  const target=visible[Math.floor(Math.random()*visible.length)];
+  travelTarget=target;
+  const r=target.getBoundingClientRect();
+  const side=Math.random()<.5?-1:1;travelSide=side;
   tx=clamp(side<0?r.left-70:r.right-80,4,Math.max(4,w-120));
   ty=clamp(r.top+Math.min(110,r.height*.4)-55,55,Math.max(55,h-125));
   mode="peek";front=false;peekAt=now+rand(1400,2400);mood("peek",now,3000);
@@ -27,8 +29,8 @@ function choose(now){
 function animateTail(dt,px,py){
  const h=clamp(dt,.008,.033),dx=px-prevX,dy=py-prevY;prevX=px;prevY=py;
  // Tail follows actual body velocity with bounded lag; never stretches.
- const wantedX=clamp(38-dx*5+Math.sin(clock*1.35)*9,-22,60);
- const wantedY=clamp(32-dy*5+Math.cos(clock*1.15)*6,12,62);
+ const wantedX=clamp(38-dx*4.3+Math.sin(clock*1.2)*8,-22,60);
+ const wantedY=clamp(32-dy*4.3+Math.cos(clock*1.1)*6,12,62);
  tailVX+=(wantedX-tailX)*26*h;tailVY+=(wantedY-tailY)*26*h;
  tailVX*=Math.exp(-10*h);tailVY*=Math.exp(-10*h);
  tailX=clamp(tailX+tailVX*h,-38,64);tailY=clamp(tailY+tailVY*h,9,68);
@@ -41,7 +43,20 @@ function animate(now){
  const dt=Math.min(.04,(now-(last||now))/1000);last=now;clock+=dt;
  if(!document.hidden){
   if(!reduce){
-   if(mode==="peek"&&peekAt&&now>peekAt){peekAt=0;front=true;layer.classList.add("in-front");tx=clamp(tx+rand(-24,24),5,Math.max(5,innerWidth-125));ty=clamp(ty-25,55,Math.max(55,innerHeight-125));mood("curious",now,1300);}
+   if(mode==="peek"&&travelTarget){
+    const r=travelTarget.getBoundingClientRect();
+    if(r.bottom<40||r.top>innerHeight-40){travelTarget=null;next=0;}
+    else {
+      const edge=travelSide<0?r.left-70:r.right-80;
+      tx=clamp(edge,4,Math.max(4,innerWidth-120));
+      ty=clamp(r.top+Math.min(110,r.height*.4)-55,55,Math.max(55,innerHeight-125));
+    }
+   }
+   if(mode==="peek"&&peekAt&&now>peekAt){
+    peekAt=0;front=true;layer.classList.add("in-front");
+    tx=clamp(tx+(travelSide<0?-22:22),5,Math.max(5,innerWidth-125));
+    ty=clamp(ty-18,55,Math.max(55,innerHeight-125));mood("curious",now,1300);
+   }
    if(now>next&&now>playUntil)choose(now);
    if(now>emotionUntil&&emotion!=="calm")mood("calm",now,3500);
    if(now-idle>7500&&now-knocked>21000&&now>playUntil){knocked=now;idle=now;tap.hidden=false;mascot.classList.add("knocking");setTimeout(()=>{tap.hidden=true;mascot.classList.remove("knocking");},1300);}
@@ -49,8 +64,10 @@ function animate(now){
    const dx=tx-x,dy=ty-y,distance=Math.hypot(dx,dy);
    const maxSpeed=mode==="rest"?45:mode==="peek"?95:mode==="play"?270:155;
    const desiredSpeed=Math.min(maxSpeed,distance*(mode==="play"?2.7:1.55));
-   const desiredVX=distance>1?dx/distance*desiredSpeed:0;
-   const desiredVY=distance>1?dy/distance*desiredSpeed:0;
+   // A gentle curved approach makes exploration look like swimming, not a straight line.
+   const curve=mode==="swim"&&distance>85?Math.sin(clock*.65)*Math.min(22,distance*.07):0;
+   const desiredVX=distance>1?dx/distance*desiredSpeed+(-dy/distance)*curve:0;
+   const desiredVY=distance>1?dy/distance*desiredSpeed+(dx/distance)*curve:0;
    const responsiveness=1-Math.exp(-(mode==="play"?4.8:mode==="rest"?1.5:2.8)*dt);
    vx+=(desiredVX-vx)*responsiveness;vy+=(desiredVY-vy)*responsiveness;
    x=clamp(x+vx*dt,0,Math.max(0,innerWidth-120));
