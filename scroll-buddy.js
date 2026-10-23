@@ -26,8 +26,9 @@ function choose(now){
 }
 function animateTail(dt,px,py){
  const h=clamp(dt,.008,.033),dx=px-prevX,dy=py-prevY;prevX=px;prevY=py;
- const wantedX=clamp(38-dx*7+Math.sin(clock*1.8)*12,-35,60);
- const wantedY=clamp(32-dy*7+Math.cos(clock*1.5)*8,10,65);
+ // Tail follows actual body velocity with bounded lag; never stretches.
+ const wantedX=clamp(38-dx*5+Math.sin(clock*1.35)*9,-22,60);
+ const wantedY=clamp(32-dy*5+Math.cos(clock*1.15)*6,12,62);
  tailVX+=(wantedX-tailX)*26*h;tailVY+=(wantedY-tailY)*26*h;
  tailVX*=Math.exp(-10*h);tailVY*=Math.exp(-10*h);
  tailX=clamp(tailX+tailVX*h,-38,64);tailY=clamp(tailY+tailVY*h,9,68);
@@ -44,22 +45,28 @@ function animate(now){
    if(now>next&&now>playUntil)choose(now);
    if(now>emotionUntil&&emotion!=="calm")mood("calm",now,3500);
    if(now-idle>7500&&now-knocked>21000&&now>playUntil){knocked=now;idle=now;tap.hidden=false;mascot.classList.add("knocking");setTimeout(()=>{tap.hidden=true;mascot.classList.remove("knocking");},1300);}
-   const k=mode==="rest"?1.1:mode==="peek"?2.4:mode==="play"?5:3.3,drag=Math.exp(-2.65*dt);
-   vx=(vx+(tx-x)*k*dt)*drag;vy=(vy+(ty-y)*k*dt)*drag;
-   const speed=Math.hypot(vx,vy),cap=now<playUntil?330:220;
-   if(speed>cap){vx*=cap/speed;vy*=cap/speed;}
+   // Critically damped steering: speed tapers as M approaches a destination.
+   const dx=tx-x,dy=ty-y,distance=Math.hypot(dx,dy);
+   const maxSpeed=mode==="rest"?45:mode==="peek"?95:mode==="play"?270:155;
+   const desiredSpeed=Math.min(maxSpeed,distance*(mode==="play"?2.7:1.55));
+   const desiredVX=distance>1?dx/distance*desiredSpeed:0;
+   const desiredVY=distance>1?dy/distance*desiredSpeed:0;
+   const responsiveness=1-Math.exp(-(mode==="play"?4.8:mode==="rest"?1.5:2.8)*dt);
+   vx+=(desiredVX-vx)*responsiveness;vy+=(desiredVY-vy)*responsiveness;
    x=clamp(x+vx*dt,0,Math.max(0,innerWidth-120));
    y=clamp(y+vy*dt,42,Math.max(42,innerHeight-125));
+   if((x===0&&vx<0)||(x===innerWidth-120&&vx>0))vx=0;
+   if((y===42&&vy<0)||(y===innerHeight-125&&vy>0))vy=0;
   }else{x=clamp(innerWidth-115,0,innerWidth);y=clamp(innerHeight-145,50,innerHeight);}
-  const bob=reduce?0:Math.sin(clock*(mode==="play"?3.4:2.2))*(mode==="play"?7:4);
-  const tilt=reduce?0:clamp(vx*.09+Math.sin(clock*.9)*2,-17,17);
+  const bob=reduce?0:Math.sin(clock*(mode==="play"?2.8:1.7))*(mode==="play"?5:3);
+  const tilt=reduce?0:clamp(vx*.075+Math.sin(clock*.7)*1.4,-14,14);
   mascot.style.transform=`translate3d(${x.toFixed(1)}px,${(y+bob).toFixed(1)}px,0) rotate(${tilt.toFixed(1)}deg)`;
   animateTail(dt,x,y+bob);
-  const energy=now<playUntil?4.3:mode==="rest"?.7:mode==="peek"?1.35:2.1;
+  const energy=now<playUntil?3.4:mode==="rest"?.7:mode==="peek"?1.25:1.65;
   parts["arm-left"].style.transform=`rotate(${(-17+Math.sin(clock*energy+1)*15).toFixed(1)}deg)`;
-  parts["arm-right"].style.transform=`rotate(${(17-Math.sin(clock*energy+2)*23).toFixed(1)}deg)`;
+  parts["arm-right"].style.transform=`rotate(${(17-Math.sin(clock*energy+2)*14).toFixed(1)}deg)`;
   parts["leg-left"].style.transform=`rotate(${(Math.sin(clock*energy+2)*10).toFixed(1)}deg)`;
-  parts["leg-right"].style.transform=`rotate(${(-Math.sin(clock*energy+3)*17).toFixed(1)}deg)`;
+  parts["leg-right"].style.transform=`rotate(${(-Math.sin(clock*energy+3)*10).toFixed(1)}deg)`;
   parts["ear-left"].style.transform=`rotate(${(Math.sin(clock*1.7)*6).toFixed(1)}deg)`;
   parts["ear-right"].style.transform=`rotate(${(-Math.sin(clock*1.7+.9)*6).toFixed(1)}deg)`;
   parts.eyes.style.transform=(!reduce&&Math.sin(clock*.9)>.997)?"scaleY(.13)":"scaleY(1)";
