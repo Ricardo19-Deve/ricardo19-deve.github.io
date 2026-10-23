@@ -6,7 +6,7 @@ document.body.appendChild(layer);
 const mascot=layer.querySelector(".mascot-creature"),svg=mascot.querySelector("svg"),tail=mascot.querySelector(".tail-stroke"),tip=mascot.querySelector(".tail-tip"),tap=layer.querySelector(".mascot-tap");
 const parts=Object.fromEntries(["arm-left","arm-right","leg-left","leg-right","ear-left","ear-right","eyes"].map(k=>[k,svg.querySelector("."+k)]));
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),rand=(a,b)=>a+Math.random()*(b-a);
-let x=innerWidth*.65,y=innerHeight*.4,vx=0,vy=0,tx=x,ty=y,clock=0,last=0,next=0,mode="swim",modeUntil=0,playUntil=0,idle=performance.now(),knocked=0,tailX=43,tailY=33,tailVX=0,tailVY=0,prevX=x,prevY=y,front=false,active=true,emotion="curious",emotionUntil=0,lastScroll=scrollY,peekAt=0,lastInteraction=performance.now(),curiosityCooldown=0;
+let x=innerWidth*.65,y=innerHeight*.4,vx=0,vy=0,tx=x,ty=y,clock=0,last=0,next=0,mode="swim",modeUntil=0,playUntil=0,idle=performance.now(),knocked=0,tailX=43,tailY=33,tailVX=0,tailVY=0,prevX=x,prevY=y,front=false,active=true,emotion="curious",emotionUntil=0,lastScroll=scrollY,peekAt=0,lastInteraction=performance.now(),curiosityCooldown=0,bodyTilt=0,bodyTiltVelocity=0,bodyBob=0,bodyBobVelocity=0,blinkNext=performance.now()+rand(2400,5700),blinkUntil=0;
 function cards(){return Array.from(document.querySelectorAll(".card,.role,.cert,.about-tile,.about-statement,.case-teaser,.hero-visual,.game-shot")).filter(e=>{const r=e.getBoundingClientRect();return r.width>100&&r.height>75&&r.bottom>100&&r.top<innerHeight-100;});}
 function mood(name,now,duration=1600){emotion=name;emotionUntil=now+duration;mascot.dataset.mood=name;}
 function choose(now){
@@ -58,18 +58,28 @@ function animate(now){
    if((x===0&&vx<0)||(x===innerWidth-120&&vx>0))vx=0;
    if((y===42&&vy<0)||(y===innerHeight-125&&vy>0))vy=0;
   }else{x=clamp(innerWidth-115,0,innerWidth);y=clamp(innerHeight-145,50,innerHeight);}
-  const bob=reduce?0:Math.sin(clock*(mode==="play"?2.8:1.7))*(mode==="play"?5:3);
-  const tilt=reduce?0:clamp(vx*.075+Math.sin(clock*.7)*1.4,-14,14);
+  // Body inertia is a damped spring, so the head and torso follow turns smoothly.
+  const targetTilt=reduce?0:clamp(vx*.065+Math.sin(clock*.7)*1.4,-13,13);
+  const targetBob=reduce?0:Math.sin(clock*(mode==="play"?2.7:1.6))*(mode==="play"?5:3);
+  const step=Math.max(.001,Math.min(.035,dt));
+  bodyTiltVelocity+=(targetTilt-bodyTilt)*42*step;
+  bodyTiltVelocity*=Math.exp(-12*step);
+  bodyTilt+=bodyTiltVelocity*step;
+  bodyBobVelocity+=(targetBob-bodyBob)*35*step;
+  bodyBobVelocity*=Math.exp(-11*step);
+  bodyBob+=bodyBobVelocity*step;
+  const bob=bodyBob,tilt=bodyTilt;
   mascot.style.transform=`translate3d(${x.toFixed(1)}px,${(y+bob).toFixed(1)}px,0) rotate(${tilt.toFixed(1)}deg)`;
   animateTail(dt,x,y+bob);
   const energy=now<playUntil?3.4:mode==="rest"?.7:mode==="peek"?1.25:1.65;
-  parts["arm-left"].style.transform=`rotate(${(-17+Math.sin(clock*energy+1)*15).toFixed(1)}deg)`;
-  parts["arm-right"].style.transform=`rotate(${(17-Math.sin(clock*energy+2)*14).toFixed(1)}deg)`;
-  parts["leg-left"].style.transform=`rotate(${(Math.sin(clock*energy+2)*10).toFixed(1)}deg)`;
-  parts["leg-right"].style.transform=`rotate(${(-Math.sin(clock*energy+3)*10).toFixed(1)}deg)`;
+  parts["arm-left"].style.transform=`rotate(${(-13+Math.sin(clock*energy+1)*11+clamp(-vy*.025,-5,5)).toFixed(1)}deg)`;
+  parts["arm-right"].style.transform=`rotate(${(13-Math.sin(clock*energy+2)*11+clamp(vy*.025,-5,5)).toFixed(1)}deg)`;
+  parts["leg-left"].style.transform=`rotate(${(Math.sin(clock*energy+2)*8+clamp(-vy*.018,-4,4)).toFixed(1)}deg)`;
+  parts["leg-right"].style.transform=`rotate(${(-Math.sin(clock*energy+3)*8+clamp(-vy*.018,-4,4)).toFixed(1)}deg)`;
   parts["ear-left"].style.transform=`rotate(${(Math.sin(clock*1.7)*6).toFixed(1)}deg)`;
   parts["ear-right"].style.transform=`rotate(${(-Math.sin(clock*1.7+.9)*6).toFixed(1)}deg)`;
-  parts.eyes.style.transform=(!reduce&&Math.sin(clock*.9)>.997)?"scaleY(.13)":"scaleY(1)";
+  if(!reduce&&now>blinkNext){blinkUntil=now+130;blinkNext=now+rand(2300,6000);}
+  parts.eyes.style.transform=now<blinkUntil?"scaleY(.13)":"scaleY(1)";
  }
  requestAnimationFrame(animate);
 }
@@ -84,6 +94,6 @@ mascot.addEventListener("click",()=>play(x+100,y+90));
 window.addEventListener("pointermove",e=>{const now=performance.now(),d=Math.hypot(e.clientX-(x+55),e.clientY-(y+55));if(d<85&&now>playUntil)play(e.clientX,e.clientY);else if(d<205&&now>playUntil&&mode!=="peek"&&now>next-900&&now>curiosityCooldown){curiosityCooldown=now+2100;lastInteraction=now;mode="curious";tx=clamp(e.clientX-80,8,innerWidth-125);ty=clamp(e.clientY-105,55,innerHeight-125);next=now+1750;mood("curious",now,1500);}},{passive:true});
 window.addEventListener("scroll",()=>{const now=performance.now(),d=scrollY-lastScroll;lastScroll=scrollY;idle=now;lastInteraction=now;if(Math.abs(d)>30&&now>playUntil&&Math.random()<.08){mode="surf";next=now+1400;tx=clamp(x+rand(-140,140),8,innerWidth-125);ty=clamp(y+(d>0?-95:95),55,innerHeight-125);mood("excited",now,1300);}},{passive:true});
 window.addEventListener("resize",()=>{next=0;});
-document.addEventListener("visibilitychange",()=>{last=performance.now();});
+document.addEventListener("visibilitychange",()=>{last=performance.now();prevX=x;prevY=y;});
 choose(performance.now());requestAnimationFrame(animate);
 })();
