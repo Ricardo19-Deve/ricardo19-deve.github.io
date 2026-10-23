@@ -56,3 +56,12 @@
 @keyframes mascot-tail-wag{from{transform:rotate(-16deg)}to{transform:rotate(18deg)}}
 @keyframes mascot-spark{0%,100%{opacity:.2;transform:scale(.7)}50%{opacity:1;transform:scale(1.25)}}
 @media(prefers-reduced-motion:reduce){.mascot-tail,.mascot-sparkle{animation:none}}
+
+/* V8.1: single continuous tail, attached behind the body */
+.mascot-tail{display:none!important}
+.mascot-tail-svg{position:absolute;left:0;top:0;width:112px;height:105px;overflow:visible;z-index:-1;transform-origin:42px 47px;animation:mascot-tail-svg-wave 2.8s ease-in-out infinite alternate;pointer-events:none}
+.mascot-shell{z-index:2}
+.mascot-ear{z-index:1}
+.mascot-feet{position:relative;z-index:3}
+@keyframes mascot-tail-svg-wave{from{transform:rotate(-7deg)}to{transform:rotate(8deg)}}
+@media(prefers-reduced-motion:reduce){.mascot-tail-svg{animation:none}}
