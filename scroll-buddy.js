@@ -6,12 +6,12 @@ document.body.appendChild(layer);
 const mascot=layer.querySelector(".mascot-creature"),svg=mascot.querySelector("svg"),tail=mascot.querySelector(".tail-stroke"),tip=mascot.querySelector(".tail-tip"),tap=layer.querySelector(".mascot-tap");
 const parts=Object.fromEntries(["arm-left","arm-right","leg-left","leg-right","ear-left","ear-right","eyes"].map(k=>[k,svg.querySelector("."+k)]));
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),rand=(a,b)=>a+Math.random()*(b-a);
-let x=innerWidth*.65,y=innerHeight*.4,vx=0,vy=0,tx=x,ty=y,clock=0,last=0,next=0,mode="swim",modeUntil=0,playUntil=0,idle=performance.now(),knocked=0,tailX=43,tailY=33,tailVX=0,tailVY=0,prevX=x,prevY=y,front=false,active=true,emotion="curious",emotionUntil=0,lastScroll=scrollY,peekAt=0,lastInteraction=performance.now(),curiosityCooldown=0,travelTarget=null,travelSide=1,bodyTilt=0,bodyTiltVelocity=0,bodyBob=0,bodyBobVelocity=0,blinkNext=performance.now()+rand(2400,5700),blinkUntil=0;
+let x=innerWidth*.65,y=innerHeight*.4,vx=0,vy=0,tx=x,ty=y,clock=0,last=0,next=0,mode="swim",modeUntil=0,playUntil=0,idle=performance.now(),knocked=0,tailX=43,tailY=33,tailVX=0,tailVY=0,prevX=x,prevY=y,front=false,active=true,emotion="curious",emotionUntil=0,lastScroll=scrollY,peekAt=0,lastInteraction=performance.now(),curiosityCooldown=0,travelTarget=null,travelSide=1,peekRevealed=false,bodyTilt=0,bodyTiltVelocity=0,bodyBob=0,bodyBobVelocity=0,blinkNext=performance.now()+rand(2400,5700),blinkUntil=0;
 function cards(){return Array.from(document.querySelectorAll(".card,.role,.cert,.about-tile,.about-statement,.case-teaser,.hero-visual,.game-shot")).filter(e=>{const r=e.getBoundingClientRect();return r.width>100&&r.height>75&&r.bottom>100&&r.top<innerHeight-100;});}
 function mood(name,now,duration=1600){emotion=name;emotionUntil=now+duration;mascot.dataset.mood=name;}
 function choose(now){
  const w=innerWidth,h=innerHeight,visible=cards();
- mode="swim";travelTarget=null;modeUntil=now+rand(3300,6100);next=modeUntil;
+ mode="swim";travelTarget=null;peekRevealed=false;peekAt=0;modeUntil=now+rand(3300,6100);next=modeUntil;
  if(now-lastInteraction>17000&&Math.random()<.3){mode="rest";next=now+rand(2600,4300);tx=clamp(x+rand(-35,35),8,Math.max(8,w-120));ty=clamp(y+rand(-25,25),55,Math.max(55,h-125));mood("sleepy",now,3500);return;}
  if(visible.length&&Math.random()<.55){
   const target=visible[Math.floor(Math.random()*visible.length)];
@@ -20,7 +20,7 @@ function choose(now){
   const side=Math.random()<.5?-1:1;travelSide=side;
   tx=clamp(side<0?r.left-70:r.right-80,4,Math.max(4,w-120));
   ty=clamp(r.top+Math.min(110,r.height*.4)-55,55,Math.max(55,h-125));
-  mode="peek";front=false;peekAt=now+rand(1400,2400);mood("peek",now,3000);
+  mode="peek";front=false;peekRevealed=false;peekAt=now+rand(1400,2400);mood("peek",now,3000);
  }else{
   tx=rand(8,Math.max(9,w-130));ty=rand(65,Math.max(66,h-160));front=Math.random()<.65;mood("happy",now,1700);
  }
@@ -43,7 +43,7 @@ function animate(now){
  const dt=Math.min(.04,(now-(last||now))/1000);last=now;clock+=dt;
  if(!document.hidden){
   if(!reduce){
-   if(mode==="peek"&&travelTarget){
+   if(mode==="peek"&&travelTarget&&!peekRevealed){
     const r=travelTarget.getBoundingClientRect();
     if(r.bottom<40||r.top>innerHeight-40){travelTarget=null;next=0;}
     else {
@@ -53,11 +53,12 @@ function animate(now){
     }
    }
    if(mode==="peek"&&peekAt&&now>peekAt){
-    peekAt=0;front=true;layer.classList.add("in-front");
+    peekAt=0;peekRevealed=true;front=true;layer.classList.add("in-front");
     tx=clamp(tx+(travelSide<0?-22:22),5,Math.max(5,innerWidth-125));
     ty=clamp(ty-18,55,Math.max(55,innerHeight-125));mood("curious",now,1300);
    }
    if(now>next&&now>playUntil)choose(now);
+   if(mode==="peek"&&travelTarget&&!travelTarget.isConnected){travelTarget=null;next=0;}
    if(now>emotionUntil&&emotion!=="calm")mood("calm",now,3500);
    if(now-idle>7500&&now-knocked>21000&&now>playUntil){knocked=now;idle=now;tap.hidden=false;mascot.classList.add("knocking");setTimeout(()=>{tap.hidden=true;mascot.classList.remove("knocking");},1300);}
    // Critically damped steering: speed tapers as M approaches a destination.
@@ -102,13 +103,13 @@ function animate(now){
 }
 function play(px,py){
  if(reduce)return;
- idle=performance.now();lastInteraction=idle;playUntil=idle+1800;mode="play";next=playUntil;mood("excited",idle,1900);
+ idle=performance.now();lastInteraction=idle;travelTarget=null;peekAt=0;playUntil=idle+1800;mode="play";next=playUntil;mood("excited",idle,1900);
  tx=clamp(x+(x-px>0?1:-1)*rand(90,200),5,Math.max(5,innerWidth-125));
  ty=clamp(y+rand(-140,140),50,Math.max(50,innerHeight-125));
  front=true;layer.classList.add("in-front");
 }
 mascot.addEventListener("click",()=>play(x+100,y+90));
-window.addEventListener("pointermove",e=>{const now=performance.now(),d=Math.hypot(e.clientX-(x+55),e.clientY-(y+55));if(d<85&&now>playUntil)play(e.clientX,e.clientY);else if(d<205&&now>playUntil&&mode!=="peek"&&now>next-900&&now>curiosityCooldown){curiosityCooldown=now+2100;lastInteraction=now;mode="curious";tx=clamp(e.clientX-80,8,innerWidth-125);ty=clamp(e.clientY-105,55,innerHeight-125);next=now+1750;mood("curious",now,1500);}},{passive:true});
+window.addEventListener("pointermove",e=>{const now=performance.now(),d=Math.hypot(e.clientX-(x+55),e.clientY-(y+55));if(d<85&&now>playUntil)play(e.clientX,e.clientY);else if(d<205&&now>playUntil&&mode!=="peek"&&now>next-900&&now>curiosityCooldown){curiosityCooldown=now+2100;lastInteraction=now;mode="curious";travelTarget=null;peekAt=0;tx=clamp(e.clientX-80,8,innerWidth-125);ty=clamp(e.clientY-105,55,innerHeight-125);next=now+1750;mood("curious",now,1500);}},{passive:true});
 window.addEventListener("scroll",()=>{const now=performance.now(),d=scrollY-lastScroll;lastScroll=scrollY;idle=now;lastInteraction=now;if(Math.abs(d)>30&&now>playUntil&&Math.random()<.08){mode="surf";next=now+1400;tx=clamp(x+rand(-140,140),8,innerWidth-125);ty=clamp(y+(d>0?-95:95),55,innerHeight-125);mood("excited",now,1300);}},{passive:true});
 window.addEventListener("resize",()=>{next=0;});
 document.addEventListener("visibilitychange",()=>{last=performance.now();prevX=x;prevY=y;});
