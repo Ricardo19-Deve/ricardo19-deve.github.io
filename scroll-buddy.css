@@ -1,21 +1,18 @@
-/* Scroll companion — decorative, accessible, mobile-safe */
-.scroll-buddy{position:fixed;right:22px;bottom:24px;z-index:35;display:flex;align-items:flex-end;gap:10px;filter:drop-shadow(0 12px 24px #0009);transition:opacity .25s,transform .25s}
-.scroll-buddy[hidden]{display:none!important}
-.buddy-bubble{min-width:142px;max-width:192px;padding:11px 13px;border:1px solid #75cfff55;border-radius:15px;background:#102339f2;backdrop-filter:blur(16px);box-shadow:inset 0 1px #ffffff18;color:#dcefff;font-size:12px;line-height:1.35}
-.buddy-bubble small{display:block;margin-bottom:4px;color:#78d8ff;font-size:9px;letter-spacing:1.6px;text-transform:uppercase;font-weight:700}
-.buddy-bubble strong{display:block;font-size:13px}
-.buddy-bubble span{display:block;margin-top:4px;color:#a9bed2}
-.buddy-close{position:absolute;right:-5px;top:-14px;width:28px;height:28px;border-radius:50%;border:1px solid #7898b3;background:#102339;color:#e2f2ff;cursor:pointer;font-size:18px;line-height:1}
-.buddy-character{position:relative;width:68px;height:76px;padding:0;border:0;background:none;cursor:pointer;flex-shrink:0;transform-origin:center bottom;animation:buddy-float 3.8s ease-in-out infinite}
-.buddy-body{position:absolute;left:6px;top:10px;width:56px;height:56px;border:1.5px solid #a4edff;border-radius:22px 22px 25px 25px;background:linear-gradient(145deg,#8de7ff 0%,#387eb4 43%,#4b4b9e 100%);box-shadow:inset 0 5px 9px #ffffff55,0 0 22px #6bd5ff44}
-.buddy-body:before,.buddy-body:after{content:"";position:absolute;bottom:-7px;width:13px;height:10px;border-radius:5px;background:#5e93cf}
-.buddy-body:before{left:9px}.buddy-body:after{right:9px}
-.buddy-eye{position:absolute;top:21px;width:7px;height:9px;background:#061d34;border-radius:50%;box-shadow:0 0 0 2px #c7faff55}
-.buddy-eye.left{left:16px}.buddy-eye.right{right:16px}
-.buddy-mouth{position:absolute;left:24px;top:32px;width:9px;height:5px;border:2px solid #0d3350;border-top:0;border-radius:0 0 10px 10px}
-.buddy-antenna{position:absolute;left:32px;top:1px;width:2px;height:13px;background:#a5eaff}.buddy-antenna:before{content:"";position:absolute;left:-4px;top:-6px;width:10px;height:10px;border-radius:50%;background:#8df8d9;box-shadow:0 0 13px #8df8d9}
-.scroll-buddy.is-moving .buddy-character{transform:rotate(-7deg)}
-.buddy-character:focus-visible,.buddy-close:focus-visible{outline:3px solid #fff;outline-offset:4px}
-@keyframes buddy-float{0%,100%{translate:0 0}50%{translate:0 -6px}}
-@media(max-width:720px){.scroll-buddy{right:10px;bottom:calc(14px + env(safe-area-inset-bottom));gap:6px}.buddy-character{width:53px;height:61px;scale:.82;transform-origin:right bottom}.buddy-bubble{min-width:112px;max-width:142px;padding:9px 10px;font-size:11px}.buddy-bubble strong{font-size:12px}}
-@media(prefers-reduced-motion:reduce){.buddy-character{animation:none}.scroll-buddy{transition:none}}
+/* V7: free-roaming companion, underneath the page's interactive cards */
+.mascot-world{position:fixed;inset:0;z-index:2;pointer-events:none;overflow:hidden}
+.mascot-traveler{position:absolute;left:0;top:0;width:70px;height:80px;transform-origin:35px 43px;will-change:transform;filter:drop-shadow(0 8px 13px #44bbff44)}
+.mascot-shell{position:absolute;left:8px;top:15px;width:55px;height:54px;border-radius:23px 23px 26px 26px;border:1.5px solid #a6edff;background:linear-gradient(145deg,#a4f4ff,#4389c1 50%,#6256ae);box-shadow:inset 0 5px 9px #ffffff66,0 0 16px #75dbff55;animation:mascot-breathe 2.5s ease-in-out infinite}
+.mascot-eye{position:absolute;top:21px;width:7px;height:10px;background:#10243c;border-radius:50%;box-shadow:0 0 0 2px #ffffff40}.eye-left{left:15px}.eye-right{right:15px}
+.mascot-smile{position:absolute;left:23px;top:32px;width:10px;height:6px;border:2px solid #183b57;border-top:0;border-radius:0 0 12px 12px}
+.mascot-antenna{position:absolute;left:34px;top:5px;height:14px;width:2px;background:#a4f7eb}.mascot-antenna:before{content:"";position:absolute;top:-5px;left:-4px;width:10px;height:10px;background:#84f9d8;border-radius:50%;box-shadow:0 0 12px #78ffdd}
+.mascot-feet:before,.mascot-feet:after{content:"";position:absolute;top:65px;width:14px;height:11px;background:#5391cc;border-radius:6px}.mascot-feet:before{left:17px}.mascot-feet:after{right:16px}
+.mascot-interact{position:absolute;left:0;top:0;width:72px;height:82px;border:0;background:transparent;pointer-events:auto;cursor:pointer;will-change:transform}
+.mascot-interact:focus-visible{outline:2px solid #a6edff;outline-offset:3px}
+.mascot-info{position:absolute;min-width:165px;max-width:205px;padding:13px 14px;border-radius:16px;border:1px solid #7bd9ff66;background:#0d2038f5;color:#e5f6ff;box-shadow:0 12px 30px #0008;pointer-events:auto;font:12px/1.45 'DM Sans',sans-serif}
+.mascot-info[hidden]{display:none!important}.mascot-info small{display:block;color:#7bd9ff;letter-spacing:1.6px;font-size:9px;font-weight:700}.mascot-info strong{display:block;font-size:16px;margin-top:4px}.mascot-info span{display:block;color:#a9c5d9;margin:4px 0 10px}
+.mascot-next{background:#1b476a;color:#eaf9ff;border:1px solid #7bd9ff55;border-radius:8px;padding:7px 10px;cursor:pointer}.mascot-dismiss{position:absolute;right:6px;top:5px;background:none;border:0;color:#c5e8fa;font-size:19px;cursor:pointer}
+@keyframes mascot-breathe{0%,100%{scale:1}50%{scale:1.06}}
+/* Foreground cards mask the traveling mascot as it wanders behind them. */
+.card,.role,.cert,.about-tile,.about-statement,.case-teaser,.glass-nav,.hero-visual,.expertise article{position:relative;z-index:3}
+@media(max-width:720px){.mascot-traveler{scale:.75;transform-origin:top left}.mascot-interact{width:54px;height:62px}.mascot-info{max-width:155px;min-width:140px}}
+@media(prefers-reduced-motion:reduce){.mascot-shell{animation:none}}
