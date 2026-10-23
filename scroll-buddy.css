@@ -38,3 +38,21 @@
 .mascot-traveler.mascot-peek .mascot-shell{animation:mascot-peek .28s ease-in-out 3 alternate}
 @keyframes mascot-peek{from{transform:rotate(-13deg) scale(.92)}to{transform:rotate(13deg) scale(1.07)}}
 @media(prefers-reduced-motion:reduce){.mascot-traveler.mascot-joy .mascot-shell,.mascot-traveler.mascot-peek .mascot-shell{animation:none}}
+
+/* V8: original playful cosmic creature — soft lilac body, ears, long tail */
+.mascot-traveler{filter:drop-shadow(0 8px 16px #a69bff66)}
+.mascot-shell{left:10px;top:18px;width:51px;height:49px;border-radius:47% 47% 48% 48%;border:1.5px solid #e8c9ff;background:radial-gradient(circle at 28% 24%,#fff0ff 0%,#edb9ff 35%,#a9a3f7 75%,#7e8ad6 100%);box-shadow:inset 0 4px 9px #ffffff99,0 0 20px #d3a6ff66}
+.mascot-ear{position:absolute;top:10px;width:21px;height:29px;border-radius:90% 12% 80% 12%;background:linear-gradient(130deg,#ffe4fa,#ad9aee);border:1px solid #eac7ff;z-index:-1}
+.mascot-ear.ear-left{left:7px;transform:rotate(-27deg)}.mascot-ear.ear-right{right:7px;transform:scaleX(-1) rotate(-27deg)}
+.mascot-eye{top:19px;width:8px;height:12px;background:#334b8b;box-shadow:inset 1px 2px #ffffff88,0 0 0 1px #9c84c8}.mascot-eye.eye-left{left:13px}.mascot-eye.eye-right{right:13px}
+.mascot-cheek{position:absolute;top:31px;width:9px;height:5px;background:#ff8fc9a8;border-radius:50%}.cheek-left{left:7px}.cheek-right{right:7px}
+.mascot-smile{left:21px;top:30px;border-color:#705a96}
+.mascot-tail{position:absolute;z-index:-2;left:45px;top:46px;width:65px;height:45px;border:8px solid #b8a0ed;border-top:0;border-left:0;border-radius:0 0 55px 0;transform-origin:4px 5px;animation:mascot-tail-wag 2.1s ease-in-out infinite alternate}
+.mascot-tail:after{content:"";position:absolute;right:-14px;bottom:-11px;width:18px;height:15px;background:#c4a7f3;border-radius:60% 50% 60% 40%}
+.mascot-feet:before,.mascot-feet:after{top:63px;background:#a69de7}
+.mascot-sparkle{position:absolute;left:-13px;top:13px;color:#d5f9ff;font-size:17px;text-shadow:0 0 10px #b9f6ff;animation:mascot-spark 2.5s ease-in-out infinite}
+.mascot-traveler.mascot-blink .mascot-eye{height:2px;top:25px}
+.mascot-traveler.mascot-peek .mascot-shell{transform:rotate(12deg)}
+@keyframes mascot-tail-wag{from{transform:rotate(-16deg)}to{transform:rotate(18deg)}}
+@keyframes mascot-spark{0%,100%{opacity:.2;transform:scale(.7)}50%{opacity:1;transform:scale(1.25)}}
+@media(prefers-reduced-motion:reduce){.mascot-tail,.mascot-sparkle{animation:none}}
