@@ -29,3 +29,12 @@
 @keyframes mascot-tap{from{transform:translateY(0) rotate(-7deg)}to{transform:translateY(-10px) rotate(8deg)}}
 @keyframes mascot-happy{from{transform:scale(1)}to{transform:scale(1.16) rotate(9deg)}}
 @media(prefers-reduced-motion:reduce){.mascot-traveler .mascot-shell{animation:none!important}}
+
+/* V7.4 — expressive moods */
+.mascot-traveler.mascot-curious .mascot-shell{box-shadow:inset 0 5px 9px #ffffff88,0 0 24px #81f8d8aa}
+.mascot-traveler.mascot-curious .mascot-eye{height:12px;transform:translateY(-2px)}
+.mascot-traveler.mascot-joy .mascot-shell{animation:mascot-happy .32s ease-in-out infinite alternate}
+.mascot-traveler.mascot-joy .mascot-smile{width:15px;height:9px;left:21px;top:30px}
+.mascot-traveler.mascot-peek .mascot-shell{animation:mascot-peek .28s ease-in-out 3 alternate}
+@keyframes mascot-peek{from{transform:rotate(-13deg) scale(.92)}to{transform:rotate(13deg) scale(1.07)}}
+@media(prefers-reduced-motion:reduce){.mascot-traveler.mascot-joy .mascot-shell,.mascot-traveler.mascot-peek .mascot-shell{animation:none}}
