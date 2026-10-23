@@ -6,18 +6,18 @@ document.body.appendChild(layer);
 const mascot=layer.querySelector(".mascot-creature"),svg=mascot.querySelector("svg"),tail=mascot.querySelector(".tail-stroke"),tip=mascot.querySelector(".tail-tip"),tap=layer.querySelector(".mascot-tap");
 const parts=Object.fromEntries(["arm-left","arm-right","leg-left","leg-right","ear-left","ear-right","eyes"].map(k=>[k,svg.querySelector("."+k)]));
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),rand=(a,b)=>a+Math.random()*(b-a);
-let x=innerWidth*.65,y=innerHeight*.4,vx=0,vy=0,tx=x,ty=y,clock=0,last=0,next=0,mode="swim",modeUntil=0,playUntil=0,idle=performance.now(),knocked=0,tailX=43,tailY=33,tailVX=0,tailVY=0,prevX=x,prevY=y,front=false,active=true,emotion="curious",emotionUntil=0,lastScroll=scrollY;
+let x=innerWidth*.65,y=innerHeight*.4,vx=0,vy=0,tx=x,ty=y,clock=0,last=0,next=0,mode="swim",modeUntil=0,playUntil=0,idle=performance.now(),knocked=0,tailX=43,tailY=33,tailVX=0,tailVY=0,prevX=x,prevY=y,front=false,active=true,emotion="curious",emotionUntil=0,lastScroll=scrollY,peekAt=0,lastInteraction=performance.now(),curiosityCooldown=0;
 function cards(){return Array.from(document.querySelectorAll(".card,.role,.cert,.about-tile,.about-statement,.case-teaser,.hero-visual,.game-shot")).filter(e=>{const r=e.getBoundingClientRect();return r.width>100&&r.height>75&&r.bottom>100&&r.top<innerHeight-100;});}
 function mood(name,now,duration=1600){emotion=name;emotionUntil=now+duration;mascot.dataset.mood=name;}
 function choose(now){
  const w=innerWidth,h=innerHeight,visible=cards();
- mode="swim";modeUntil=now+rand(2500,5000);next=modeUntil;
+ mode="swim";modeUntil=now+rand(3300,6100);next=modeUntil;
  if(visible.length&&Math.random()<.55){
   const r=visible[Math.floor(Math.random()*visible.length)].getBoundingClientRect();
   const side=Math.random()<.5?-1:1;
   tx=clamp(side<0?r.left-70:r.right-80,4,Math.max(4,w-120));
   ty=clamp(r.top+Math.min(110,r.height*.4)-55,55,Math.max(55,h-125));
-  mode="peek";front=Math.random()<.4;mood("peek",now,2400);
+  mode="peek";front=false;peekAt=now+rand(1400,2400);mood("peek",now,3000);
  }else{
   tx=rand(8,Math.max(9,w-130));ty=rand(65,Math.max(66,h-160));front=Math.random()<.65;mood("happy",now,1700);
  }
@@ -39,18 +39,19 @@ function animate(now){
  const dt=Math.min(.04,(now-(last||now))/1000);last=now;clock+=dt;
  if(!document.hidden){
   if(!reduce){
+   if(mode==="peek"&&peekAt&&now>peekAt){peekAt=0;front=true;layer.classList.add("in-front");tx=clamp(tx+rand(-24,24),5,Math.max(5,innerWidth-125));ty=clamp(ty-25,55,Math.max(55,innerHeight-125));mood("curious",now,1300);}
    if(now>next&&now>playUntil)choose(now);
    if(now>emotionUntil&&emotion!=="calm")mood("calm",now,3500);
    if(now-idle>7500&&now-knocked>21000&&now>playUntil){knocked=now;idle=now;tap.hidden=false;mascot.classList.add("knocking");setTimeout(()=>{tap.hidden=true;mascot.classList.remove("knocking");},1300);}
-   const k=mode==="peek"?2.4:3.3,drag=Math.exp(-2.65*dt);
+   const k=mode==="peek"?2.4:mode==="play"?5:3.3,drag=Math.exp(-2.65*dt);
    vx=(vx+(tx-x)*k*dt)*drag;vy=(vy+(ty-y)*k*dt)*drag;
    const speed=Math.hypot(vx,vy),cap=now<playUntil?330:220;
    if(speed>cap){vx*=cap/speed;vy*=cap/speed;}
    x=clamp(x+vx*dt,0,Math.max(0,innerWidth-120));
    y=clamp(y+vy*dt,42,Math.max(42,innerHeight-125));
   }else{x=clamp(innerWidth-115,0,innerWidth);y=clamp(innerHeight-145,50,innerHeight);}
-  const bob=reduce?0:Math.sin(clock*2.7)*5;
-  const tilt=reduce?0:clamp(vx*.09,-17,17);
+  const bob=reduce?0:Math.sin(clock*(mode==="play"?3.4:2.2))*(mode==="play"?7:4);
+  const tilt=reduce?0:clamp(vx*.09+Math.sin(clock*.9)*2,-17,17);
   mascot.style.transform=`translate3d(${x.toFixed(1)}px,${(y+bob).toFixed(1)}px,0) rotate(${tilt.toFixed(1)}deg)`;
   animateTail(dt,x,y+bob);
   const energy=now<playUntil?4.3:mode==="peek"?1.35:2.1;
@@ -66,14 +67,14 @@ function animate(now){
 }
 function play(px,py){
  if(reduce)return;
- idle=performance.now();playUntil=idle+1800;mode="play";next=playUntil;mood("excited",idle,1900);
+ idle=performance.now();lastInteraction=idle;playUntil=idle+1800;mode="play";next=playUntil;mood("excited",idle,1900);
  tx=clamp(x+(x-px>0?1:-1)*rand(90,200),5,Math.max(5,innerWidth-125));
  ty=clamp(y+rand(-140,140),50,Math.max(50,innerHeight-125));
  front=true;layer.classList.add("in-front");
 }
 mascot.addEventListener("click",()=>play(x+100,y+90));
-window.addEventListener("pointermove",e=>{const now=performance.now(),d=Math.hypot(e.clientX-(x+55),e.clientY-(y+55));if(d<85&&now>playUntil)play(e.clientX,e.clientY);else if(d<205&&now>playUntil&&mode!=="peek"&&now>next-900){mode="curious";tx=clamp(e.clientX-80,8,innerWidth-125);ty=clamp(e.clientY-105,55,innerHeight-125);next=now+1750;mood("curious",now,1500);}},{passive:true});
-window.addEventListener("scroll",()=>{const now=performance.now(),d=scrollY-lastScroll;lastScroll=scrollY;idle=now;if(Math.abs(d)>30&&now>playUntil&&Math.random()<.08){mode="surf";next=now+1400;tx=clamp(x+rand(-140,140),8,innerWidth-125);ty=clamp(y+(d>0?-95:95),55,innerHeight-125);mood("excited",now,1300);}},{passive:true});
+window.addEventListener("pointermove",e=>{const now=performance.now(),d=Math.hypot(e.clientX-(x+55),e.clientY-(y+55));if(d<85&&now>playUntil)play(e.clientX,e.clientY);else if(d<205&&now>playUntil&&mode!=="peek"&&now>next-900&&now>curiosityCooldown){curiosityCooldown=now+2100;lastInteraction=now;mode="curious";tx=clamp(e.clientX-80,8,innerWidth-125);ty=clamp(e.clientY-105,55,innerHeight-125);next=now+1750;mood("curious",now,1500);}},{passive:true});
+window.addEventListener("scroll",()=>{const now=performance.now(),d=scrollY-lastScroll;lastScroll=scrollY;idle=now;lastInteraction=now;if(Math.abs(d)>30&&now>playUntil&&Math.random()<.08){mode="surf";next=now+1400;tx=clamp(x+rand(-140,140),8,innerWidth-125);ty=clamp(y+(d>0?-95:95),55,innerHeight-125);mood("excited",now,1300);}},{passive:true});
 window.addEventListener("resize",()=>{next=0;});
 document.addEventListener("visibilitychange",()=>{last=performance.now();});
 choose(performance.now());requestAnimationFrame(animate);
