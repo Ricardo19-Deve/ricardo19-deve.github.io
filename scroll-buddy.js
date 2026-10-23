@@ -72,7 +72,7 @@ function play(px,py){
  front=true;layer.classList.add("in-front");
 }
 mascot.addEventListener("click",()=>play(x+100,y+90));
-window.addEventListener("pointermove",e=>{if(Math.hypot(e.clientX-(x+55),e.clientY-(y+55))<85&&performance.now()>playUntil)play(e.clientX,e.clientY);},{passive:true});
+window.addEventListener("pointermove",e=>{const now=performance.now(),d=Math.hypot(e.clientX-(x+55),e.clientY-(y+55));if(d<85&&now>playUntil)play(e.clientX,e.clientY);else if(d<205&&now>playUntil&&mode!=="peek"&&now>next-900){mode="curious";tx=clamp(e.clientX-80,8,innerWidth-125);ty=clamp(e.clientY-105,55,innerHeight-125);next=now+1750;mood("curious",now,1500);}},{passive:true});
 window.addEventListener("scroll",()=>{const now=performance.now(),d=scrollY-lastScroll;lastScroll=scrollY;idle=now;if(Math.abs(d)>30&&now>playUntil&&Math.random()<.08){mode="surf";next=now+1400;tx=clamp(x+rand(-140,140),8,innerWidth-125);ty=clamp(y+(d>0?-95:95),55,innerHeight-125);mood("excited",now,1300);}},{passive:true});
 window.addEventListener("resize",()=>{next=0;});
 document.addEventListener("visibilitychange",()=>{last=performance.now();});
