@@ -14,3 +14,11 @@
 @keyframes mascot-v9-tap{from{translate:0 0}to{translate:0 -8px}}
 @media(max-width:720px){.mascot-creature{scale:.76;transform-origin:top left}}
 @media(prefers-reduced-motion:reduce){.mascot-creature svg{animation:none!important}}
+
+/* M v9.2: subtler movement, facial mood, limbs connected to the torso */
+.mascot-creature svg .leg-left{transform-origin:78px 112px;transform-box:view-box}
+.mascot-creature svg .leg-right{transform-origin:91px 112px;transform-box:view-box}
+.mascot-creature svg .arm-left,.mascot-creature svg .arm-right,.mascot-creature svg .ear-left,.mascot-creature svg .ear-right{transform-box:view-box}
+.mascot-creature[data-mood="excited"]{filter:drop-shadow(0 7px 19px #e4b0ffb0)}
+.mascot-creature[data-mood="curious"] .eyes{transform-origin:85px 70px}
+.mascot-creature[data-mood="peek"]{filter:drop-shadow(0 4px 8px #a8b6ff70)}
