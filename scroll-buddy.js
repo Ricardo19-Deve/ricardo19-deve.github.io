@@ -12,6 +12,7 @@ function mood(name,now,duration=1600){emotion=name;emotionUntil=now+duration;mas
 function choose(now){
  const w=innerWidth,h=innerHeight,visible=cards();
  mode="swim";modeUntil=now+rand(3300,6100);next=modeUntil;
+ if(now-lastInteraction>17000&&Math.random()<.3){mode="rest";next=now+rand(2600,4300);tx=clamp(x+rand(-35,35),8,Math.max(8,w-120));ty=clamp(y+rand(-25,25),55,Math.max(55,h-125));mood("sleepy",now,3500);return;}
  if(visible.length&&Math.random()<.55){
   const r=visible[Math.floor(Math.random()*visible.length)].getBoundingClientRect();
   const side=Math.random()<.5?-1:1;
@@ -43,7 +44,7 @@ function animate(now){
    if(now>next&&now>playUntil)choose(now);
    if(now>emotionUntil&&emotion!=="calm")mood("calm",now,3500);
    if(now-idle>7500&&now-knocked>21000&&now>playUntil){knocked=now;idle=now;tap.hidden=false;mascot.classList.add("knocking");setTimeout(()=>{tap.hidden=true;mascot.classList.remove("knocking");},1300);}
-   const k=mode==="peek"?2.4:mode==="play"?5:3.3,drag=Math.exp(-2.65*dt);
+   const k=mode==="rest"?1.1:mode==="peek"?2.4:mode==="play"?5:3.3,drag=Math.exp(-2.65*dt);
    vx=(vx+(tx-x)*k*dt)*drag;vy=(vy+(ty-y)*k*dt)*drag;
    const speed=Math.hypot(vx,vy),cap=now<playUntil?330:220;
    if(speed>cap){vx*=cap/speed;vy*=cap/speed;}
@@ -54,7 +55,7 @@ function animate(now){
   const tilt=reduce?0:clamp(vx*.09+Math.sin(clock*.9)*2,-17,17);
   mascot.style.transform=`translate3d(${x.toFixed(1)}px,${(y+bob).toFixed(1)}px,0) rotate(${tilt.toFixed(1)}deg)`;
   animateTail(dt,x,y+bob);
-  const energy=now<playUntil?4.3:mode==="peek"?1.35:2.1;
+  const energy=now<playUntil?4.3:mode==="rest"?.7:mode==="peek"?1.35:2.1;
   parts["arm-left"].style.transform=`rotate(${(-17+Math.sin(clock*energy+1)*15).toFixed(1)}deg)`;
   parts["arm-right"].style.transform=`rotate(${(17-Math.sin(clock*energy+2)*23).toFixed(1)}deg)`;
   parts["leg-left"].style.transform=`rotate(${(Math.sin(clock*energy+2)*10).toFixed(1)}deg)`;
