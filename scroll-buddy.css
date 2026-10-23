@@ -16,3 +16,16 @@
 .card,.role,.cert,.about-tile,.about-statement,.case-teaser,.glass-nav,.hero-visual,.expertise article{position:relative;z-index:3}
 @media(max-width:720px){.mascot-traveler{scale:.75;transform-origin:top left}.mascot-interact{width:54px;height:62px}.mascot-info{max-width:155px;min-width:140px}}
 @media(prefers-reduced-motion:reduce){.mascot-shell{animation:none}}
+
+/* V7.2 autonomous companion: no persistent speech panel */
+.mascot-traveler{border:0;background:transparent;padding:0;pointer-events:auto;cursor:pointer;z-index:2}
+.mascot-traveler:focus-visible{outline:2px solid #91e6ff;outline-offset:5px;border-radius:20px}
+.mascot-world{z-index:2}
+.mascot-knock{position:absolute;left:53px;top:-26px;white-space:nowrap;color:#c9f8ff;background:#173451eb;border:1px solid #74d8ff99;border-radius:16px;padding:3px 9px;font:700 11px 'DM Sans',sans-serif;pointer-events:none}
+.mascot-knock[hidden]{display:none!important}
+.mascot-traveler.is-knocking .mascot-shell{animation:mascot-tap .24s ease-in-out 4 alternate}
+.mascot-traveler.mascot-excited .mascot-shell{animation:mascot-happy .3s ease-in-out 2 alternate}
+.mascot-traveler.travel-left .mascot-shell{filter:hue-rotate(9deg)}
+@keyframes mascot-tap{from{transform:translateY(0) rotate(-7deg)}to{transform:translateY(-10px) rotate(8deg)}}
+@keyframes mascot-happy{from{transform:scale(1)}to{transform:scale(1.16) rotate(9deg)}}
+@media(prefers-reduced-motion:reduce){.mascot-traveler .mascot-shell{animation:none!important}}
