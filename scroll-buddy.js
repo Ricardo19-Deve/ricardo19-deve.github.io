@@ -12,7 +12,7 @@ function mood(name,now,duration=1600){emotion=name;emotionUntil=now+duration;mas
 function choose(now){
  const w=innerWidth,h=innerHeight,visible=cards();
  mode="swim";travelTarget=null;peekRevealed=false;peekAt=0;modeUntil=now+rand(3300,6100);next=modeUntil;
- if(now-lastInteraction>17000&&Math.random()<.3){mode="rest";next=now+rand(2600,4300);tx=clamp(x+rand(-35,35),8,Math.max(8,w-120));ty=clamp(y+rand(-25,25),55,Math.max(55,h-125));mood("sleepy",now,3500);return;}
+ if(now-lastInteraction>17000&&Math.random()<.3){front=true;layer.classList.add("in-front");mode="rest";next=now+rand(2600,4300);tx=clamp(x+rand(-35,35),8,Math.max(8,w-120));ty=clamp(y+rand(-25,25),55,Math.max(55,h-125));mood("sleepy",now,3500);return;}
  if(visible.length&&Math.random()<.55){
   const target=visible[Math.floor(Math.random()*visible.length)];
   travelTarget=target;
@@ -20,7 +20,11 @@ function choose(now){
   const side=Math.random()<.5?-1:1;travelSide=side;
   tx=clamp(side<0?r.left-30:r.right-110,4,Math.max(4,w-120));
   ty=clamp(r.top+Math.min(110,r.height*.4)-55,55,Math.max(55,h-125));
-  mode="peek";front=false;peekRevealed=false;peekAt=now+rand(1700,2900);mood("peek",now,3200);
+  mode="peek";front=false;peekRevealed=false;
+  // Allow enough time to actually reach the card before changing behaviour.
+  const journey=Math.hypot(tx-x,ty-y);
+  next=now+Math.max(6500,journey/90*1000+2400);
+  peekAt=now+1700;mood("peek",now,Math.min(6500,next-now));
  }else{
   tx=rand(8,Math.max(9,w-130));ty=rand(65,Math.max(66,h-160));front=Math.random()<.65;mood("happy",now,1700);
  }
@@ -67,9 +71,18 @@ function animate(now){
     }
    }
    if(mode==="peek"&&peekAt&&now>peekAt&&Math.hypot(tx-x,ty-y)<70){
-    peekAt=0;peekRevealed=true;front=true;layer.classList.add("in-front");
-    tx=clamp(tx+(travelSide<0?-46:46),5,Math.max(5,innerWidth-125));
-    ty=clamp(ty-18,55,Math.max(55,innerHeight-125));mood("curious",now,1300);
+    peekAt=0;peekRevealed=true;
+    // Slide out of the card silhouette before moving to the foreground.
+    tx=clamp(tx+(travelSide<0?-100:100),5,Math.max(5,innerWidth-125));
+    ty=clamp(ty-18,55,Math.max(55,innerHeight-125));
+    next=Math.max(next,now+2600);mood("curious",now,1600);
+   }
+   if(mode==="peek"&&peekRevealed&&!front&&travelTarget){
+    const r=travelTarget.getBoundingClientRect();
+    const center=x+55;
+    if(center<r.left-15||center>r.right+15){
+      front=true;layer.classList.add("in-front");
+    }
    }
    if(now>next&&now>playUntil)choose(now);
    if(mode==="peek"&&travelTarget&&!travelTarget.isConnected){travelTarget=null;peekAt=0;next=0;}
