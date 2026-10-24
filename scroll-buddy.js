@@ -6,14 +6,14 @@ document.body.appendChild(layer);
 const mascot=layer.querySelector(".mascot-creature"),svg=mascot.querySelector("svg"),tail=mascot.querySelector(".tail-stroke"),tip=mascot.querySelector(".tail-tip"),tap=layer.querySelector(".mascot-tap");
 const parts=Object.fromEntries(["arm-left","arm-right","leg-left","leg-right","ear-left","ear-right","eyes"].map(k=>[k,svg.querySelector("."+k)]));
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),rand=(a,b)=>a+Math.random()*(b-a);
-let x=innerWidth*.65,y=innerHeight*.4,vx=0,vy=0,tx=x,ty=y,clock=0,last=0,next=0,mode="swim",modeUntil=0,playUntil=0,idle=performance.now(),knocked=0,tailX=43,tailY=33,tailVX=0,tailVY=0,prevX=x,prevY=y,front=false,active=true,emotion="curious",emotionUntil=0,lastScroll=scrollY,peekAt=0,lastInteraction=performance.now(),curiosityCooldown=0,travelTarget=null,travelSide=1,peekRevealed=false,bodyTilt=0,bodyTiltVelocity=0,bodyBob=0,bodyBobVelocity=0,blinkNext=performance.now()+rand(2400,5700),blinkUntil=0;
+let x=innerWidth*.65,y=innerHeight*.4,vx=0,vy=0,tx=x,ty=y,clock=0,last=0,next=0,mode="swim",modeUntil=0,playUntil=0,idle=performance.now(),knocked=0,tailX=43,tailY=33,tailVX=0,tailVY=0,prevX=x,prevY=y,front=false,active=true,emotion="curious",emotionUntil=0,lastScroll=scrollY,peekAt=0,lastInteraction=performance.now(),curiosityCooldown=0,scrollUntil=0,scrollImpulse=0,travelTarget=null,travelSide=1,peekRevealed=false,bodyTilt=0,bodyTiltVelocity=0,bodyBob=0,bodyBobVelocity=0,blinkNext=performance.now()+rand(2400,5700),blinkUntil=0;
 function cards(){return Array.from(document.querySelectorAll(".card,.role,.cert,.about-tile,.about-statement,.case-teaser,.hero-visual,.game-shot")).filter(e=>{const r=e.getBoundingClientRect();return r.width>100&&r.height>75&&r.bottom>100&&r.top<innerHeight-100;});}
 function mood(name,now,duration=1600){emotion=name;emotionUntil=now+duration;mascot.dataset.mood=name;}
 function choose(now){
  const w=innerWidth,h=innerHeight,visible=cards();
  mode="swim";travelTarget=null;peekRevealed=false;peekAt=0;modeUntil=now+rand(3300,6100);next=modeUntil;
  if(now-lastInteraction>17000&&Math.random()<.3){front=true;layer.classList.add("in-front");mode="rest";next=now+rand(2600,4300);tx=clamp(x+rand(-35,35),8,Math.max(8,w-120));ty=clamp(y+rand(-25,25),55,Math.max(55,h-125));mood("sleepy",now,3500);return;}
- if(visible.length&&Math.random()<.55){
+ if(visible.length&&now>scrollUntil+1800&&Math.random()<.45){
   const target=visible[Math.floor(Math.random()*visible.length)];
   travelTarget=target;
   const r=target.getBoundingClientRect();
@@ -84,13 +84,13 @@ function animate(now){
       front=true;layer.classList.add("in-front");
     }
    }
-   if(now>next&&now>playUntil)choose(now);
+   if(now>next&&now>playUntil&&now>scrollUntil)choose(now);
    if(mode==="peek"&&travelTarget&&!travelTarget.isConnected){travelTarget=null;peekAt=0;next=0;}
    if(now>emotionUntil&&emotion!=="calm")mood("calm",now,3500);
    if(now-idle>11000&&now-knocked>35000&&now>playUntil&&mode!=="peek"){knocked=now;idle=now;tap.hidden=false;mascot.classList.add("knocking");setTimeout(()=>{tap.hidden=true;mascot.classList.remove("knocking");},1300);}
    // Critically damped steering: speed tapers as M approaches a destination.
    const dx=tx-x,dy=ty-y,distance=Math.hypot(dx,dy);
-   const maxSpeed=mode==="rest"?45:mode==="peek"?95:mode==="play"?270:155;
+   const maxSpeed=mode==="rest"?45:mode==="peek"?95:mode==="play"?270:mode==="surf"?230:155;
    const desiredSpeed=Math.min(maxSpeed,distance*(mode==="play"?2.7:1.55));
    // A gentle curved approach makes exploration look like swimming, not a straight line.
    const curve=mode==="swim"&&distance>85?Math.sin(clock*.65)*Math.min(22,distance*.07):0;
@@ -104,8 +104,8 @@ function animate(now){
    if((y===42&&vy<0)||(y===Math.max(42,innerHeight-125)&&vy>0))vy=0;
   }else{x=clamp(innerWidth-115,0,innerWidth);y=clamp(innerHeight-145,50,innerHeight);}
   // Body inertia is a damped spring, so the head and torso follow turns smoothly.
-  const targetTilt=reduce?0:clamp(vx*.065+Math.sin(clock*.7)*1.4,-13,13);
-  const targetBob=reduce?0:Math.sin(clock*(mode==="play"?2.7:1.6))*(mode==="play"?5:3);
+  const targetTilt=reduce?0:clamp(vx*.065+Math.sin(clock*.7)*1.4+scrollImpulse*.018,-13,13);
+  const targetBob=reduce?0:Math.sin(clock*(mode==="surf"?2.4:mode==="play"?2.7:1.6))*(mode==="surf"?5:mode==="play"?5:3);
   const step=Math.max(.001,Math.min(.035,dt));
   bodyTiltVelocity+=(targetTilt-bodyTilt)*42*step;
   bodyTiltVelocity*=Math.exp(-12*step);
@@ -113,6 +113,7 @@ function animate(now){
   bodyBobVelocity+=(targetBob-bodyBob)*35*step;
   bodyBobVelocity*=Math.exp(-11*step);
   bodyBob+=bodyBobVelocity*step;
+  scrollImpulse*=Math.exp(-3.8*step);
   const bob=bodyBob,tilt=bodyTilt;
   mascot.style.transform=`translate3d(${x.toFixed(1)}px,${(y+bob).toFixed(1)}px,0) rotate(${tilt.toFixed(1)}deg)`;
   updateOcclusion();
@@ -138,7 +139,23 @@ function play(px,py){
 }
 mascot.addEventListener("click",()=>play(x+100,y+90));
 window.addEventListener("pointermove",e=>{const now=performance.now(),d=Math.hypot(e.clientX-(x+55),e.clientY-(y+55));if(d<85&&now>playUntil)play(e.clientX,e.clientY);else if(d<205&&now>playUntil&&mode!=="peek"&&now>next-900&&now>curiosityCooldown){curiosityCooldown=now+2100;lastInteraction=now;mode="curious";travelTarget=null;peekAt=0;tx=clamp(e.clientX-80,8,innerWidth-125);ty=clamp(e.clientY-105,55,innerHeight-125);next=now+1750;mood("curious",now,1500);}},{passive:true});
-window.addEventListener("scroll",()=>{const now=performance.now(),d=scrollY-lastScroll;lastScroll=scrollY;idle=now;lastInteraction=now;if(Math.abs(d)>30&&now>playUntil&&Math.random()<.08){mode="surf";next=now+1400;tx=clamp(x+rand(-140,140),8,innerWidth-125);ty=clamp(y+(d>0?-95:95),55,innerHeight-125);mood("excited",now,1300);}},{passive:true});
+window.addEventListener("scroll",()=>{
+ const now=performance.now(),d=scrollY-lastScroll;lastScroll=scrollY;
+ if(reduce||Math.abs(d)<.5)return;
+ idle=now;lastInteraction=now;
+ scrollUntil=now+950;
+ scrollImpulse=clamp(scrollImpulse+d*.8,-110,110);
+ // Scrolling is swimming time: cancel card occlusion immediately.
+ travelTarget=null;peekAt=0;peekRevealed=false;front=true;
+ layer.classList.add("in-front");layer.style.clipPath="";
+ if(now>playUntil){
+  mode="surf";next=scrollUntil+650;
+  // Follow the direction of the page with an eased, bounded glide.
+  tx=clamp(x+clamp(d*.35,-55,55)+Math.sin(clock*1.2)*18,8,Math.max(8,innerWidth-125));
+  ty=clamp(y+clamp(-d*.85,-110,110),55,Math.max(55,innerHeight-125));
+  mood("curious",now,1200);
+ }
+},{passive:true});
 window.addEventListener("resize",()=>{next=0;travelTarget=null;peekAt=0;});
 document.addEventListener("visibilitychange",()=>{last=performance.now();prevX=x;prevY=y;});
 choose(performance.now());requestAnimationFrame(animate);
