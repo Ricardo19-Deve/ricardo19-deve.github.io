@@ -6,7 +6,7 @@ document.body.appendChild(layer);
 const mascot=layer.querySelector(".mascot-creature"),svg=mascot.querySelector("svg"),tail=mascot.querySelector(".tail-stroke"),tip=mascot.querySelector(".tail-tip"),tap=layer.querySelector(".mascot-tap");
 const parts=Object.fromEntries(["arm-left","arm-right","leg-left","leg-right","ear-left","ear-right","eyes"].map(k=>[k,svg.querySelector("."+k)]));
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),rand=(a,b)=>a+Math.random()*(b-a);
-let x=innerWidth*.65,y=innerHeight*.4,vx=0,vy=0,tx=x,ty=y,clock=0,last=0,next=0,mode="swim",modeUntil=0,playUntil=0,idle=performance.now(),knocked=0,tailX=43,tailY=33,tailVX=0,tailVY=0,prevX=x,prevY=y,front=false,active=true,emotion="curious",emotionUntil=0,lastScroll=scrollY,peekAt=0,lastInteraction=performance.now(),curiosityCooldown=0,scrollUntil=0,scrollImpulse=0,travelTarget=null,travelSide=1,peekRevealed=false,bodyTilt=0,bodyTiltVelocity=0,bodyBob=0,bodyBobVelocity=0,blinkNext=performance.now()+rand(2400,5700),blinkUntil=0;
+let x=innerWidth*.65,y=innerHeight*.4,vx=0,vy=0,tx=x,ty=y,clock=0,last=0,next=0,mode="swim",modeUntil=0,playUntil=0,idle=performance.now(),knocked=0,tailX=43,tailY=33,tailVX=0,tailVY=0,prevX=x,prevY=y,front=false,active=true,emotion="curious",emotionUntil=0,lastScroll=scrollY,peekAt=0,lastInteraction=performance.now(),curiosityCooldown=0,scrollUntil=0,scrollImpulse=0,scrollVelocity=0,scrollTarget=0,scrollLast=scrollY,travelTarget=null,travelSide=1,peekRevealed=false,bodyTilt=0,bodyTiltVelocity=0,bodyBob=0,bodyBobVelocity=0,blinkNext=performance.now()+rand(2400,5700),blinkUntil=0;
 function cards(){return Array.from(document.querySelectorAll(".card,.role,.cert,.about-tile,.about-statement,.case-teaser,.hero-visual,.game-shot")).filter(e=>{const r=e.getBoundingClientRect();return r.width>100&&r.height>75&&r.bottom>100&&r.top<innerHeight-100;});}
 function mood(name,now,duration=1600){emotion=name;emotionUntil=now+duration;mascot.dataset.mood=name;}
 function choose(now){
@@ -59,6 +59,25 @@ function animateTail(dt,px,py){
 function animate(now){
  if(!active)return;
  const dt=Math.min(.04,(now-(last||now))/1000);last=now;clock+=dt;
+ // Sample scrolling on every frame (works with smooth scrolling and touch inertia).
+ const currentScroll=window.scrollY;
+ const scrollDelta=currentScroll-scrollLast;scrollLast=currentScroll;
+ if(!reduce&&Math.abs(scrollDelta)>.15){
+   const instantaneous=clamp(scrollDelta/Math.max(dt,.008),-1700,1700);
+   scrollVelocity+=(instantaneous-scrollVelocity)*.32;
+   scrollUntil=now+550;
+   travelTarget=null;peekAt=0;peekRevealed=false;front=true;
+   layer.classList.add("in-front");layer.style.clipPath="";
+   mode="surf";next=now+1600;
+   scrollTarget=clamp(y-clamp(scrollVelocity*.14,-130,130),55,Math.max(55,innerHeight-125));
+ }else{
+   scrollVelocity*=Math.exp(-5*dt);
+ }
+ if(!reduce&&now<scrollUntil){
+   mode="surf";front=true;layer.classList.add("in-front");layer.style.clipPath="";
+   ty=scrollTarget;
+   tx=clamp(innerWidth*.64+Math.sin(clock*1.1)*55,8,Math.max(8,innerWidth-125));
+ }
  if(!document.hidden){
   if(!reduce){
    if(mode==="peek"&&travelTarget&&!peekRevealed){
@@ -84,7 +103,7 @@ function animate(now){
       front=true;layer.classList.add("in-front");
     }
    }
-   if(now>next&&now>playUntil&&now>scrollUntil)choose(now);
+   if(now>next&&now>playUntil&&now>scrollUntil+600)choose(now);
    if(mode==="peek"&&travelTarget&&!travelTarget.isConnected){travelTarget=null;peekAt=0;next=0;}
    if(now>emotionUntil&&emotion!=="calm")mood("calm",now,3500);
    if(now-idle>11000&&now-knocked>35000&&now>playUntil&&mode!=="peek"){knocked=now;idle=now;tap.hidden=false;mascot.classList.add("knocking");setTimeout(()=>{tap.hidden=true;mascot.classList.remove("knocking");},1300);}
@@ -139,23 +158,7 @@ function play(px,py){
 }
 mascot.addEventListener("click",()=>play(x+100,y+90));
 window.addEventListener("pointermove",e=>{const now=performance.now(),d=Math.hypot(e.clientX-(x+55),e.clientY-(y+55));if(d<85&&now>playUntil)play(e.clientX,e.clientY);else if(d<205&&now>playUntil&&mode!=="peek"&&now>next-900&&now>curiosityCooldown){curiosityCooldown=now+2100;lastInteraction=now;mode="curious";travelTarget=null;peekAt=0;tx=clamp(e.clientX-80,8,innerWidth-125);ty=clamp(e.clientY-105,55,innerHeight-125);next=now+1750;mood("curious",now,1500);}},{passive:true});
-window.addEventListener("scroll",()=>{
- const now=performance.now(),d=scrollY-lastScroll;lastScroll=scrollY;
- if(reduce||Math.abs(d)<.5)return;
- idle=now;lastInteraction=now;
- scrollUntil=now+950;
- scrollImpulse=clamp(scrollImpulse+d*.8,-110,110);
- // Scrolling is swimming time: cancel card occlusion immediately.
- travelTarget=null;peekAt=0;peekRevealed=false;front=true;
- layer.classList.add("in-front");layer.style.clipPath="";
- if(now>playUntil){
-  mode="surf";next=scrollUntil+650;
-  // Follow the direction of the page with an eased, bounded glide.
-  tx=clamp(x+clamp(d*.35,-55,55)+Math.sin(clock*1.2)*18,8,Math.max(8,innerWidth-125));
-  ty=clamp(y+clamp(-d*.85,-110,110),55,Math.max(55,innerHeight-125));
-  mood("curious",now,1200);
- }
-},{passive:true});
+window.addEventListener("scroll",()=>{lastInteraction=performance.now();idle=lastInteraction;},{passive:true});
 window.addEventListener("resize",()=>{next=0;travelTarget=null;peekAt=0;});
 document.addEventListener("visibilitychange",()=>{last=performance.now();prevX=x;prevY=y;});
 choose(performance.now());requestAnimationFrame(animate);
