@@ -6,31 +6,27 @@ document.body.appendChild(layer);
 const mascot=layer.querySelector(".mascot-creature"),svg=mascot.querySelector("svg"),tail=mascot.querySelector(".tail-stroke"),tip=mascot.querySelector(".tail-tip"),tap=layer.querySelector(".mascot-tap");
 const parts=Object.fromEntries(["arm-left","arm-right","leg-left","leg-right","ear-left","ear-right","eyes"].map(k=>[k,svg.querySelector("."+k)]));
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),rand=(a,b)=>a+Math.random()*(b-a);
-let x=innerWidth*.65,y=innerHeight*.4,vx=0,vy=0,tx=x,ty=y,clock=0,last=0,next=0,mode="swim",modeUntil=0,playUntil=0,idle=performance.now(),knocked=0,tailX=43,tailY=33,tailVX=0,tailVY=0,prevX=x,prevY=y,front=false,active=true,emotion="curious",emotionUntil=0,lastScroll=scrollY,peekAt=0,lastInteraction=performance.now(),curiosityCooldown=0,scrollUntil=0,scrollImpulse=0,scrollVelocity=0,scrollTarget=0,scrollLast=scrollY,scrollDirection=0,travelTarget=null,travelSide=1,peekRevealed=false,bodyTilt=0,bodyTiltVelocity=0,bodyBob=0,bodyBobVelocity=0,blinkNext=performance.now()+rand(2400,5700),blinkUntil=0;
+let x=innerWidth*.65,y=innerHeight*.4,vx=0,vy=0,tx=x,ty=y,clock=0,last=0,next=0,mode="swim",modeUntil=0,playUntil=0,idle=performance.now(),knocked=0,tailX=43,tailY=33,tailVX=0,tailVY=0,prevX=x,prevY=y,front=false,active=true,emotion="curious",emotionUntil=0,lastScroll=scrollY,peekAt=0,lastInteraction=performance.now(),curiosityCooldown=0,scrollUntil=0,scrollImpulse=0,scrollVelocity=0,scrollTarget=0,scrollLast=scrollY,scrollDirection=0,pose="float",poseUntil=0,spinStart=0,spinUntil=0,spinDirection=1,travelTarget=null,travelSide=1,peekRevealed=false,bodyTilt=0,bodyTiltVelocity=0,bodyBob=0,bodyBobVelocity=0,blinkNext=performance.now()+rand(2400,5700),blinkUntil=0;
 function cards(){return Array.from(document.querySelectorAll(".card,.role,.cert,.about-tile,.about-statement,.case-teaser,.hero-visual,.game-shot")).filter(e=>{const r=e.getBoundingClientRect();return r.width>100&&r.height>75&&r.bottom>100&&r.top<innerHeight-100;});}
 function mood(name,now,duration=1600){emotion=name;emotionUntil=now+duration;mascot.dataset.mood=name;}
 function choose(now){
- const w=innerWidth,h=innerHeight,visible=cards();
- mode="swim";travelTarget=null;peekRevealed=false;peekAt=0;modeUntil=now+rand(3300,6100);next=modeUntil;
- if(now-lastInteraction>17000&&Math.random()<.3){front=true;layer.classList.add("in-front");mode="rest";next=now+rand(2600,4300);tx=clamp(x+rand(-35,35),8,Math.max(8,w-120));ty=clamp(y+rand(-25,25),55,Math.max(55,h-125));mood("sleepy",now,3500);return;}
- if(false&&visible.length&&now>scrollUntil+1800&&Math.random()<.45){
-  const target=visible[Math.floor(Math.random()*visible.length)];
-  travelTarget=target;
-  const r=target.getBoundingClientRect();
-  const side=Math.random()<.5?-1:1;travelSide=side;
-  tx=clamp(side<0?r.left-30:r.right-110,4,Math.max(4,w-120));
-  ty=clamp(r.top+Math.min(110,r.height*.4)-55,55,Math.max(55,h-125));
-  mode="peek";front=false;peekRevealed=false;
-  // Allow enough time to actually reach the card before changing behaviour.
-  const journey=Math.hypot(tx-x,ty-y);
-  next=now+Math.max(6500,journey/90*1000+2400);
-  peekAt=now+1700;mood("peek",now,Math.min(6500,next-now));
- }else{
-  tx=rand(8,Math.max(9,w-130));ty=rand(65,Math.max(66,h-160));front=Math.random()<.65;mood("happy",now,1700);
- }
- layer.classList.toggle("in-front",front);
- updateOcclusion();
+ // Independent performance states inspired by the reference's hovering,
+ // playful gestures, short dashes, turns and relaxed floating.
+ travelTarget=null;peekAt=0;peekRevealed=false;front=true;
+ layer.classList.add("in-front");layer.style.clipPath="";
+ const roll=Math.random();
+ pose=roll<.27?"float":roll<.47?"wave":roll<.66?"curl":roll<.85?"glide":"twirl";
+ mode=pose==="glide"?"dash":pose==="twirl"?"spin":"swim";
+ const duration=pose==="twirl"?1900:pose==="glide"?2200:rand(2900,4800);
+ poseUntil=now+duration;next=poseUntil;
+ if(pose==="twirl"){spinStart=now;spinUntil=now+1500;spinDirection=Math.random()<.5?-1:1;}
+ const w=Math.max(8,innerWidth-130),h=Math.max(55,innerHeight-140);
+ if(pose==="glide"){tx=clamp(x+(Math.random()<.5?-1:1)*rand(190,Math.min(440,w)),8,w);ty=clamp(y+rand(-155,155),55,h);}
+ else if(pose==="float"||pose==="wave"||pose==="curl"){tx=clamp(x+rand(-125,125),8,w);ty=clamp(y+rand(-95,95),55,h);}
+ else{tx=clamp(x+rand(-85,85),8,w);ty=clamp(y+rand(-65,65),55,h);}
+ mood(pose==="wave"?"curious":pose==="curl"?"sleepy":"happy",now,duration);
 }
+
 // Cut a real rectangular opening in the mascot layer while M is behind a card.
 // This avoids relying on the page's many independent stacking contexts.
 function updateOcclusion(){
@@ -67,13 +63,13 @@ function animate(now){
    scrollDirection=Math.sign(scrollVelocity)||scrollDirection;
    scrollUntil=now+900;
    travelTarget=null;peekAt=0;peekRevealed=false;
-   mode="surf";front=true;next=now+2300;
+   mode="surf";front=true;spinUntil=0;next=now+2300;
    layer.classList.add("in-front");layer.style.clipPath="";
  }
  if(!reduce&&now<scrollUntil+1250){
    const moving=now<scrollUntil;
    const speed=clamp(Math.abs(scrollVelocity)/650,0,1);
-   mode="surf";front=true;layer.classList.add("in-front");layer.style.clipPath="";
+   mode="surf";front=true;spinUntil=0;layer.classList.add("in-front");layer.style.clipPath="";
    // The creature visibly swims across the viewport, not just a few pixels.
    const glide=clamp((scrollUntil+1250-now)/1250,0,1);
    tx=clamp(innerWidth*(.64+.10*Math.sin(clock*.9))+Math.sin(clock*2.3)*30,8,Math.max(8,innerWidth-125));
@@ -107,14 +103,14 @@ function animate(now){
       front=true;layer.classList.add("in-front");
     }
    }
-   if(now>next&&now>playUntil&&now>scrollUntil+600)choose(now);
+   if(now>next&&now>playUntil&&now>scrollUntil+1250)choose(now);
    if(mode==="peek"&&travelTarget&&!travelTarget.isConnected){travelTarget=null;peekAt=0;next=0;}
    if(now>emotionUntil&&emotion!=="calm")mood("calm",now,3500);
    if(now-idle>11000&&now-knocked>35000&&now>playUntil&&mode!=="peek"){knocked=now;idle=now;tap.hidden=false;mascot.classList.add("knocking");setTimeout(()=>{tap.hidden=true;mascot.classList.remove("knocking");},1300);}
    // Critically damped steering: speed tapers as M approaches a destination.
    const dx=tx-x,dy=ty-y,distance=Math.hypot(dx,dy);
-   const maxSpeed=mode==="rest"?45:mode==="peek"?95:mode==="play"?270:mode==="surf"?380:155;
-   const desiredSpeed=Math.min(maxSpeed,distance*(mode==="play"?2.7:1.55));
+   const maxSpeed=mode==="rest"?45:mode==="dash"?340:mode==="spin"?80:mode==="play"?270:mode==="surf"?380:mode==="peek"?95:145;
+   const desiredSpeed=Math.min(maxSpeed,distance*(mode==="play"?2.7:mode==="dash"?3.1:1.55));
    // A gentle curved approach makes exploration look like swimming, not a straight line.
    const curve=mode==="swim"&&distance>85?Math.sin(clock*.65)*Math.min(22,distance*.07):0;
    const desiredVX=distance>1?dx/distance*desiredSpeed+(-dy/distance)*curve:0;
@@ -128,7 +124,7 @@ function animate(now){
   }else{x=clamp(innerWidth-115,0,innerWidth);y=clamp(innerHeight-145,50,innerHeight);}
   // Body inertia is a damped spring, so the head and torso follow turns smoothly.
   const targetTilt=reduce?0:clamp(vx*.065+vy*.035+Math.sin(clock*.7)*1.4,-18,18);
-  const targetBob=reduce?0:Math.sin(clock*(mode==="surf"?2.4:mode==="play"?2.7:1.6))*(mode==="surf"?5:mode==="play"?5:3);
+  const targetBob=reduce?0:Math.sin(clock*(mode==="surf"?3.1:mode==="dash"?3.6:1.6))*(mode==="surf"?9:mode==="dash"?6:pose==="curl"?2:4);
   const step=Math.max(.001,Math.min(.035,dt));
   bodyTiltVelocity+=(targetTilt-bodyTilt)*42*step;
   bodyTiltVelocity*=Math.exp(-12*step);
@@ -138,16 +134,29 @@ function animate(now){
   bodyBob+=bodyBobVelocity*step;
   scrollImpulse*=Math.exp(-3.8*step);
   const bob=bodyBob,tilt=bodyTilt;
-  mascot.style.transform=`translate3d(${x.toFixed(1)}px,${(y+bob).toFixed(1)}px,0) rotate(${tilt.toFixed(1)}deg)`;
+  const spinning=!reduce&&now<spinUntil&&now>=spinStart;
+  const spinProgress=spinning?clamp((now-spinStart)/1500,0,1):0;
+  const spinEase=spinProgress*spinProgress*(3-2*spinProgress);
+  const rotation=tilt+(spinning?spinDirection*360*spinEase:0);
+  const stretch=reduce?1:mode==="dash"?1.07:mode==="surf"?1.035:pose==="curl"?.94:1;
+  mascot.style.transform=`translate3d(${x.toFixed(1)}px,${(y+bob).toFixed(1)}px,0) rotate(${rotation.toFixed(1)}deg) scale(${stretch.toFixed(3)})`;
   updateOcclusion();
   animateTail(dt,x,y+bob);
-  const energy=now<playUntil?3.4:mode==="surf"?4.2:mode==="rest"?.7:mode==="peek"?1.25:1.65;
-  parts["arm-left"].style.transform=`rotate(${(-13+Math.sin(clock*energy+1)*11+clamp(-vy*.025,-5,5)).toFixed(1)}deg)`;
-  parts["arm-right"].style.transform=`rotate(${(13-Math.sin(clock*energy+2)*11+clamp(vy*.025,-5,5)).toFixed(1)}deg)`;
-  parts["leg-left"].style.transform=`rotate(${(Math.sin(clock*energy+2)*8+clamp(-vy*.018,-4,4)).toFixed(1)}deg)`;
-  parts["leg-right"].style.transform=`rotate(${(-Math.sin(clock*energy+3)*8+clamp(-vy*.018,-4,4)).toFixed(1)}deg)`;
-  parts["ear-left"].style.transform=`rotate(${(Math.sin(clock*1.7)*6).toFixed(1)}deg)`;
-  parts["ear-right"].style.transform=`rotate(${(-Math.sin(clock*1.7+.9)*6).toFixed(1)}deg)`;
+  const energy=mode==="surf"?5:mode==="dash"?5.8:mode==="play"?4:pose==="curl"?.8:2;
+  const t=clock*energy,swim=Math.sin(t),kick=Math.sin(t+Math.PI*.8);
+  const wave=pose==="wave"&&mode!=="surf";
+  const curl=pose==="curl"&&mode!=="surf";
+  const dash=mode==="dash"||mode==="surf";
+  const armL=curl?32:wave?-42+Math.sin(clock*5)*19:dash?-36+swim*12:-15+swim*13;
+  const armR=curl?-32:wave?13+Math.sin(clock*5+1.8)*12:dash?36-kick*12:15-kick*13;
+  const legL=curl?-35:dash?18+kick*18:7+kick*10;
+  const legR=curl?35:dash?-18-swim*18:-7-swim*10;
+  parts["arm-left"].style.transform=`rotate(${armL.toFixed(1)}deg)`;
+  parts["arm-right"].style.transform=`rotate(${armR.toFixed(1)}deg)`;
+  parts["leg-left"].style.transform=`rotate(${legL.toFixed(1)}deg)`;
+  parts["leg-right"].style.transform=`rotate(${legR.toFixed(1)}deg)`;
+  parts["ear-left"].style.transform=`rotate(${(Math.sin(clock*2.1)*5).toFixed(1)}deg)`;
+  parts["ear-right"].style.transform=`rotate(${(-Math.sin(clock*2.1+.8)*5).toFixed(1)}deg)`;
   if(!reduce&&now>blinkNext){blinkUntil=now+130;blinkNext=now+rand(2300,6000);}
   parts.eyes.style.transform=now<blinkUntil?"scaleY(.13)":"scaleY(1)";
  }
@@ -155,7 +164,7 @@ function animate(now){
 }
 function play(px,py){
  if(reduce)return;
- idle=performance.now();lastInteraction=idle;travelTarget=null;peekAt=0;playUntil=idle+1800;mode="play";next=playUntil;mood("excited",idle,1900);
+ idle=performance.now();lastInteraction=idle;travelTarget=null;peekAt=0;playUntil=idle+1800;mode="play";spinUntil=0;next=playUntil;mood("excited",idle,1900);
  tx=clamp(x+(x-px>0?1:-1)*rand(90,200),5,Math.max(5,innerWidth-125));
  ty=clamp(y+rand(-140,140),50,Math.max(50,innerHeight-125));
  front=true;layer.classList.add("in-front");
