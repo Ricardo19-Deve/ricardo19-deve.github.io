@@ -1,0 +1,120 @@
+<!doctype html><html lang="pt"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>M LAB V5 · Sculpt & Motion</title><style>
+*{box-sizing:border-box}body{margin:0;background:#090c1a;color:#f5eeff;font:15px system-ui,-apple-system,sans-serif}main{max-width:1050px;margin:auto;padding:16px}.k{color:#c8b4ff;letter-spacing:2px;font-size:11px;font-weight:800}h1{font-size:clamp(27px,5vw,43px);margin:8px 0}p{color:#bbc0d7;line-height:1.5}.version{border:1px solid #765fbc;background:#201b3d;padding:10px 13px;border-radius:11px;font-size:12px;color:#decfff;margin:14px 0}.stage{height:min(65vh,620px);min-height:420px;position:relative;border-radius:24px;border:1px solid #6c5a9b;background:radial-gradient(ellipse at 50% 42%,#343452 0,#15172c 64%,#090c1a 100%);overflow:hidden}.stage canvas{width:100%;height:100%;display:block;touch-action:pan-y}.status{position:absolute;bottom:15px;left:15px;background:#0d1028bb;padding:9px 12px;border-radius:10px;font-size:12px;pointer-events:none}.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:16px 0}.modes button,.panel button{padding:12px 7px;border:1px solid #5f5680;background:#252943;color:#fff;border-radius:12px;font:inherit;cursor:pointer}.modes button.active{background:#7053bc;border-color:#c7b1ff}.panel{background:#161a31;border-radius:14px;padding:15px;display:flex;gap:16px;flex-wrap:wrap}.panel label{display:grid;gap:7px;min-width:180px;flex:1}.panel input{accent-color:#b69aff;width:100%}.small{font-size:12px}@media(min-width:850px){.modes{grid-template-columns:repeat(6,1fr)}}@media(max-width:420px){main{padding:12px}.stage{min-height:390px}}</style></head><body><main><div class="k">EXPERIMENTAL / 3D CHARACTER DEVELOPMENT</div><h1>M — Sculpt & Motion</h1><p>Uma nova base: volume esculpido, silhueta mais delicada, cauda viva e animação com transições amortecidas. Roda o M com o dedo.</p><div class="version">BUILD V5.0 · NOVA GEOMETRIA ORGÂNICA · NÃO INTEGRADO NO PORTEFÓLIO</div><div class="stage" id="stage"><div class="status" id="status">A iniciar o laboratório 3D…</div></div><div class="modes"><button data-mode="float" class="active">☁ Flutuar</button><button data-mode="swim">〰 Nadar</button><button data-mode="dash">➜ Acelerar</button><button data-mode="spin">↻ Rodopiar</button><button data-mode="wave">✦ Acenar</button><button data-mode="curl">◌ Encolher</button></div><div class="panel"><label>Energia <input id="energy" type="range" min="30" max="170" value="95"></label><label>Simular scroll <input id="scroll" type="range" min="-100" max="100" value="0"></label><button id="auto">Ciclo automático: OFF</button><button id="reset">Repor vista</button></div><p class="small">Laboratório isolado. Requer internet e WebGL. Não altera a página principal. O modelo ainda é uma proposta artística experimental, não um asset final esculpido em Blender.</p></main><script type="module">
+const stage=document.getElementById('stage'),status=document.getElementById('status');
+try{
+const T=await import('https://esm.sh/three@0.160.1');
+const renderer=new T.WebGLRenderer({antialias:true,alpha:true,powerPreference:'default'});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.8));renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.4;stage.prepend(renderer.domElement);
+const scene=new T.Scene(),camera=new T.PerspectiveCamera(34,1,.1,100);camera.position.set(0,.12,7.8);
+scene.add(new T.HemisphereLight(0xfff7ff,0x75609c,2.3));
+const l=new T.DirectionalLight(0xfff8ff,3.1);l.position.set(-3,5,7);scene.add(l);
+const rim=new T.DirectionalLight(0xc4a5ff,2);rim.position.set(3,2,-4);scene.add(rim);
+const skin=new T.MeshPhysicalMaterial({color:0xe7b4eb,roughness:.77,clearcoat:.04});
+const inner=new T.MeshStandardMaterial({color:0xc77cb7,roughness:.87});
+const eyeMat=new T.MeshPhysicalMaterial({color:0x27344e,roughness:.22,clearcoat:.9});
+const highlight=new T.MeshBasicMaterial({color:0xffffff});
+const blush=new T.MeshStandardMaterial({color:0xe9a0c6,transparent:true,opacity:.5,roughness:1});
+const geo=new T.SphereGeometry(1,40,28);
+function ball(parent,mat,p,scale){const o=new T.Mesh(geo,mat);o.position.set(...p);o.scale.set(...scale);parent.add(o);return o}
+const rig=new T.Group();scene.add(rig);
+const bodyRig=new T.Group();rig.add(bodyRig);
+const torso=new T.Group();bodyRig.add(torso);
+// Smoothly blended sculpted torso and cranium, extracted from an implicit surface.
+function sdfEll(x,y,z,cx,cy,cz,rx,ry,rz){const a=(x-cx)/rx,b=(y-cy)/ry,c=(z-cz)/rz;return (Math.sqrt(a*a+b*b+c*c)-1)*Math.min(rx,ry,rz)}
+function smooth(a,b,k){const h=Math.max(k-Math.abs(a-b),0)/k;return Math.min(a,b)-h*h*k*.25}
+function field(x,y,z){
+ let d=sdfEll(x,y,z,0,-.46,0,.49,.67,.4);
+ d=smooth(d,sdfEll(x,y,z,0,.44,.01,.83,.65,.61),.48);
+ d=smooth(d,sdfEll(x,y,z,0,-.05,0,.36,.5,.34),.28);
+ return d;
+}
+function sculpt(){
+ const min=[-1.12,-1.42,-.86],max=[1.12,1.36,.88],step=.065;
+ const nx=Math.ceil((max[0]-min[0])/step),ny=Math.ceil((max[1]-min[1])/step),nz=Math.ceil((max[2]-min[2])/step);
+ const values=new Float32Array((nx+1)*(ny+1)*(nz+1));
+ const index=(x,y,z)=>(x*(ny+1)+y)*(nz+1)+z;
+ for(let x=0;x<=nx;x++)for(let y=0;y<=ny;y++)for(let z=0;z<=nz;z++)values[index(x,y,z)]=field(min[0]+x*step,min[1]+y*step,min[2]+z*step);
+ const corners=[[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]];
+ const tetra=[[0,5,1,6],[0,1,2,6],[0,2,3,6],[0,3,7,6],[0,7,4,6],[0,4,5,6]];
+ const vertices=[],normals=[];
+ function vertex(a,b){const t=a.v/(a.v-b.v);return [a.p[0]+(b.p[0]-a.p[0])*t,a.p[1]+(b.p[1]-a.p[1])*t,a.p[2]+(b.p[2]-a.p[2])*t]}
+ function emit(a,b,c){const ab=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],ac=[c[0]-a[0],c[1]-a[1],c[2]-a[2]];const cross=[ab[1]*ac[2]-ab[2]*ac[1],ab[2]*ac[0]-ab[0]*ac[2],ab[0]*ac[1]-ab[1]*ac[0]];
+ const mid=[(a[0]+b[0]+c[0])/3,(a[1]+b[1]+c[1])/3,(a[2]+b[2]+c[2])/3],e=.008;
+ const grad=[field(mid[0]+e,mid[1],mid[2])-field(mid[0]-e,mid[1],mid[2]),field(mid[0],mid[1]+e,mid[2])-field(mid[0],mid[1]-e,mid[2]),field(mid[0],mid[1],mid[2]+e)-field(mid[0],mid[1],mid[2]-e)];
+ if(cross[0]*grad[0]+cross[1]*grad[1]+cross[2]*grad[2]<0)[b,c]=[c,b];
+ for(const p of [a,b,c]){vertices.push(...p);const n=[field(p[0]+e,p[1],p[2])-field(p[0]-e,p[1],p[2]),field(p[0],p[1]+e,p[2])-field(p[0],p[1]-e,p[2]),field(p[0],p[1],p[2]+e)-field(p[0],p[1],p[2]-e)];const len=Math.hypot(...n)||1;normals.push(...n.map(q=>q/len));}}
+ for(let x=0;x<nx;x++)for(let y=0;y<ny;y++)for(let z=0;z<nz;z++){
+ const cs=corners.map(([dx,dy,dz])=>({p:[min[0]+(x+dx)*step,min[1]+(y+dy)*step,min[2]+(z+dz)*step],v:values[index(x+dx,y+dy,z+dz)]}));
+ for(const ids of tetra){const pts=ids.map(i=>cs[i]),inside=pts.filter(p=>p.v<0),outside=pts.filter(p=>p.v>=0);
+ if(inside.length===1){emit(vertex(inside[0],outside[0]),vertex(inside[0],outside[1]),vertex(inside[0],outside[2]))}
+ else if(inside.length===3){emit(vertex(outside[0],inside[0]),vertex(outside[0],inside[1]),vertex(outside[0],inside[2]))}
+ else if(inside.length===2){const a=vertex(inside[0],outside[0]),b=vertex(inside[0],outside[1]),c=vertex(inside[1],outside[0]),d=vertex(inside[1],outside[1]);emit(a,b,c);emit(b,d,c)}
+ }
+ }
+ const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(vertices,3));g.setAttribute('normal',new T.Float32BufferAttribute(normals,3));g.computeBoundingSphere();return g;
+}
+status.textContent='A esculpir a personagem…';
+const sculpted=new T.Mesh(sculpt(),skin);sculpted.material.side=T.DoubleSide;torso.add(sculpted);
+const face=new T.Group();face.position.set(0,.42,0);torso.add(face);
+for(const side of [-1,1]){
+ // Organic low, outward-facing ears, rather than tall cones.
+ const ear=new T.Group();ear.position.set(side*.61,.43,-.03);ear.rotation.z=-side*.52;face.add(ear);
+ const earOuter=ball(ear,skin,[0,.17,0],[.19,.29,.12]);earOuter.rotation.z=-side*.14;
+ const earPink=ball(ear,inner,[0,.18,.105],[.10,.19,.018]);earPink.rotation.z=-side*.14;
+ const eye=ball(face,eyeMat,[side*.315,-.015,.59],[.115,.18,.075]);eye.rotation.z=side*.08;
+ ball(face,highlight,[side*.283,.068,.655],[.037,.054,.017]);
+ ball(face,blush,[side*.53,-.245,.52],[.145,.065,.022]);
+}
+ball(face,inner,[0,-.265,.638],[.038,.025,.02]);
+const mouth=new T.Mesh(new T.TorusGeometry(.075,.012,8,28,Math.PI),eyeMat);mouth.position.set(0,-.35,.635);mouth.rotation.z=Math.PI;face.add(mouth);
+const arms=[],legs=[];
+for(const side of [-1,1]){
+ const arm=new T.Group();arm.position.set(side*.44,-.31,.04);torso.add(arm);
+ const limb=ball(arm,skin,[side*.12,-.19,.02],[.16,.32,.165]);limb.rotation.z=side*.45;
+ ball(arm,skin,[side*.21,-.39,.045],[.17,.16,.16]);arms.push(arm);
+ const leg=new T.Group();leg.position.set(side*.27,-.93,.01);torso.add(leg);
+ const foot=ball(leg,skin,[side*.08,-.2,.13],[.2,.31,.21]);foot.rotation.z=side*.18;legs.push(leg);
+}
+// Continuous mesh tail with a natural hooked tip. Buffer geometry is reused every frame.
+const N=54,R=10,verts=new Float32Array((N+1)*(R+1)*3),norm=new Float32Array(verts.length),idx=[];
+for(let i=0;i<N;i++)for(let j=0;j<R;j++){const a=i*(R+1)+j,b=a+R+1;idx.push(a,b,a+1,a+1,b,b+1)}
+const tg=new T.BufferGeometry();tg.setAttribute('position',new T.BufferAttribute(verts,3));tg.setAttribute('normal',new T.BufferAttribute(norm,3));tg.setIndex(idx);
+const tail=new T.Mesh(tg,skin);tail.frustumCulled=false;torso.add(tail);
+const tip=ball(torso,skin,[0,0,0],[.105,.13,.105]);
+const curvePts=Array.from({length:13},()=>new T.Vector3());
+const curve=new T.CatmullRomCurve3(curvePts);const tangent=new T.Vector3(),axis=new T.Vector3(),sideAxis=new T.Vector3(),direction=new T.Vector3(),p=new T.Vector3();
+function tailUpdate(t,energy){
+ for(let i=0;i<curvePts.length;i++){const u=i/(curvePts.length-1),bend=Math.sin(t*1.65-u*4.3)*(.16+.13*energy)*u;
+ curvePts[i].set(.36+u*1.55,-.78-.28*Math.sin(u*Math.PI)+.88*u*u+bend,-.25+u*.25*Math.sin(t*1.3-u*4));}
+ curve.updateArcLengths();
+ for(let i=0;i<=N;i++){const u=i/N;curve.getPoint(u,p);curve.getTangent(u,tangent).normalize();axis.set(0,1,0);if(Math.abs(axis.dot(tangent))>.9)axis.set(0,0,1);sideAxis.crossVectors(tangent,axis).normalize();axis.crossVectors(sideAxis,tangent).normalize();
+ const radius=.12*(1-.46*u)+.008*Math.sin(u*Math.PI);
+ for(let j=0;j<=R;j++){const a=j/R*Math.PI*2;direction.copy(axis).multiplyScalar(Math.cos(a)).addScaledVector(sideAxis,Math.sin(a));const o=(i*(R+1)+j)*3;verts[o]=p.x+direction.x*radius;verts[o+1]=p.y+direction.y*radius;verts[o+2]=p.z+direction.z*radius;norm[o]=direction.x;norm[o+1]=direction.y;norm[o+2]=direction.z;}}
+ tg.attributes.position.needsUpdate=true;tg.attributes.normal.needsUpdate=true;tip.position.copy(curvePts[curvePts.length-1]);}
+let mode='float',modeStart=performance.now(),autoStart=performance.now(),auto=false,scroll=0,yaw=0,pitch=0,drag=false,lastX=0,lastY=0;
+const modes=['float','swim','dash','spin','wave','curl'];
+const state={x:0,y:0,rx:0,ry:0,rz:0,scale:1,head:0,a0:0,a1:0,l0:0,l1:0};
+function choose(m){mode=m;modeStart=performance.now();document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===m));status.textContent='✓ V5 · '+({float:'Flutuar',swim:'Nadar',dash:'Acelerar',spin:'Rodopiar',wave:'Acenar',curl:'Encolher'}[m]);}
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>choose(b.dataset.mode));
+document.getElementById('auto').onclick=e=>{auto=!auto;autoStart=performance.now();e.target.textContent='Ciclo automático: '+(auto?'ON':'OFF')};
+document.getElementById('reset').onclick=()=>{yaw=pitch=scroll=0;document.getElementById('scroll').value=0};
+document.getElementById('scroll').oninput=e=>scroll=+e.target.value/100;
+renderer.domElement.addEventListener('pointerdown',e=>{drag=true;lastX=e.clientX;lastY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId)});
+renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;yaw+=(e.clientX-lastX)*.009;pitch=Math.max(-.5,Math.min(.5,pitch+(e.clientY-lastY)*.005));lastX=e.clientX;lastY=e.clientY});
+renderer.domElement.addEventListener('pointerup',()=>drag=false);
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}window.addEventListener('resize',resize);resize();
+let oldScroll=window.scrollY,velocity=0,previous=performance.now(),spinTurns=0;
+function tick(now){requestAnimationFrame(tick);const dt=Math.min(.06,(now-previous)/1000);previous=now;const t=now/1000,phase=(now-modeStart)/1000,energy=+document.getElementById('energy').value/100;
+velocity=T.MathUtils.lerp(velocity,T.MathUtils.clamp((window.scrollY-oldScroll)*.08,-1,1),.12);oldScroll=window.scrollY;
+const sv=scroll+velocity,sw=Math.sin(t*3.7*energy),kick=Math.sin(t*3.7*energy+Math.PI),swimming=mode==='swim',dashing=mode==='dash',curling=mode==='curl',waving=mode==='wave',spinning=mode==='spin';
+const target={x:dashing?Math.sin(t*2)*.42:Math.sin(t*.75)*.1,y:Math.sin(t*1.4)*.12-sv*.32,rx:pitch+(swimming?.32:dashing?-.25:curling?.19:Math.sin(t*.65)*.04),ry:yaw+Math.sin(t*.5)*.1+(spinning?Math.min(1,phase/1.6)*Math.PI*2:0),rz:Math.sin(t*.7)*.055+sv*.2+(dashing?Math.sin(t*2)*.17:0),scale:curling?.91:dashing?1.04:1,head:curling?.18:dashing?-.11:Math.sin(t*.8)*.05,a0:curling?-1.1:waving?-1.5+sw*.3:dashing?-1.2+sw*.16:swimming?-.7+sw*.42:-.34+sw*.11,a1:curling?1.1:waving?.45+kick*.17:dashing?1.2+kick*.16:swimming?.7+kick*.42:.34+kick*.11,l0:curling?.8:swimming?kick*.52:dashing?-.5+kick*.35:kick*.13,l1:curling?-.8:swimming?sw*.52:dashing?.5+sw*.35:sw*.13};
+const f=1-Math.exp(-dt*7.5);for(const k in state){let d=target[k]-state[k];if(k==='ry'&&!spinning){while(d>Math.PI)d-=Math.PI*2;while(d<-Math.PI)d+=Math.PI*2;}state[k]+=d*f}
+rig.position.set(state.x,state.y,0);rig.rotation.set(state.rx,state.ry,state.rz,'YXZ');rig.scale.setScalar(state.scale);
+torso.rotation.z=Math.sin(t*1.05)*.035+(swimming?sw*.08:0);face.rotation.x=state.head;face.rotation.z=-torso.rotation.z*.55;
+arms[0].rotation.z=state.a0;arms[1].rotation.z=state.a1;legs[0].rotation.z=state.l0;legs[1].rotation.z=state.l1;
+tailUpdate(t,Math.abs(sv)+(swimming?.8:dashing?1:0));
+if(auto&&now-autoStart>3900){autoStart=now;choose(modes[(modes.indexOf(mode)+1)%modes.length])}
+renderer.render(scene,camera)}
+status.textContent='✓ BUILD V5.0 · Novo modelo carregado';requestAnimationFrame(tick);
+}catch(e){status.textContent='Erro no laboratório: '+(e?.message||String(e));status.style.background='#6b2540';}
+</script></body></html>
