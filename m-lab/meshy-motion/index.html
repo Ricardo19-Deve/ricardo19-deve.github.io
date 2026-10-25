@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b0d1b">
+<title>M Lab • Motion V1</title>
+<style>
+:root{color-scheme:dark;--bg:#090b19;--panel:#181a32;--line:#4c456e;--violet:#a68cec;--text:#f5f0ff;--muted:#bcb7d3}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:1100px;margin:0 auto;padding:16px}header{padding:12px 4px 10px}
+.kicker{font-size:11px;letter-spacing:.19em;color:#bea4ff;font-weight:800}.tag{display:inline-block;font-size:11px;border:1px solid #6d5a9f;color:#d7c7ff;padding:5px 8px;border-radius:999px;margin-top:8px}
+h1{font-size:clamp(26px,5vw,43px);letter-spacing:-.025em;margin:7px 0 8px}p{line-height:1.55;color:var(--muted)}
+.viewport{height:min(64vh,670px);min-height:380px;position:relative;background:radial-gradient(ellipse at 50% 35%,#333755 0%,#15182d 60%,#0a0c1b 100%);border-radius:23px;border:1px solid var(--line);overflow:hidden}
+canvas{width:100%;height:100%;display:block;touch-action:none}
+.help{position:absolute;top:14px;left:14px;right:14px;pointer-events:none;font-size:12px;color:#cbc5e4}
+.status{position:absolute;bottom:13px;left:13px;right:13px;pointer-events:none;background:#101329df;border:1px solid #3a3557;border-radius:12px;padding:9px 11px;font-size:12px;max-width:fit-content;line-height:1.35}
+.status.error{border-color:#b7566b;color:#ffc8d2}
+.bar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:14px 0}
+button,.file-button{font:inherit;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:12px;border:1px solid #615889;min-height:46px;padding:10px;background:#232643;color:#f4ecff;cursor:pointer;text-align:center}
+button.primary,.file-button.primary{background:#7254bb;border-color:#baa2fa}
+button.active{background:#7654c9;border-color:#cbbaff;box-shadow:0 0 0 1px #cbbaff44 inset}
+button:disabled{opacity:.48;cursor:not-allowed}
+input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.controls{background:var(--panel);padding:13px;border:1px solid #333154;border-radius:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+label.slider{display:grid;gap:7px;font-size:13px;color:#e0d9ef}input[type=range]{width:100%;accent-color:#b598f5}
+.note{font-size:12px;color:#aeb0cc}.note a{color:#d4c1ff}
+.stats{display:flex;flex-wrap:wrap;gap:8px;margin:11px 0}.stats span{font-size:12px;padding:7px 10px;border:1px solid #3b3758;border-radius:999px;color:#d7d0eb}
+@media(min-width:750px){.bar{grid-template-columns:repeat(5,minmax(0,1fr))}.controls{grid-template-columns:1fr 1fr auto auto}.viewport{min-height:480px}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.1/examples/jsm/"}}</script>
+</head>
+<body>
+<main>
+<header>
+<div class="kicker">M • LABORATÓRIO PRIVADO DE VALIDAÇÃO VISUAL</div>
+<h1>A nossa M, finalmente em movimento</h1>
+<p>Modelo real do Meshy 7.1, rig de 31 ossos e os dois primeiros ciclos criados no Blender. Esta página é independente do portefólio.</p>
+<div class="tag">MOTION LAB V1.0 · FLOAT + SWIM</div>
+</header>
+<section class="viewport" id="viewport" aria-label="Visualizador 3D">
+<div class="help">Arrasta para rodar · Aproxima com dois dedos</div>
+<div class="status" id="status" role="status" aria-live="polite">A preparar o visualizador 3D…</div>
+</section>
+<div class="stats">
+<span id="modelName">Modelo: não carregado</span>
+<span id="clipName">Animação: —</span>
+<span id="fps">FPS: —</span>
+</div>
+<div class="bar">
+<label for="file" class="file-button primary" id="fileButton">📁 Escolher ficheiro GLB</label>
+<input type="file" id="file" accept=".glb,model/gltf-binary,application/octet-stream">
+<button id="float" disabled>☁ Flutuar</button>
+<button id="swim" disabled>〰 Nadar</button>
+<button id="pause" disabled>⏸ Pausar</button>
+<button id="reset" disabled>↺ Repor vista</button>
+</div>
+<div class="controls">
+<label class="slider">Velocidade <input id="speed" type="range" min="20" max="170" step="5" value="100"></label>
+<label class="slider">Simular scroll <input id="scroll" type="range" min="-100" max="100" step="1" value="0"></label>
+<button id="showBones" disabled>Ver esqueleto: OFF</button>
+<button id="home" disabled>Pose neutra</button>
+</div>
+<p class="note">Se o modelo não abrir automaticamente, usa <strong>Escolher ficheiro GLB</strong> e seleciona <code>M_Meshy71_Web_4Influences.glb</code> na aplicação Ficheiros. O laboratório não envia o ficheiro para nenhum servidor; a leitura é feita neste navegador.</p>
+<p class="note">Para abrir automaticamente no futuro, coloca <code>M_Meshy71_Web_4Influences.glb</code> na mesma pasta desta página no GitHub. Modelo experimental: as deformações e o desempenho ainda precisam de aprovação no iPhone.</p>
+</main>
+<script type="module">
+const $=id=>document.getElementById(id);
+function status(text,error=false){$('status').textContent=text;$('status').classList.toggle('error',error)}
+try{
+  const THREE=await import('three');
+  const [{GLTFLoader},{OrbitControls}]=await Promise.all([
+    import('three/addons/loaders/GLTFLoader.js'),
+    import('three/addons/controls/OrbitControls.js')
+  ]);
+  const host=$('viewport');
+  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'default'});
+  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.8));
+  renderer.outputColorSpace=THREE.SRGBColorSpace;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1.32;
+  host.prepend(renderer.domElement);
+  const scene=new THREE.Scene();
+  const cam=new THREE.PerspectiveCamera(36,1,.05,100);
+  cam.position.set(0,.25,6.3);
+  const orbit=new OrbitControls(cam,renderer.domElement);
+  orbit.enableDamping=true;orbit.dampingFactor=.085;orbit.enablePan=false;
+  orbit.minDistance=2.8;orbit.maxDistance=12;
+  orbit.target.set(0,0,0);orbit.update();
+  const ambient=new THREE.HemisphereLight(0xfff5ff,0x777399,2.0);scene.add(ambient);
+  const key=new THREE.DirectionalLight(0xfff6fb,3.1);key.position.set(-4,7,8);scene.add(key);
+  const fill=new THREE.DirectionalLight(0xa6aaff,1.5);fill.position.set(5,2,-4);scene.add(fill);
+  const stageRig=new THREE.Group();scene.add(stageRig);
+  let modelRoot=null,mixer=null,clips={},active=null,animationName=null,skelHelper=null;
+  let paused=false,speed=1,scroll=0,last=performance.now(),frames=0,lastFps=performance.now();
+  function resize(){
+    const w=host.clientWidth,h=host.clientHeight;
+    renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();
+  }
+  window.addEventListener('resize',resize);resize();
+  function setControls(loaded){
+    for(const id of ['float','swim','pause','reset','showBones','home'])$(id).disabled=!loaded;
+    if(loaded){
+      $('float').disabled=!clips.M_Float_Loop;
+      $('swim').disabled=!clips.M_Swim_Loop;
+    }
+  }
+  function play(name){
+    if(!mixer||!clips[name])return;
+    const action=mixer.clipAction(clips[name]);
+    action.setLoop(THREE.LoopRepeat,Infinity);
+    action.enabled=true;action.clampWhenFinished=false;
+    if(active!==action){
+      action.reset();action.setEffectiveTimeScale(1);action.setEffectiveWeight(1);action.play();
+      if(active)action.crossFadeFrom(active,.65,false);
+      active=action;
+    }else if(paused){paused=false}
+    paused=false;animationName=name;
+    $('pause').textContent='⏸ Pausar';
+    $('float').classList.toggle('active',name==='M_Float_Loop');
+    $('swim').classList.toggle('active',name==='M_Swim_Loop');
+    $('clipName').textContent='Animação: '+(name==='M_Float_Loop'?'Flutuar':name==='M_Swim_Loop'?'Nadar':name);
+    status('✓ M carregada · '+name+' · '+clips[name].duration.toFixed(1)+' s');
+  }
+  function clearModel(){
+    if(skelHelper){scene.remove(skelHelper);skelHelper.dispose();skelHelper=null}
+    if(modelRoot){stageRig.remove(modelRoot);modelRoot=null}
+    if(mixer){mixer.stopAllAction();mixer.uncacheRoot(mixer.getRoot())}
+    mixer=null;active=null;clips={};
+    setControls(false);
+  }
+  async function loadBytes(bytes,label){
+    status('A carregar a M e as animações…');
+    const loader=new GLTFLoader();
+    const gltf=await loader.parseAsync(bytes,'');
+    clearModel();
+    const box=new THREE.Box3().setFromObject(gltf.scene);
+    const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
+    if(!Number.isFinite(size.length())||size.length()<.00001)throw new Error('O modelo não tem dimensões válidas.');
+    modelRoot=new THREE.Group();
+    const factor=2.7/Math.max(size.x,size.y,size.z);
+    modelRoot.scale.setScalar(factor);
+    gltf.scene.position.sub(center);
+    modelRoot.add(gltf.scene);
+    stageRig.add(modelRoot);
+    mixer=new THREE.AnimationMixer(gltf.scene);
+    for(const clip of gltf.animations)clips[clip.name]=clip;
+    $('modelName').textContent='Modelo: '+label;
+    setControls(true);
+    cam.position.set(0,.18,6.3);orbit.target.set(0,0,0);orbit.update();
+    if(clips.M_Float_Loop)play('M_Float_Loop');
+    else if(gltf.animations.length)play(gltf.animations[0].name);
+    else status('O GLB abriu, mas não contém animações.',true);
+    if(!clips.M_Float_Loop||!clips.M_Swim_Loop){
+      status('Carregado. Clips disponíveis: '+gltf.animations.map(x=>x.name).join(', '),true);
+    }
+  }
+  $('file').addEventListener('change',async e=>{
+    const file=e.target.files&&e.target.files[0];
+    if(!file)return;
+    try{const buffer=await file.arrayBuffer();await loadBytes(buffer,file.name)}
+    catch(err){status('Erro a abrir GLB: '+(err.message||String(err)),true)}
+  });
+  $('float').onclick=()=>play('M_Float_Loop');
+  $('swim').onclick=()=>play('M_Swim_Loop');
+  $('pause').onclick=()=>{
+    if(!mixer)return;
+    paused=!paused;
+    $('pause').textContent=paused?'▶ Continuar':'⏸ Pausar';
+    status(paused?'⏸ Animação em pausa':'▶ Animação retomada');
+  };
+  $('home').onclick=()=>{
+    if(!mixer)return;
+    paused=true;mixer.setTime(0);
+    $('pause').textContent='▶ Continuar';
+    status('Pose inicial do clip (para comparar com a referência)');
+  };
+  $('reset').onclick=()=>{
+    cam.position.set(0,.18,6.3);orbit.target.set(0,0,0);orbit.update();
+    $('scroll').value=0;scroll=0;
+  };
+  $('showBones').onclick=()=>{
+    if(!modelRoot)return;
+    if(!skelHelper){skelHelper=new THREE.SkeletonHelper(modelRoot);scene.add(skelHelper)}
+    skelHelper.visible=!skelHelper.visible;
+    $('showBones').textContent='Ver esqueleto: '+(skelHelper.visible?'ON':'OFF');
+  };
+  $('speed').oninput=e=>speed=Number(e.target.value)/100;
+  $('scroll').oninput=e=>scroll=Number(e.target.value)/100;
+  function frame(now){
+    requestAnimationFrame(frame);
+    const dt=Math.min(.06,(now-last)/1000);last=now;
+    if(mixer&&!paused)mixer.update(dt*speed);
+    stageRig.position.y= -scroll*.24;
+    stageRig.rotation.z=scroll*.12;
+    orbit.update();
+    renderer.render(scene,cam);
+    frames++;
+    if(now-lastFps>=1200){$('fps').textContent='FPS aproximados: '+Math.round(frames*1000/(now-lastFps));frames=0;lastFps=now}
+  }
+  requestAnimationFrame(frame);
+  status('Motor 3D pronto. A procurar o GLB no laboratório…');
+  const filename='M_Meshy71_Web_4Influences.glb';
+  try{
+    const response=await fetch('./'+filename,{cache:'no-store'});
+    if(response.ok){
+      status('A transferir '+filename+'…');
+      await loadBytes(await response.arrayBuffer(),filename);
+    }else{
+      status('✓ Motor pronto · Seleciona o ficheiro GLB no botão abaixo.');
+    }
+  }catch(e){status('✓ Motor pronto · Escolhe o ficheiro GLB local.')}
+}catch(e){status('Falha ao iniciar o visualizador 3D: '+(e.message||String(e)),true)}
+</script>
+</body>
+</html>
