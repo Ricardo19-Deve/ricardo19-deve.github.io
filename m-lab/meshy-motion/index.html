@@ -33,7 +33,7 @@ label.slider{display:grid;gap:7px;font-size:13px;color:#e0d9ef}input[type=range]
 <body>
 <main>
 <header>
-<div class="kicker">M • LABORATÓRIO PRIVADO DE VALIDAÇÃO VISUAL</div>
+<div class="kicker">M • LABORATÓRIO ISOLADO DE VALIDAÇÃO VISUAL</div>
 <h1>A nossa M, finalmente em movimento</h1>
 <p>Modelo real do Meshy 7.1, rig de 31 ossos e os dois primeiros ciclos criados no Blender. Esta página é independente do portefólio.</p>
 <div class="tag">MOTION LAB V1.0 · FLOAT + SWIM</div>
@@ -123,7 +123,7 @@ try{
     status('✓ M carregada · '+name+' · '+clips[name].duration.toFixed(1)+' s');
   }
   function clearModel(){
-    if(skelHelper){scene.remove(skelHelper);skelHelper.dispose();skelHelper=null}
+    if(skelHelper){scene.remove(skelHelper);if(skelHelper.geometry)skelHelper.geometry.dispose();if(skelHelper.material)skelHelper.material.dispose();skelHelper=null}
     if(modelRoot){stageRig.remove(modelRoot);modelRoot=null}
     if(mixer){mixer.stopAllAction();mixer.uncacheRoot(mixer.getRoot())}
     mixer=null;active=null;clips={};
