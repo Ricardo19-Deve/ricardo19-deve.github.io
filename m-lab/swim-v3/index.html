@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0c0e20">
+<title>M Lab — Swim V3</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0d1c;--card:#191c35;--edge:#514673;--v:#7653c8;--text:#f7f0ff;--muted:#b9b6cf}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
+main{max-width:970px;margin:auto;padding:16px 14px max(24px,env(safe-area-inset-bottom))}
+.eyebrow{font-size:11px;letter-spacing:.19em;color:#c6a8ff;font-weight:750;margin-top:8px}
+h1{font-size:clamp(28px,6vw,46px);margin:8px 0;line-height:1.13;letter-spacing:-.03em}
+p{color:var(--muted);line-height:1.55}.build{font-size:11px;color:#deccff;background:#241e3e;border:1px solid #554778;border-radius:999px;display:inline-block;padding:7px 11px;margin:3px 0 15px}
+.stage{height:min(67vh,620px);min-height:390px;position:relative;border:1px solid var(--edge);border-radius:22px;overflow:hidden;background:radial-gradient(ellipse at 50% 41%,#383650 0%,#19192e 54%,#0c0d1d 100%)}
+.stage canvas{display:block;width:100%;height:100%;touch-action:none}.help{position:absolute;top:12px;left:12px;right:12px;font-size:12px;color:#cec5e3;pointer-events:none}.status{position:absolute;bottom:12px;left:12px;right:12px;width:fit-content;max-width:calc(100% - 24px);background:#111329e8;border:1px solid #514677;padding:9px 12px;border-radius:12px;color:#f0eaff;font-size:12px;line-height:1.45}.status.error{border-color:#af4b71;color:#ffc4d1}
+.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:14px 0}
+button,.upload{border:1px solid #5f5388;background:#252641;color:#f2eaff;border-radius:12px;min-height:48px;padding:11px 8px;display:flex;align-items:center;justify-content:center;gap:7px;font:inherit;font-weight:600;cursor:pointer;text-align:center}.upload{background:#7453c1;border-color:#ba9aff}button.active{background:#7255b8;border-color:#beaaff}button:disabled{opacity:.5;cursor:not-allowed}input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.settings{background:var(--card);border:1px solid #35324e;padding:13px;border-radius:15px;display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:12px}
+.settings label{display:grid;gap:9px;font-size:13px}input[type=range]{width:100%;accent-color:#b99df4}
+.meta{margin:12px 0;display:flex;flex-wrap:wrap;gap:7px}.pill{border:1px solid #44405c;border-radius:999px;padding:6px 9px;font-size:12px;color:#cfc7e6}.note{font-size:12px}.note strong{color:#f0e9ff}
+@media(min-width:690px){.controls{grid-template-columns:repeat(5,1fr)}.settings{grid-template-columns:1fr 1fr}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/"}}</script>
+</head>
+<body><main>
+<div class="eyebrow">M MASCOT / LABORATÓRIO INDEPENDENTE</div>
+<h1>A verdadeira M a nadar</h1>
+<p>Primeiro teste da animação <b>Swim V3</b> com o modelo Meshy 7.1, os 31 ossos e os corretivos de ombro. Ainda não está aprovada nem integrada no portefólio.</p>
+<div class="build">SWIM LAB V3 · FULL-SKINNING · 6 SEGUNDOS</div>
+<div class="stage" id="stage" aria-label="Visualizador tridimensional da mascote">
+<div class="help">Arrasta para rodar · Dois dedos para aproximar</div>
+<div class="status" id="status" role="status">A iniciar o motor 3D…</div>
+</div>
+<div class="meta"><span class="pill" id="clip">Clip: —</span><span class="pill" id="bones">Ossos: —</span><span class="pill" id="fps">FPS: —</span></div>
+<div class="controls">
+<label class="upload" for="file">📁 Escolher GLB da M</label><input type="file" id="file" accept=".glb,model/gltf-binary,application/octet-stream">
+<button id="play" disabled>▶ Reproduzir</button><button id="pause" disabled>⏸ Pausar</button><button id="reset" disabled>↺ Reiniciar</button><button id="camera" disabled>◉ Repor câmara</button>
+</div>
+<div class="settings"><label>Velocidade <input type="range" id="speed" min="25" max="150" step="5" value="100"></label><label>Simular scroll <input type="range" id="scroll" min="-100" max="100" step="1" value="0"></label></div>
+<p class="note"><strong>Como abrir:</strong> toca em «Escolher GLB da M» e seleciona <code>M_Meshy71_Swim_V3.glb</code> na aplicação Ficheiros. O ficheiro é processado localmente pelo navegador — não é enviado para um servidor.</p>
+<p class="note">Esta versão carrega o adaptador original de skinning do Codex. O resultado no Safari ainda precisa de validação; evita concluir que as deformações estão corretas sem ver a animação completa.</p>
+</main>
+<script type="module">
+const $=id=>document.getElementById(id);
+const status=(message,error=false)=>{$('status').textContent=message;$('status').classList.toggle('error',error)};
+try {
+const THREE=await import('three');
+const {OrbitControls}=await import('three/addons/controls/OrbitControls.js');
+const {loadSwimV3}=await import('./threejs/load-swim-v3.js');
+const host=$('stage');
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'default'});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.7));
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.35;
+host.prepend(renderer.domElement);
+const scene=new THREE.Scene();
+scene.add(new THREE.HemisphereLight(0xfff9ff,0x76708c,2.2));
+const key=new THREE.DirectionalLight(0xfff6ff,3.0);key.position.set(-3,6,7);scene.add(key);
+const rim=new THREE.DirectionalLight(0xb19ee5,1.7);rim.position.set(4,2,-4);scene.add(rim);
+const cam=new THREE.PerspectiveCamera(34,1,.05,200);cam.position.set(0,.1,7.5);
+const controls=new OrbitControls(cam,renderer.domElement);controls.enableDamping=true;controls.enablePan=false;controls.minDistance=3;controls.maxDistance=13;controls.target.set(0,0,0);controls.update();
+const stageRig=new THREE.Group();scene.add(stageRig);
+let avatar=null,container=null,url=null,paused=false,speed=1,scroll=0;
+let last=performance.now(),fpsFrames=0,fpsAt=performance.now();
+function resize(){const w=host.clientWidth,h=host.clientHeight;renderer.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
+window.addEventListener('resize',resize);resize();
+function buttons(enabled){for(const id of ['play','pause','reset','camera'])$(id).disabled=!enabled}
+async function openFile(file){
+ if(!file)return;
+ buttons(false);status('A carregar a M e os corretivos dos ombros…');
+ const nextUrl=URL.createObjectURL(file);
+ try{
+   const next=await loadSwimV3(nextUrl);
+   if(container){stageRig.remove(container);container=null}
+   if(url)URL.revokeObjectURL(url);
+   url=nextUrl;avatar=next;
+   const box=new THREE.Box3().setFromObject(next.root);
+   const size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
+   if(!Number.isFinite(size.length())||size.length()<.000001)throw new Error('Dimensões do modelo inválidas');
+   container=new THREE.Group();
+   const centerGroup=new THREE.Group();
+   container.add(centerGroup);centerGroup.position.copy(center).multiplyScalar(-1);centerGroup.add(next.root);
+   container.scale.setScalar(2.9/Math.max(size.x,size.y,size.z));
+   stageRig.add(container);
+   cam.position.set(0,.1,7.5);controls.target.set(0,0,0);controls.update();
+   next.play();paused=false;
+   $('clip').textContent=next.clip.name+' · '+next.clip.duration.toFixed(1)+' s';
+   $('bones').textContent='Ossos: '+next.root.getObjectByProperty('isSkinnedMesh',true)?.skeleton?.bones?.length;
+   buttons(true);status('✓ M carregada · Swim V3 a reproduzir');
+ }catch(error){URL.revokeObjectURL(nextUrl);status('Erro ao carregar GLB: '+(error?.message||String(error)),true)}
+}
+$('file').addEventListener('change',e=>openFile(e.target.files?.[0]));
+$('play').onclick=()=>{if(!avatar)return;avatar.play();paused=false;status('▶ Swim V3 a reproduzir')};
+$('pause').onclick=()=>{if(!avatar)return;paused=!paused;status(paused?'⏸ Animação em pausa':'▶ Animação retomada')};
+$('reset').onclick=()=>{if(!avatar)return;avatar.play();paused=false;status('↺ Ciclo reiniciado')};
+$('camera').onclick=()=>{cam.position.set(0,.1,7.5);controls.target.set(0,0,0);controls.update();scroll=0;$('scroll').value=0};
+$('speed').oninput=e=>speed=Number(e.target.value)/100;
+$('scroll').oninput=e=>scroll=Number(e.target.value)/100;
+function frame(now){requestAnimationFrame(frame);const dt=Math.min((now-last)/1000,.05);last=now;
+ if(avatar&&!paused)avatar.update(dt*speed);
+ stageRig.position.y=-scroll*.18;stageRig.rotation.z=scroll*.11;
+ controls.update();renderer.render(scene,cam);
+ fpsFrames++;if(now-fpsAt>1200){$('fps').textContent='FPS: '+Math.round(fpsFrames*1000/(now-fpsAt));fpsFrames=0;fpsAt=now}
+}
+requestAnimationFrame(frame);status('✓ Motor 3D pronto · Seleciona o GLB da M');
+}catch(error){status('Erro a iniciar Three.js: '+(error?.message||String(error)),true)}
+</script></body></html>
