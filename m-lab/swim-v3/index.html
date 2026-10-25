@@ -105,5 +105,15 @@ function frame(now){requestAnimationFrame(frame);const dt=Math.min((now-last)/10
  fpsFrames++;if(now-fpsAt>1200){$('fps').textContent='FPS: '+Math.round(fpsFrames*1000/(now-fpsAt));fpsFrames=0;fpsAt=now}
 }
 requestAnimationFrame(frame);status('✓ Motor 3D pronto · Seleciona o GLB da M');
+// Optional automatic load if the GLB is later uploaded next to this page.
+(async()=>{
+  try{
+    const response=await fetch('./M_Meshy71_Swim_V3.glb',{cache:'no-store'});
+    if(!response.ok)return;
+    status('A carregar automaticamente o GLB da M…');
+    const data=await response.blob();
+    await openFile(new File([data],'M_Meshy71_Swim_V3.glb',{type:'model/gltf-binary'}));
+  }catch(e){/* Manual file selection remains available. */}
+})();
 }catch(error){status('Erro a iniciar Three.js: '+(error?.message||String(error)),true)}
 </script></body></html>
