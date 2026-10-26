@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0d1b">
+<meta name="description" content="Laboratório isolado para testar interações da mascote M antes da integração no portefólio.">
+<title>M • Interaction Lab</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0d1b;--panel:#181b32;--card:#20233e;--stroke:#494267;--text:#f4edff;--muted:#b4afce;--accent:#b69aff;--active:#7053be}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+main{max-width:1020px;margin:auto;padding:18px 15px 45px}
+header{margin-bottom:15px}.eyebrow{color:#bca5ff;letter-spacing:.19em;font-weight:800;font-size:11px}
+h1{font-size:clamp(28px,6vw,48px);margin:8px 0;line-height:1.1;letter-spacing:-.03em}
+p{color:var(--muted);line-height:1.55;margin:9px 0}.chip{border:1px solid var(--stroke);background:#24213e;border-radius:40px;padding:6px 11px;display:inline-flex;gap:7px;font-size:11px;color:#decbff;margin:5px 0}
+.viewport{height:min(60svh,620px);min-height:355px;border-radius:22px;border:1px solid var(--stroke);position:relative;overflow:hidden;background:radial-gradient(ellipse at 52% 43%,#383951 0%,#1b1b31 54%,#0d0f1d 100%)}
+.viewport canvas{width:100%;height:100%;display:block;touch-action:none}
+.viewport .instructions{pointer-events:none;position:absolute;top:14px;left:14px;right:14px;color:#d4cae9;font-size:12px}
+.viewport .status{position:absolute;bottom:12px;left:12px;right:12px;max-width:fit-content;background:#12152ae8;border:1px solid #4a426b;border-radius:11px;padding:9px 12px;color:#ede5ff;font-size:12px;line-height:1.5;pointer-events:none}
+.viewport .status.error{color:#ffbcc5;border-color:#ce6980}
+.viewport .ripple{position:absolute;left:50%;top:42%;width:18px;height:18px;border:3px solid #eedfff;border-radius:50%;pointer-events:none;opacity:0;transform:translate(-50%,-50%) scale(.3)}
+.viewport .ripple.active{animation:knock .65s ease-out 2}
+@keyframes knock{0%{opacity:.9;transform:translate(-50%,-50%) scale(.3)}100%{opacity:0;transform:translate(-50%,-50%) scale(5)}}
+.stats{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}.stats span{border:1px solid #45405d;color:#d2cbe9;border-radius:22px;padding:6px 10px;font-size:12px}
+.panel{background:var(--panel);border:1px solid #383455;border-radius:15px;padding:13px;margin:13px 0}
+h2{font-size:16px;margin:0 0 10px}h3{font-size:13px;margin:12px 0 8px;color:#d4c4fa}
+button,.upload{appearance:none;border:1px solid #6c6292;border-radius:11px;background:var(--card);color:var(--text);font:inherit;min-height:46px;padding:9px 10px;text-align:center;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
+button.primary,.upload{background:#7553bc;border-color:#bba2f6}
+button.active{background:#7553bc;border-color:#c7b2fb}
+button:disabled{opacity:.4;cursor:not-allowed}
+.file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.toolbar,.modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.modes{grid-template-columns:repeat(3,minmax(0,1fr))}
+.advanced{display:grid;gap:12px;margin-top:11px}.range-label{display:grid;gap:7px;color:#ded8ea;font-size:13px}
+input[type=range]{width:100%;accent-color:#b99aff}input[type=checkbox]{accent-color:#b99aff}
+select{width:100%;min-height:43px;background:#272841;color:var(--text);border:1px solid #595178;border-radius:10px;font:inherit;padding:7px}
+.check{display:flex;align-items:center;gap:8px;font-size:13px;color:#d8d0eb}
+.debug{font:12px ui-monospace,SFMono-Regular,Consolas,monospace;color:#b4aed0;background:#121427;border-radius:11px;padding:12px;white-space:pre-wrap;word-break:break-word;min-height:80px;line-height:1.55}
+.note{font-size:12px}.note b{color:#e8dfff}
+small{font-size:11px;color:#a8a2bc}
+@media(min-width:690px){.toolbar{grid-template-columns:repeat(4,minmax(0,1fr))}.modes{grid-template-columns:repeat(4,minmax(0,1fr))}.advanced{grid-template-columns:2fr 1fr 1fr}}
+@media(max-width:390px){.modes{grid-template-columns:repeat(2,minmax(0,1fr))}.viewport{min-height:330px}}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/"}}</script>
+</head>
+<body>
+<main>
+<header>
+<div class="eyebrow">M / INTERACTION LAB 01</div>
+<h1>Vamos dar personalidade à M</h1>
+<p>Experimenta reações a toques, cursor e scroll utilizando a personagem 3D real. As expressões faciais e os gestos complexos continuam em desenvolvimento no Blender.</p>
+<div class="chip">LAB ISOLADO · SEM ALTERAÇÕES AO PORTFÓLIO</div>
+</header>
+<section id="stage" class="viewport" aria-label="Visualizador 3D interativo da M">
+<div class="instructions">Arrasta para rodar · Toca na M para reagir · Pinça para aproximar</div>
+<div class="ripple" id="ripple" aria-hidden="true"></div>
+<div class="status" id="status" role="status" aria-live="polite">A iniciar motor 3D…</div>
+</section>
+<div class="stats"><span id="state">Estado: —</span><span id="clip">Clip: —</span><span id="skin">Skin: —</span><span id="fps">FPS: —</span></div>
+<section class="panel">
+<h2>1 · Carregar a M verdadeira</h2>
+<div class="toolbar">
+<label class="upload" for="file">📁 Escolher GLB</label>
+<input class="file" type="file" id="file" accept=".glb,model/gltf-binary,application/octet-stream">
+<button id="resetCamera" disabled>◉ Repor câmara</button>
+<button id="neutral" disabled>↺ Pose neutra</button>
+<button id="demo" disabled>▶ Demo automática</button>
+</div>
+<p class="note">Seleciona <b>M_Meshy71_Swim_V3.glb</b>, ou um GLB mais recente exportado pelo Codex. O ficheiro permanece no teu dispositivo. Não é enviado a nenhum servidor.</p>
+<label class="range-label" for="clipSelect">Animação corporal detetada <select id="clipSelect" disabled><option>Carrega um GLB primeiro</option></select></label>
+</section>
+<section class="panel">
+<h2>2 · Testar comportamentos</h2>
+<div class="modes">
+<button data-mode="float" disabled>☁ Flutuar</button>
+<button data-mode="swim" disabled>〰 Nadar</button>
+<button data-mode="curious" disabled>👀 Curiosidade</button>
+<button data-mode="follow" disabled>◎ Seguir dedo</button>
+<button data-mode="peek" disabled>◔ Espiar</button>
+<button data-mode="knock" disabled>✦ Nok nok</button>
+<button data-mode="shy" disabled>◖ Esconder</button>
+<button id="stopDemo" disabled>■ Parar demo</button>
+</div>
+<div class="advanced">
+<label class="range-label" for="scroll">Simular scroll <input id="scroll" type="range" min="-100" max="100" value="0"></label>
+<label class="range-label" for="speed">Velocidade do clip <input id="speed" type="range" min="25" max="150" value="100" step="5"></label>
+<label class="check"><input id="reduce" type="checkbox"> Movimento reduzido</label>
+</div>
+<p class="note"><b>Importante:</b> Espiar, Nok nok, Esconder e Seguir dedo são protótipos de <b>movimento global da personagem</b>, não animações finais dos braços, olhos ou expressões. Os controlos de rosto serão ligados quando o Codex finalizar o rig facial.</p>
+</section>
+<section class="panel">
+<h2>3 · Diagnóstico de interação</h2>
+<div class="debug" id="debug">Ainda não existe modelo carregado.</div>
+<p class="note">O objetivo desta página é validar a arquitetura de interação sem prejudicar o Meshy 7.1. O desempenho no Safari e as deformações do novo GLB ainda requerem testes reais.</p>
+</section>
+</main>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {readGLB} from '../swim-v3/threejs/glb-reader.js';
+import {preserveFullSkinning} from '../swim-v3/threejs/full-skinning.js';
+import {MInteractionDirector,M_MODES} from './behavior.mjs';
+
+const $=id=>document.getElementById(id);
+const stage=$('stage');
+function status(message,error=false){$('status').textContent=message;$('status').classList.toggle('error',error)}
+function debug(lines){$('debug').textContent=lines.join('\n')}
+function buttonState(enabled){
+ for(const id of ['resetCamera','neutral','demo','stopDemo'])$(id).disabled=!enabled;
+ for(const el of document.querySelectorAll('button[data-mode]'))el.disabled=!enabled;
+ $('clipSelect').disabled=!enabled;
+}
+const renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'default'});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.7));
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.3;
+stage.prepend(renderer.domElement);
+const scene=new THREE.Scene();
+scene.add(new THREE.HemisphereLight(0xfff6ff,0x71718e,2));
+const key=new THREE.DirectionalLight(0xfff7f9,3.1);key.position.set(-4,7,9);scene.add(key);
+const rim=new THREE.DirectionalLight(0xab9bff,1.5);rim.position.set(5,3,-5);scene.add(rim);
+const camera=new THREE.PerspectiveCamera(36,1,.05,100);camera.position.set(0,.1,7.4);
+const orbit=new OrbitControls(camera,renderer.domElement);
+orbit.enableDamping=true;orbit.enablePan=false;orbit.minDistance=3.5;orbit.maxDistance=12;
+orbit.target.set(0,0,0);orbit.update();
+const stageRig=new THREE.Group();scene.add(stageRig);
+const director=new MInteractionDirector(mode=>{
+ $('state').textContent='Estado: '+M_MODES[mode].label;
+ for(const button of document.querySelectorAll('button[data-mode]'))button.classList.toggle('active',button.dataset.mode===mode);
+ if(loaded)applyAnimation(mode);
+ if(mode==='knock')pulse();
+});
+let loaded=null,mixer=null,clips=[],action=null,activeClip=null,paused=false,chosenClip=null;
+let elapsed=performance.now(),fpsFrames=0,fpsAt=performance.now(),autoScroll=0,prevScroll=window.scrollY;
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+window.addEventListener('resize',resize);resize();
+function cameraHome(){camera.position.set(0,.1,7.4);orbit.target.set(0,0,0);orbit.update()}
+$('resetCamera').onclick=cameraHome;
+function pickClip(kind){
+ const normalized=clips.map(c=>({clip:c,name:c.name.toLowerCase()}));
+ if(kind==='swim')return normalized.find(x=>x.clip.name===chosenClip&&x.name.includes('swim'))?.clip
+  || normalized.find(x=>x.name.includes('swim'))?.clip || null;
+ return normalized.find(x=>x.name.includes('float')||x.name.includes('hover')||x.name.includes('idle'))?.clip || null;
+}
+function applyAnimation(mode){
+ if(!mixer)return;
+ const clip=pickClip(mode==='swim'?'swim':'float');
+ if(!clip){
+   mixer.stopAllAction();mixer.update(0);action=null;activeClip=null;
+   loaded.gltf.scene.traverse(o=>{if(o.isSkinnedMesh){o.skeleton.pose();if(o.morphTargetInfluences)o.morphTargetInfluences.fill(0)}});
+   $('clip').textContent='Clip: pose neutra + movimento global';
+   return;
+ }
+ if(activeClip===clip&&action){action.paused=false;return}
+ const previous=action,next=mixer.clipAction(clip);
+ next.reset().enabled=true;next.setLoop(THREE.LoopRepeat,Infinity);
+ next.setEffectiveTimeScale(1);next.setEffectiveWeight(1);next.play();
+ if(previous&&previous!==next)next.crossFadeFrom(previous,.65,false);
+ action=next;activeClip=clip;
+ $('clip').textContent='Clip: '+clip.name+' · '+clip.duration.toFixed(1)+'s';
+}
+async function openGLB(file){
+ if(!file)return;
+ buttonState(false);status('A carregar a malha, ossos e texturas…');
+ try{
+  const bytes=await file.arrayBuffer();
+  const raw=readGLB(bytes);
+  const gltf=await new GLTFLoader().parseAsync(bytes,'');
+  const skin=preserveFullSkinning(gltf,raw);
+  if(!skin.meshes?.length)throw new Error('GLB sem malha esquelética.');
+  const bounds=new THREE.Box3().setFromObject(gltf.scene),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+  if(!Number.isFinite(size.length())||size.length()<.000001)throw new Error('Dimensões inválidas.');
+  if(loaded){stageRig.remove(loaded.wrapper);if(mixer)mixer.stopAllAction()}
+  const wrapper=new THREE.Group(),centering=new THREE.Group();
+  centering.position.copy(center).multiplyScalar(-1);centering.add(gltf.scene);wrapper.add(centering);
+  wrapper.scale.setScalar(2.85/Math.max(size.x,size.y,size.z));
+  stageRig.add(wrapper);
+  loaded={gltf,wrapper,skin,file:file.name};mixer=new THREE.AnimationMixer(gltf.scene);
+  clips=gltf.animations;action=null;activeClip=null;chosenClip=null;
+  const select=$('clipSelect');select.replaceChildren();
+  if(clips.length){
+    for(const clip of clips){const option=document.createElement('option');option.value=clip.name;option.textContent=clip.name+' · '+clip.duration.toFixed(1)+'s';select.appendChild(option)}
+    const selected=clips.find(c=>c.name.toLowerCase().includes('swim'))||clips[0];select.value=selected.name;chosenClip=selected.name;
+  }else{const option=document.createElement('option');option.textContent='Sem clips no GLB';select.appendChild(option)}
+  director.setDemo(false);director.setMode('float');buttonState(true);
+  document.querySelector('button[data-mode="swim"]').disabled=!pickClip('swim');
+  cameraHome();
+  $('skin').textContent='Skin: '+skin.meshes.length+' malha(s), máx '+skin.maxUsed+' influências';
+  debug(['Modelo: '+file.name,'Clips: '+(clips.map(c=>c.name).join(', ')||'nenhum'),
+    'Ossos: '+skin.meshes[0].skeleton.bones.length,
+    'Influências máximas: '+skin.maxUsed,'Vértices com pesos adicionais: '+skin.affectedVertices,
+    'Modos simulados: espiar, nok nok, esconder, seguir dedo.']);
+  status('✓ M carregada · escolhe uma reação ou inicia a demo');
+ }catch(err){status('Erro ao carregar a M: '+(err?.message||String(err)),true);buttonState(Boolean(loaded))}
+}
+$('file').addEventListener('change',event=>openGLB(event.target.files?.[0]));
+$('clipSelect').onchange=()=>{chosenClip=$('clipSelect').value;if(loaded)director.setMode('swim')};
+for(const button of document.querySelectorAll('button[data-mode]'))button.onclick=()=>{director.setMode(button.dataset.mode);status('A testar: '+M_MODES[button.dataset.mode].label)};
+$('neutral').onclick=()=>{director.setMode('float');status('Pose neutra / idle')};
+$('demo').onclick=()=>{director.setDemo(true);status('▶ Demonstração automática ativa');$('demo').classList.add('active')};
+$('stopDemo').onclick=()=>{director.setDemo(false);director.setMode('float');$('demo').classList.remove('active');status('Demonstração parada')};
+$('scroll').oninput=e=>director.setScroll(Number(e.target.value)/100);
+let clipSpeed=1;$('speed').oninput=e=>{clipSpeed=Number(e.target.value)/100};
+$('reduce').onchange=()=>status($('reduce').checked?'Movimento reduzido ativo':'Movimento completo ativo');
+function pulse(){
+ const ripple=$('ripple');ripple.classList.remove('active');void ripple.offsetWidth;ripple.classList.add('active');
+}
+const pointer=new THREE.Vector2(),ray=new THREE.Raycaster();
+let down=null;
+stage.addEventListener('pointerdown',event=>{down={x:event.clientX,y:event.clientY,time:performance.now()}});
+stage.addEventListener('pointermove',event=>{
+ const rect=stage.getBoundingClientRect();
+ director.setPointer((event.clientX-rect.left)/rect.width*2-1,1-(event.clientY-rect.top)/rect.height*2);
+});
+stage.addEventListener('pointerup',event=>{
+ if(!down||!loaded)return;
+ const distance=Math.hypot(event.clientX-down.x,event.clientY-down.y);
+ down=null;if(distance>12)return;
+ const rect=stage.getBoundingClientRect();
+ pointer.set((event.clientX-rect.left)/rect.width*2-1,-((event.clientY-rect.top)/rect.height*2-1));
+ ray.setFromCamera(pointer,camera);
+ if(ray.intersectObject(loaded.wrapper,true).length){director.setMode('knock');status('M reagiu ao toque · gesto nok nok em protótipo')}
+});
+window.addEventListener('scroll',()=>{
+ const current=window.scrollY;
+ autoScroll=Math.max(-1,Math.min(1,(current-prevScroll)/180));prevScroll=current;
+},{passive:true});
+window.addEventListener('keydown',e=>{
+ if(!loaded||['INPUT','SELECT'].includes(document.activeElement.tagName))return;
+ const mode={'1':'float','2':'swim','3':'peek','4':'knock','5':'follow'}[e.key];
+ if(mode)director.setMode(mode);
+});
+function damping(current,target,dt,k=6){return current+(target-current)*(1-Math.exp(-k*dt))}
+function animate(now){
+ requestAnimationFrame(animate);const dt=Math.min(.06,(now-elapsed)/1000);elapsed=now;
+ const pose=director.step(dt);
+ if(loaded){
+  const reduced=$('reduce').checked?0.35:1;
+  const ms=director.mode;
+  if(mixer&&action)mixer.update(dt*clipSpeed*(reduced===1?1:.65));
+  orbit.enabled=ms!=='follow';
+  stageRig.position.x=damping(stageRig.position.x,pose.x*reduced,dt);
+  stageRig.position.y=damping(stageRig.position.y,(pose.y+autoScroll*.13)*reduced,dt);
+  stageRig.position.z=damping(stageRig.position.z,pose.z*reduced,dt);
+  stageRig.rotation.x=damping(stageRig.rotation.x,pose.rx*reduced,dt);
+  stageRig.rotation.y=damping(stageRig.rotation.y,pose.ry*reduced,dt);
+  stageRig.rotation.z=damping(stageRig.rotation.z,pose.rz*reduced,dt);
+  const scale=damping(stageRig.scale.x,1+(pose.scale-1)*reduced,dt);stageRig.scale.setScalar(scale);
+  autoScroll*=Math.exp(-dt*3);
+ }
+ orbit.update();renderer.render(scene,camera);
+ fpsFrames++;
+ if(now-fpsAt>1200){$('fps').textContent='FPS aproximados: '+Math.round(fpsFrames*1000/(now-fpsAt));fpsFrames=0;fpsAt=now}
+}
+requestAnimationFrame(animate);
+status('✓ Laboratório pronto · Escolhe o GLB da M');
+</script>
+</body></html>
