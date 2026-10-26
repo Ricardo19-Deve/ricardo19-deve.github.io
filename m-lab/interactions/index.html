@@ -52,7 +52,7 @@ small{font-size:11px;color:#a8a2bc}
 <div class="chip">LAB ISOLADO · SEM ALTERAÇÕES AO PORTFÓLIO</div>
 </header>
 <section id="stage" class="viewport" aria-label="Visualizador 3D interativo da M">
-<div class="instructions">Arrasta para rodar · Toca na M para reagir · Pinça para aproximar</div>
+<div class="instructions">Arrasta para rodar · Toca no palco para reagir · Pinça para aproximar</div>
 <div class="ripple" id="ripple" aria-hidden="true"></div>
 <div class="status" id="status" role="status" aria-live="polite">A iniciar motor 3D…</div>
 </section>
@@ -262,7 +262,7 @@ $('reduce').onchange=()=>status($('reduce').checked?'Movimento reduzido ativo':'
 function pulse(){
  const ripple=$('ripple');ripple.classList.remove('active');void ripple.offsetWidth;ripple.classList.add('active');
 }
-const pointer=new THREE.Vector2(),ray=new THREE.Raycaster();
+// Use a cheap touch reaction rather than expensive raycasting across 126k animated triangles.
 let down=null;
 stage.addEventListener('pointerdown',event=>{down={x:event.clientX,y:event.clientY,time:performance.now()}});
 stage.addEventListener('pointermove',event=>{
@@ -273,10 +273,8 @@ stage.addEventListener('pointerup',event=>{
  if(!down||!loaded)return;
  const distance=Math.hypot(event.clientX-down.x,event.clientY-down.y);
  down=null;if(distance>12)return;
- const rect=stage.getBoundingClientRect();
- pointer.set((event.clientX-rect.left)/rect.width*2-1,-((event.clientY-rect.top)/rect.height*2-1));
- ray.setFromCamera(pointer,camera);
- if(ray.intersectObject(loaded.wrapper,true).length){director.setMode('knock');status('M reagiu ao toque · gesto nok nok em protótipo')}
+ director.setMode('knock');
+ status('M reagiu ao toque · gesto nok nok em protótipo')
 });
 window.addEventListener('scroll',()=>{
  const current=window.scrollY;
