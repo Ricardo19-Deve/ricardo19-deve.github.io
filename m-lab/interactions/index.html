@@ -89,7 +89,17 @@ small{font-size:11px;color:#a8a2bc}
 <p class="note"><b>Importante:</b> Espiar, Nok nok, Esconder e Seguir dedo são protótipos de <b>movimento global da personagem</b>, não animações finais dos braços, olhos ou expressões. Os controlos de rosto serão ligados quando o Codex finalizar o rig facial.</p>
 </section>
 <section class="panel">
-<h2>3 · Diagnóstico de interação</h2>
+<h2>3 · Expressões faciais (compatibilidade futura)</h2>
+<p class="note">Estes controlos ficam bloqueados até o GLB incluir morph targets de piscar. Não criam pálpebras artificiais nem alteram o rosto original.</p>
+<div class="advanced">
+<label class="range-label">Piscar esquerdo <input id="blinkL" type="range" min="0" max="100" value="0" disabled></label>
+<label class="range-label">Piscar direito <input id="blinkR" type="range" min="0" max="100" value="0" disabled></label>
+<button id="blinkBoth" disabled>◡ Piscar ambos</button>
+</div>
+<p class="note" id="faceInfo">Rig facial: ainda não detetado.</p>
+</section>
+<section class="panel">
+<h2>4 · Diagnóstico de interação</h2>
 <div class="debug" id="debug">Ainda não existe modelo carregado.</div>
 <p class="note">O objetivo desta página é validar a arquitetura de interação sem prejudicar o Meshy 7.1. O desempenho no Safari e as deformações do novo GLB ainda requerem testes reais.</p>
 </section>
@@ -132,6 +142,32 @@ const director=new MInteractionDirector(mode=>{
  if(mode==='knock')pulse();
 });
 let loaded=null,mixer=null,clips=[],action=null,activeClip=null,paused=false,chosenClip=null;
+let faceTargets={left:null,right:null},blinkUntil=0;
+function discoverFaceTargets(root){
+ const found={left:null,right:null},available=[];
+ root.traverse(mesh=>{
+  if(!mesh.isMesh||!mesh.morphTargetDictionary)return;
+  for(const [name,index] of Object.entries(mesh.morphTargetDictionary)){
+   available.push(name);
+   const n=name.toLowerCase().replace(/[^a-z0-9]/g,'');
+   if(!n.includes('blink'))continue;
+   if(/(?:blinkl|blinkleft|leftblink|lblink)$/.test(n)||n.endsWith('blinkl'))found.left={mesh,index,name};
+   if(/(?:blinkr|blinkright|rightblink|rblink)$/.test(n)||n.endsWith('blinkr'))found.right={mesh,index,name};
+  }
+ });
+ faceTargets=found;
+ $('blinkL').disabled=!found.left;$('blinkR').disabled=!found.right;
+ $('blinkBoth').disabled=!(found.left&&found.right);
+ $('blinkL').value='0';$('blinkR').value='0';
+ $('faceInfo').textContent='Rig facial: '+(found.left?found.left.name:'olho esquerdo pendente')+' · '+(found.right?found.right.name:'olho direito pendente')+'. Morphs encontrados: '+(available.join(', ')||'nenhum')+'.';
+}
+function applyFacialTargets(now){
+ let left=Number($('blinkL').value)/100,right=Number($('blinkR').value)/100;
+ if(now<blinkUntil){const phase=(blinkUntil-now)/420;const blink=Math.sin(Math.PI*(1-phase));left=right=blink;}
+ if(faceTargets.left)faceTargets.left.mesh.morphTargetInfluences[faceTargets.left.index]=left;
+ if(faceTargets.right)faceTargets.right.mesh.morphTargetInfluences[faceTargets.right.index]=right;
+}
+$('blinkBoth').onclick=()=>blinkUntil=performance.now()+420;
 let elapsed=performance.now(),fpsFrames=0,fpsAt=performance.now(),autoScroll=0,prevScroll=window.scrollY;
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
 window.addEventListener('resize',resize);resize();
@@ -177,6 +213,7 @@ async function openGLB(file){
   wrapper.scale.setScalar(2.85/Math.max(size.x,size.y,size.z));
   stageRig.add(wrapper);
   loaded={gltf,wrapper,skin,file:file.name};mixer=new THREE.AnimationMixer(gltf.scene);
+  discoverFaceTargets(gltf.scene);
   clips=gltf.animations;action=null;activeClip=null;chosenClip=null;
   const select=$('clipSelect');select.replaceChildren();
   if(clips.length){
@@ -239,6 +276,7 @@ function animate(now){
   const reduced=$('reduce').checked?0.35:1;
   const ms=director.mode;
   if(mixer&&action)mixer.update(dt*clipSpeed*(reduced===1?1:.65));
+  applyFacialTargets(now);
   orbit.enabled=ms!=='follow';
   stageRig.position.x=damping(stageRig.position.x,pose.x*reduced,dt);
   stageRig.position.y=damping(stageRig.position.y,(pose.y+autoScroll*.13)*reduced,dt);
