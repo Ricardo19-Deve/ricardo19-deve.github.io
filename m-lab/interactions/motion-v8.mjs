@@ -75,7 +75,7 @@ export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',express
   add('Head',.14,0,.09);add('Neck',.06,0,.06);
   add('Ear.L',.18,0,-.10);add('Ear.R',.18,0,.10);
   add('Arm.L',.22,0,-.20);add('Arm.R',.22,0,.20);
-  for(let i=6;i<=10;i++)add('Tail.'+String(i).padStart(2,'0'),0,.075,0);
+  // Tail tuck is controlled exclusively by tail-v9 so the intensity slider remains authoritative.
  }
  if(mode==='knock') {
   const hit=bump(modeAge,.75,.16)+bump(modeAge,1.23,.16);
