@@ -245,8 +245,9 @@ function releaseOldModel(){
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
 window.addEventListener('resize',resize);resize();
 const cameraGoal={position:new THREE.Vector3(0,.1,7.4),target:new THREE.Vector3(0,0,0)};
+let cameraTweening=false;
 function setCameraGoal(x,y,z,tx,ty,tz){
- cameraGoal.position.set(x,y,z);cameraGoal.target.set(tx,ty,tz);
+ cameraGoal.position.set(x,y,z);cameraGoal.target.set(tx,ty,tz);cameraTweening=true;
 }
 function cameraHome(){
  setCameraGoal(0,.1,7.4,0,0,0);
@@ -359,7 +360,7 @@ function pulse(){
 }
 // Use a cheap touch reaction rather than expensive raycasting across 126k animated triangles.
 let down=null;
-stage.addEventListener('pointerdown',event=>{down={x:event.clientX,y:event.clientY,time:performance.now()}});
+stage.addEventListener('pointerdown',event=>{cameraTweening=false;down={x:event.clientX,y:event.clientY,time:performance.now()}});
 stage.addEventListener('pointermove',event=>{
  const rect=stage.getBoundingClientRect();
  director.setPointer((event.clientX-rect.left)/rect.width*2-1,1-(event.clientY-rect.top)/rect.height*2);
@@ -416,12 +417,12 @@ function animate(now){
   stageRig.scale.setScalar(scale);
   autoScroll*=Math.exp(-dt*3);
  }
- if(!orbit.enabled){
-  // Freeze orbit when pointer-following the character; keep focus targets.
- }else if($('faceFocus').classList.contains('active')||$('tailFocus').classList.contains('active')){
+ if(orbit.enabled && cameraTweening){
   const cameraBlend=1-Math.exp(-4.3*dt);
   camera.position.lerp(cameraGoal.position,cameraBlend);
   orbit.target.lerp(cameraGoal.target,cameraBlend);
+  if(camera.position.distanceToSquared(cameraGoal.position)<.0001&&
+     orbit.target.distanceToSquared(cameraGoal.target)<.0001)cameraTweening=false;
  }
  orbit.update();renderer.render(scene,camera);
  fpsFrames++;
