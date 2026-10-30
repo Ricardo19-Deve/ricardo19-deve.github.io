@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0d1b">
 <meta name="description" content="Laboratório isolado para testar interações da mascote M antes da integração no portefólio.">
-<title>M V14 • Fluid Tail Follow-through</title>
+<title>M V15 • Expressive Character Performance</title>
 <style>
 :root{color-scheme:dark;--bg:#0b0d1b;--panel:#181b32;--card:#20233e;--stroke:#494267;--text:#f4edff;--muted:#b4afce;--accent:#b69aff;--active:#7053be}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -52,7 +52,7 @@ small{font-size:11px;color:#a8a2bc}
 <body>
 <main>
 <header>
-<div class="eyebrow">M / INTERACTION LAB V14 · FLUID TAIL</div>
+<div class="eyebrow">M / INTERACTION LAB V15 · CHARACTER ACTING</div>
 <h1>Vamos dar personalidade à M</h1>
 <p>Testa a M V6 com natação, piscadelas independentes e três expressões faciais. Experimenta também as interações com toques, cursor e scroll.</p>
 <div class="chip">LAB ISOLADO · SEM ALTERAÇÕES AO PORTFÓLIO</div>
@@ -78,7 +78,7 @@ small{font-size:11px;color:#a8a2bc}
 <label class="range-label" for="clipSelect">Animação corporal detetada <select id="clipSelect" disabled><option>Carrega um GLB primeiro</option></select></label>
 </section>
 <section class="panel">
-<h2>2 · Movimento orgânico V14</h2>
+<h2>2 · Movimento expressivo V15</h2>
 <div class="modes">
 <button data-mode="float" disabled>☁ Flutuar</button>
 <button data-mode="swim" disabled>〰 Nadar</button>
@@ -93,6 +93,10 @@ small{font-size:11px;color:#a8a2bc}
 <label class="range-label" for="scroll">Simular scroll <input id="scroll" type="range" min="-100" max="100" value="0"></label>
 <label class="range-label" for="speed">Velocidade do clip <input id="speed" type="range" min="25" max="150" value="100" step="5"></label>
 <label class="range-label" for="energy">Vida do corpo · <span id="energyLabel">85%</span><input id="energy" type="range" min="0" max="100" value="85" step="5"></label>
+<label class="range-label" for="performanceImpact">Expressividade da M · <span id="performanceImpactLabel">120%</span>
+<input id="performanceImpact" type="range" min="0" max="160" value="120" step="5"></label>
+<label class="range-label" for="stageSize">Tamanho da M no palco · <span id="stageSizeLabel">130%</span>
+<input id="stageSize" type="range" min="100" max="150" value="130" step="5"></label>
 <label class="range-label" for="smoothness">Fluidez das transições · <span id="smoothnessLabel">78%</span><input id="smoothness" type="range" min="15" max="100" value="78" step="1"></label>
 <label class="range-label" for="tailEnergy">Ondulação base da cauda · <span id="tailEnergyLabel">85%</span>
 <input id="tailEnergy" type="range" min="0" max="150" value="85" step="5"></label>
@@ -108,7 +112,7 @@ small{font-size:11px;color:#a8a2bc}
 </select></label>
 <label class="check"><input id="reduce" type="checkbox"> Movimento reduzido</label>
 </div>
-<p class="note"><b>Novidade:</b> V14: a cauda responde primeiro na base e transmite o gesto até à ponta com atraso e inércia. As emoções têm ondas diferentes e os movimentos do corpo continuam sincronizados. Regula «Elasticidade da cauda» para definir quanto tempo a ponta demora a acompanhar. Mantém o diagnóstico 10/10 ossos da V13.</p>
+<p class="note"><b>Novidade V15:</b> M maior no palco e expressões que envolvem cabeça, orelhas, braços, corpo e cauda. Experimenta Expressividade da M a 0% e depois a 120% para comparar. O GLB V6 e os seus corretivos continuam preservados.</p>
 </section>
 <section class="panel">
 <h2>3 · Expressões V6 + linguagem corporal</h2>
@@ -149,7 +153,8 @@ import {readGLB} from '../swim-v3/threejs/glb-reader.js';
 import {preserveFullSkinning} from '../swim-v3/threejs/full-skinning.js';
 import {MInteractionDirector,M_MODES} from './behavior.mjs';
 import {createFacialV6,FACIAL_LABELS} from './facial-v6.mjs';
-import {createMotionV8} from './motion-v8.mjs?rig=v14';
+import {createMotionV8} from './motion-v8.mjs?rig=v15';
+import {performanceStagePoseV15} from './performance-v15.mjs';
 import {smoothSpring,createSpring,transitionFrequency} from './fluid-v8.mjs';
 
 const $=id=>document.getElementById(id);
@@ -190,7 +195,7 @@ const director=new MInteractionDirector(mode=>{
  if(mode==='knock')pulse();
 });
 let loaded=null,mixer=null,clips=[],action=null,activeClip=null,paused=false,chosenClip=null;
-let facial=null,motion=null,motionEnergy=.85,tailEnergy=.85,tailReactivity=1.75,tailFlow=.73,tailStyle='organic';
+let facial=null,motion=null,motionEnergy=.85,tailEnergy=.85,tailReactivity=1.75,tailFlow=.73,tailStyle='organic',performanceImpact=1.20,stageSize=1.30,actingExpression='neutral',actingExpressionAge=100;
 function setExpressionUI(key) {
  if(!facial?.setExpression(key))return;
  for(const el of document.querySelectorAll('button[data-face]'))
@@ -319,11 +324,12 @@ async function openGLB(file){
   releaseOldModel();
   const wrapper=new THREE.Group(),centering=new THREE.Group();
   centering.position.copy(center).multiplyScalar(-1);centering.add(gltf.scene);wrapper.add(centering);
-  wrapper.scale.setScalar(2.85/Math.max(size.x,size.y,size.z));
+  const baseScale=2.85/Math.max(size.x,size.y,size.z);
+   wrapper.scale.setScalar(baseScale*stageSize);
   stageRig.add(wrapper);
-  loaded={gltf,wrapper,skin,file:file.name};mixer=new THREE.AnimationMixer(gltf.scene);
+  loaded={gltf,wrapper,baseScale,skin,file:file.name};mixer=new THREE.AnimationMixer(gltf.scene);
   clips=gltf.animations;action=null;activeClip=null;chosenClip=null;
-  facial=createFacialV6(gltf.scene,clips);motion=createMotionV8(gltf.scene,THREE);configureFaceUI();restoreStageSprings();
+  facial=createFacialV6(gltf.scene,clips);motion=createMotionV8(gltf.scene,THREE);configureFaceUI();restoreStageSprings();actingExpression='neutral';actingExpressionAge=100;
   const select=$('clipSelect');select.replaceChildren();
   if(clips.length){
     for(const clip of clips.filter(c=>/swim|float|hover|idle/i.test(c.name))){const option=document.createElement('option');option.value=clip.name;option.textContent=clip.name+' · '+clip.duration.toFixed(1)+'s';select.appendChild(option)}
@@ -341,14 +347,14 @@ async function openGLB(file){
    'Morphs faciais: '+facial.diagnostics().bodyMorphs.join(', '),
    'Canais de piscar: L '+facial.diagnostics().leftBlinkTracks+' / R '+facial.diagnostics().rightBlinkTracks,
    'Ossos com movimento secundário: '+motion.availableBones,
-   'Cauda V14: '+motion.tailDiagnostics.connected+'/10 ossos ligados ao motor; atraso progressivo e inércia',
+   'Cauda V15: '+motion.tailDiagnostics.connected+'/10 ossos ligados · gestos com corpo e cauda',
    'Aliases importados: '+motion.tailDiagnostics.mapped.map(item=>item.loaded+' → '+item.expected).join('; '),
    'Nomes no GLB importado: '+skin.meshes[0].skeleton.bones.filter(b=>b.name.toLowerCase().includes('tail')).map(b=>b.name).join(', ')]);
    const mappedCount=motion.tailDiagnostics.connected;
    $('tailStatus').textContent='Cauda: '+mappedCount+'/10 ossos ligados';
    $('tailStatus').style.color=mappedCount===10?'#c2f9df':'#ffb9c5';
    if(mappedCount!==10)status('⚠ '+mappedCount+'/10 ossos da cauda ligados. Consulta o diagnóstico.',true);
-   else status('✓ M V14: 10/10 ossos ligados · testa Feliz, Curiosa e Nadar');
+   else status('✓ M V15: 10/10 ossos ligados · compara Expressividade da M: 0% e 120%');
  }catch(err){status('Erro ao carregar a M: '+(err?.message||String(err)),true);buttonState(Boolean(loaded))}
 }
 $('file').addEventListener('change',event=>openGLB(event.target.files?.[0]));
@@ -361,6 +367,12 @@ $('scroll').oninput=e=>director.setScroll(Number(e.target.value)/100);
 let clipSpeed=1;$('speed').oninput=e=>{clipSpeed=Number(e.target.value)/100};
 $('smoothness').oninput=e=>{smoothness=Number(e.target.value)/100;$('smoothnessLabel').textContent=e.target.value+'%'};
 $('energy').oninput=e=>{motionEnergy=Number(e.target.value)/100;$('energyLabel').textContent=e.target.value+'%'};
+$('performanceImpact').oninput=e=>{performanceImpact=Number(e.target.value)/100;$('performanceImpactLabel').textContent=e.target.value+'%'};
+$('stageSize').oninput=e=>{
+ stageSize=Number(e.target.value)/100;
+ $('stageSizeLabel').textContent=e.target.value+'%';
+ if(loaded)loaded.wrapper.scale.setScalar(loaded.baseScale*stageSize);
+};
 $('tailEnergy').oninput=e=>{tailEnergy=Number(e.target.value)/100;$('tailEnergyLabel').textContent=e.target.value+'%'};
 $('tailReactivity').oninput=e=>{tailReactivity=Number(e.target.value)/100;$('tailReactivityLabel').textContent=e.target.value+'%'};
 $('tailFlow').oninput=e=>{tailFlow=Number(e.target.value)/100;$('tailFlowLabel').textContent=e.target.value+'%'};
@@ -401,6 +413,14 @@ function animate(now){
   const reduced=$('reduce').checked?.20:1;
   const ms=director.mode;
   const omega=transitionFrequency(smoothness);
+  const expression=facial?.expression||'neutral';
+  if(expression!==actingExpression){actingExpression=expression;actingExpressionAge=0;}
+  else actingExpressionAge+=dt;
+  const performance=performanceStagePoseV15({
+   time:director.clock,mode:ms,modeAge:director.elapsed,
+   expression,emotionAge:actingExpressionAge,
+   impact:performanceImpact*motionEnergy,reducedMotion:$('reduce').checked
+  });
   // Remove the previous procedural quaternion delta before the baked GLB
   // animation evaluates again. This prevents accumulated drift or twitching.
   motion?.prepare();
@@ -412,9 +432,9 @@ function animate(now){
   }
   facial?.update(dt,now);
   motion?.update(dt,{
-   mode:ms,expression:facial?.expression||'neutral',
+   mode:ms,expression,
    pointer:director.pointer,energy:motionEnergy*reduced,
-   smoothness,tailEnergy,tailReactivity,tailStyle,tailFlow,clipActive:Boolean(action),
+   smoothness,tailEnergy,tailReactivity,tailStyle,tailFlow,performanceImpact,clipActive:Boolean(action),
    swimWeight:swimSpring.value,
    bodyMotion:{
     rotation:{x:stageRig.rotation.x,y:stageRig.rotation.y,z:stageRig.rotation.z},
@@ -425,13 +445,13 @@ function animate(now){
   orbit.enabled=ms!=='follow';
   const updateAxis=(axis,target,frequency=omega,damping=.93)=>
     smoothSpring(stageSprings[axis],target,dt,frequency,damping);
-  stageRig.position.x=updateAxis('x',pose.x*reduced*(1+.35*motionEnergy));
-  stageRig.position.y=updateAxis('y',(pose.y+autoScroll*.13)*reduced*(1+.25*motionEnergy));
-  stageRig.position.z=updateAxis('z',pose.z*reduced);
-  stageRig.rotation.x=updateAxis('rx',pose.rx*reduced,omega*.83);
-  stageRig.rotation.y=updateAxis('ry',pose.ry*reduced,omega*.83);
-  stageRig.rotation.z=updateAxis('rz',pose.rz*reduced,omega*.83);
-  const scale=updateAxis('scale',1+(pose.scale-1)*reduced,omega*.8);
+  stageRig.position.x=updateAxis('x',pose.x*reduced*(1+.35*motionEnergy)+performance.x);
+  stageRig.position.y=updateAxis('y',(pose.y+autoScroll*.13)*reduced*(1+.25*motionEnergy)+performance.y);
+  stageRig.position.z=updateAxis('z',pose.z*reduced+performance.z);
+  stageRig.rotation.x=updateAxis('rx',pose.rx*reduced+performance.rx,omega*.83);
+  stageRig.rotation.y=updateAxis('ry',pose.ry*reduced+performance.ry,omega*.83);
+  stageRig.rotation.z=updateAxis('rz',pose.rz*reduced+performance.rz,omega*.83);
+  const scale=updateAxis('scale',1+(pose.scale-1)*reduced+performance.scale,omega*.8);
   stageRig.scale.setScalar(scale);
   autoScroll*=Math.exp(-dt*3);
  }
