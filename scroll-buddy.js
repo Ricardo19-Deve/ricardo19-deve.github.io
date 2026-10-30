@@ -18,17 +18,22 @@ async function loadRealMascot(){
  try{
   const {mountMWorld3D}=await import('./m-world-3d.mjs?v=18');
   const avatar=await mountMWorld3D(layer.querySelector('.mascot-creature'),{
-   onProgress(percent){layer.dataset.loadProgress=String(percent);},
+   onProgress(percent){
+    layer.dataset.loadProgress=String(percent);
+    if(active)toggle.textContent='M 3D · '+percent+'%';
+   },
    onReady(info){console.info('[M World V18] Real Blender V6 ready',info);}
   });
   if(avatar.diagnostics.bones!==10)throw new Error('Faltam ossos da cauda 3D');
   m3d=avatar;
+  toggle.textContent=active?'M 3D · Pausar':'M 3D · Ativar';
   layer.classList.add('m-world-3d');
   layer.classList.remove('m-world-loading');
   layer.dataset.model='V6 GLB';
  }catch(error){
   layer.classList.remove('m-world-loading');
   layer.classList.add('m-world-fallback');
+  toggle.textContent=active?'M 2D · Pausar':'M 2D · Ativar';
   console.error('[M World V18] Falha ao iniciar a M 3D:',error);
   layer.dataset.model='Fallback SVG';
  }
@@ -48,7 +53,10 @@ function setActive(enabled,persist=true){
  toggle.setAttribute('aria-label',active?'Pausar a mascote M':'Reativar a mascote M');
  toggle.setAttribute('aria-pressed',String(active));
  if(persist){try{localStorage.setItem('m-world-enabled',active?'yes':'no')}catch{}}
- if(active){last=performance.now();prevX=x;prevY=y;requestAnimationFrame(animate)}
+ if(active){
+  last=performance.now();prevX=x;prevY=y;requestAnimationFrame(animate);
+  if(!m3d&&!m3dLoading)loadRealMascot();
+ }
 }
 toggle.addEventListener('click',()=>setActive(!active));
 try{if(localStorage.getItem('m-world-enabled')==='no')setActive(false,false)}catch{}
@@ -294,5 +302,5 @@ if(active){
  }else choose(now);
  requestAnimationFrame(animate);
 }
-loadRealMascot();
+if(active)loadRealMascot();
 })();
