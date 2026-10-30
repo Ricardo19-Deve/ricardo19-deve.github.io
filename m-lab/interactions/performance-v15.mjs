@@ -29,7 +29,7 @@ export function performanceBodyPoseV15({
  const reaction=smoothPulse(emotionAge);
  if(expression==='happy'){
   // Brisk but soft wave, lifted ears and small head bob.
-  add(bones,'Head',-.075-.045*Math.sin(t*2.6),.038*Math.sin(t*1.8),.13*Math.sin(t*1.65));
+  add(bones,'Head',-.16-.040*Math.sin(t*2.6),.055+.038*Math.sin(t*1.8),.095+.12*Math.sin(t*1.65));
   add(bones,'Neck',-.045,0,.041*Math.sin(t*1.7));
   add(bones,'Arm.L',-.065+.17*Math.sin(t*2.8),0,.15);
   add(bones,'Arm.R',-.055+.18*Math.sin(t*2.9+1.6),0,-.15);
@@ -95,6 +95,7 @@ export function performanceStagePoseV15({
 }={}){
  const t=Math.max(0,time),k=clamp(impact,0,1.6)*(reducedMotion?.2:1);
  const p={x:0,y:0,z:0,rx:0,ry:0,rz:0,scale:0};
+ if(k===0)return p;
  // A bit of buoyancy avoids the "floating statue" look.
  p.y=.03*Math.sin(t*1.32);
  p.rz=.022*Math.sin(t*.74);
@@ -126,6 +127,6 @@ export function performanceStagePoseV15({
   const bump=pulse(modeAge,.6,.20)+pulse(modeAge,1.16,.20);
   p.z+=.11*bump;p.rx+=.08*bump;
  }
- for(const key of ['x','y','z','rx','ry','rz','scale'])p[key]*=k;
+ for(const key of ['x','y','z','rx','ry','rz','scale'])p[key]=p[key]*k;
  return p;
 }
