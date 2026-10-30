@@ -146,11 +146,11 @@ export function createMotionV8(root,THREE){
    const baseFrequency=transitionFrequency(smoothness);
    for(const [name,bone] of bones){
     const state=states.get(name),target=poses[name]||[0,0,0];
-    const tail=/^Tail\\.(\\d+)$/.exec(name);
-    const tip=tail?Number(tail[1])/10:0;
+    const tail=name.startsWith('Tail.')?Number(name.slice(5)):0;
+    const tip=tail>0?tail/10:0;
     // Head responds first; forearms then hands; tail tip trails behind root.
-    const speed=baseFrequency*(tail?1-.50*tip:/EarTip/.test(name)?.68:/Forearm|Hand/.test(name)?.76:1);
-    const damping=tail?.79:/EarTip|Forearm/.test(name)?.86:.97;
+    const speed=baseFrequency*(tail>0?1-.50*tip:/EarTip/.test(name)?.68:/Forearm|Hand/.test(name)?.76:1);
+    const damping=tail>0?.79:/EarTip|Forearm/.test(name)?.86:.97;
     const x=smoothSpring(state.angles[0],target[0],dt,speed,damping);
     const y=smoothSpring(state.angles[1],target[1],dt,speed,damping);
     const z=smoothSpring(state.angles[2],target[2],dt,speed,damping);
