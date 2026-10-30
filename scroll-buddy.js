@@ -1,45 +1,78 @@
+import {sectionElements,visibleTargets,chooseTarget,placeAround,exclusionPolygon,interactiveTarget,insideMascot,bound} from './m-world-spatial.mjs';
 (()=>{"use strict";
 const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
-const layer=document.createElement("div");layer.className="mascot-world-v9";
-layer.innerHTML=`<button class="mascot-creature" type="button" aria-label="Brincar com M, a mascote" title="Olá! Sou o M"><svg viewBox="0 0 170 160" aria-hidden="true"><defs><radialGradient id="v9skin" cx=".29" cy=".19" r=".86"><stop stop-color="#fff4ff"/><stop offset=".43" stop-color="#edc6ff"/><stop offset="1" stop-color="#a69be9"/></radialGradient><linearGradient id="v9tail" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#dfb5f7"/><stop offset="1" stop-color="#9e8de0"/></linearGradient></defs><g class="tail"><path class="tail-stroke" d="M109 105 C123 108 149 118 151 137" fill="none" stroke="url(#v9tail)" stroke-width="11" stroke-linecap="round"/><ellipse class="tail-tip" cx="151" cy="137" rx="7" ry="8" fill="#b5a0e9"/></g><g class="ear-left"><path d="M54 50 Q35 20 46 16 Q67 14 72 42 Z" fill="url(#v9skin)" stroke="#eed4ff" stroke-width="1.5"/></g><g class="ear-right"><path d="M101 44 Q111 13 124 18 Q133 29 114 54 Z" fill="url(#v9skin)" stroke="#eed4ff" stroke-width="1.5"/></g><g class="leg-left"><path d="M67 106 Q56 116 60 122 Q69 129 80 118 L82 110" fill="url(#v9skin)" stroke="#e8c7ff" stroke-width="1.4"/></g><g class="leg-right"><path d="M94 107 Q107 116 105 122 Q98 130 87 118 L83 110" fill="url(#v9skin)" stroke="#e8c7ff" stroke-width="1.4"/></g><g class="arm-left"><path d="M59 86 Q40 90 42 106 Q46 119 58 109 L69 99" fill="url(#v9skin)" stroke="#eed1ff" stroke-width="1.3"/></g><g class="arm-right"><path d="M105 86 Q124 92 123 106 Q119 119 107 109 L98 99" fill="url(#v9skin)" stroke="#eed1ff" stroke-width="1.3"/></g><g class="body"><path d="M65 89 Q50 103 58 120 Q68 139 86 132 Q112 135 117 114 Q119 96 103 86 Z" fill="url(#v9skin)" stroke="#f1d6ff" stroke-width="1.5"/><ellipse cx="86" cy="113" rx="18" ry="14" fill="#fff3ff" opacity=".24"/><ellipse cx="84" cy="70" rx="47" ry="43" fill="url(#v9skin)" stroke="#f4dbff" stroke-width="1.8"/><ellipse cx="68" cy="85" rx="8" ry="5" fill="#ff9ac9" opacity=".55"/><ellipse cx="103" cy="85" rx="8" ry="5" fill="#ff9ac9" opacity=".55"/><g class="eyes"><ellipse cx="69" cy="70" rx="6.5" ry="10" fill="#39467f"/><ellipse cx="100" cy="70" rx="6.5" ry="10" fill="#39467f"/><circle cx="71" cy="66" r="2.3" fill="white"/><circle cx="102" cy="66" r="2.3" fill="white"/></g><path d="M81 83 Q85 90 90 83" stroke="#745b99" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="85" cy="78" r="2" fill="#745b99"/></g></svg><span class="mascot-tap" hidden>knock knock ✦</span></button>`;
+const layer=document.createElement("div");layer.className="mascot-world-v9";layer.setAttribute("aria-hidden","true");
+layer.innerHTML=`<div class="mascot-creature" title="M está a explorar o portefólio"><svg viewBox="0 0 170 160" aria-hidden="true"><defs><radialGradient id="v9skin" cx=".29" cy=".19" r=".86"><stop stop-color="#fff4ff"/><stop offset=".43" stop-color="#edc6ff"/><stop offset="1" stop-color="#a69be9"/></radialGradient><linearGradient id="v9tail" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#dfb5f7"/><stop offset="1" stop-color="#9e8de0"/></linearGradient></defs><g class="tail"><path class="tail-stroke" d="M109 105 C123 108 149 118 151 137" fill="none" stroke="url(#v9tail)" stroke-width="11" stroke-linecap="round"/><ellipse class="tail-tip" cx="151" cy="137" rx="7" ry="8" fill="#b5a0e9"/></g><g class="ear-left"><path d="M54 50 Q35 20 46 16 Q67 14 72 42 Z" fill="url(#v9skin)" stroke="#eed4ff" stroke-width="1.5"/></g><g class="ear-right"><path d="M101 44 Q111 13 124 18 Q133 29 114 54 Z" fill="url(#v9skin)" stroke="#eed4ff" stroke-width="1.5"/></g><g class="leg-left"><path d="M67 106 Q56 116 60 122 Q69 129 80 118 L82 110" fill="url(#v9skin)" stroke="#e8c7ff" stroke-width="1.4"/></g><g class="leg-right"><path d="M94 107 Q107 116 105 122 Q98 130 87 118 L83 110" fill="url(#v9skin)" stroke="#e8c7ff" stroke-width="1.4"/></g><g class="arm-left"><path d="M59 86 Q40 90 42 106 Q46 119 58 109 L69 99" fill="url(#v9skin)" stroke="#eed1ff" stroke-width="1.3"/></g><g class="arm-right"><path d="M105 86 Q124 92 123 106 Q119 119 107 109 L98 99" fill="url(#v9skin)" stroke="#eed1ff" stroke-width="1.3"/></g><g class="body"><path d="M65 89 Q50 103 58 120 Q68 139 86 132 Q112 135 117 114 Q119 96 103 86 Z" fill="url(#v9skin)" stroke="#f1d6ff" stroke-width="1.5"/><ellipse cx="86" cy="113" rx="18" ry="14" fill="#fff3ff" opacity=".24"/><ellipse cx="84" cy="70" rx="47" ry="43" fill="url(#v9skin)" stroke="#f4dbff" stroke-width="1.8"/><ellipse cx="68" cy="85" rx="8" ry="5" fill="#ff9ac9" opacity=".55"/><ellipse cx="103" cy="85" rx="8" ry="5" fill="#ff9ac9" opacity=".55"/><g class="eyes"><ellipse cx="69" cy="70" rx="6.5" ry="10" fill="#39467f"/><ellipse cx="100" cy="70" rx="6.5" ry="10" fill="#39467f"/><circle cx="71" cy="66" r="2.3" fill="white"/><circle cx="102" cy="66" r="2.3" fill="white"/></g><path d="M81 83 Q85 90 90 83" stroke="#745b99" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="85" cy="78" r="2" fill="#745b99"/></g></svg><span class="mascot-tap" hidden>knock knock ✦</span></div>`;
 document.body.appendChild(layer);
+const toggle=document.createElement('button');
+toggle.type='button';toggle.className='m-world-toggle';
+toggle.setAttribute('aria-label','Pausar a mascote M');
+toggle.textContent='M · Pausar';
+toggle.title='Pausar ou reativar a M';
+document.body.appendChild(toggle);
 const mascot=layer.querySelector(".mascot-creature"),svg=mascot.querySelector("svg"),tail=mascot.querySelector(".tail-stroke"),tip=mascot.querySelector(".tail-tip"),tap=layer.querySelector(".mascot-tap");
 const parts=Object.fromEntries(["arm-left","arm-right","leg-left","leg-right","ear-left","ear-right","eyes"].map(k=>[k,svg.querySelector("."+k)]));
-const clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),rand=(a,b)=>a+Math.random()*(b-a);
+const clamp=bound,rand=(a,b)=>a+Math.random()*(b-a);
 let x=innerWidth*.65,y=innerHeight*.4,vx=0,vy=0,tx=x,ty=y,clock=0,last=0,next=0,mode="swim",modeUntil=0,playUntil=0,idle=performance.now(),knocked=0,tailX=43,tailY=33,tailVX=0,tailVY=0,prevX=x,prevY=y,front=false,active=true,emotion="curious",emotionUntil=0,lastScroll=scrollY,peekAt=0,lastInteraction=performance.now(),curiosityCooldown=0,scrollUntil=0,scrollImpulse=0,scrollVelocity=0,scrollTarget=0,scrollLast=scrollY,scrollDirection=0,pose="float",poseUntil=0,spinStart=0,spinUntil=0,spinDirection=1,travelTarget=null,travelSide=1,peekRevealed=false,bodyTilt=0,bodyTiltVelocity=0,bodyBob=0,bodyBobVelocity=0,blinkNext=performance.now()+rand(2400,5700),blinkUntil=0;
-function cards(){return Array.from(document.querySelectorAll(".card,.role,.cert,.about-tile,.about-statement,.case-teaser,.hero-visual,.game-shot")).filter(e=>{const r=e.getBoundingClientRect();return r.width>100&&r.height>75&&r.bottom>100&&r.top<innerHeight-100;});}
+let lastTarget=null,perchSide=1,nextWorldScan=0;
+const worldElements=sectionElements(document);
+function candidates(){return visibleTargets(worldElements,innerWidth,innerHeight).filter(x=>!x.el.closest('[aria-hidden="true"]'))}
+function cards(){return candidates().map(item=>item.el);}
+function setActive(enabled,persist=true){
+ active=Boolean(enabled);
+ layer.hidden=!active;
+ toggle.textContent=active?'M · Pausar':'M · Ativar';
+ toggle.setAttribute('aria-label',active?'Pausar a mascote M':'Reativar a mascote M');
+ toggle.setAttribute('aria-pressed',String(active));
+ if(persist){try{localStorage.setItem('m-world-enabled',active?'yes':'no')}catch{}}
+ if(active){last=performance.now();prevX=x;prevY=y;requestAnimationFrame(animate)}
+}
+toggle.addEventListener('click',()=>setActive(!active));
+try{if(localStorage.getItem('m-world-enabled')==='no')setActive(false,false)}catch{}
+
 function mood(name,now,duration=1600){emotion=name;emotionUntil=now+duration;mascot.dataset.mood=name;}
 function choose(now){
- // Independent performance states inspired by the reference's hovering,
- // playful gestures, short dashes, turns and relaxed floating.
- travelTarget=null;peekAt=0;peekRevealed=false;front=true;
- layer.classList.add("in-front");layer.style.clipPath="";
+ const options=candidates();
+ const selected=chooseTarget(options,{x:x+55,y:y+55},innerWidth,innerHeight,Math.random);
+ travelTarget=selected?.el||null;
+ lastTarget=travelTarget;
+ peekAt=0;peekRevealed=false;spinUntil=0;
+ perchSide=Math.random()<.5?-1:1;travelSide=perchSide;
  const roll=Math.random();
- pose=roll<.27?"float":roll<.47?"wave":roll<.66?"curl":roll<.85?"glide":"twirl";
- mode=pose==="glide"?"dash":pose==="twirl"?"spin":"swim";
- const duration=pose==="twirl"?1900:pose==="glide"?2200:rand(2900,4800);
+ const behavior=!travelTarget?'glide':roll<.37?'peek':roll<.63?'perch':roll<.83?'orbit':'glide';
+ mode=behavior;
+ pose=behavior==='perch'?'curl':behavior==='peek'?'wave':behavior==='orbit'?'glide':'float';
+ front=behavior!=='peek' && !(behavior==='orbit'&&Math.random()<.55);
+ layer.classList.toggle('in-front',front);
+ layer.style.clipPath='';
+ const duration=behavior==='peek'?rand(3300,4600):behavior==='perch'?rand(3800,6000):
+  behavior==='orbit'?rand(3300,4800):rand(2500,4000);
  poseUntil=now+duration;next=poseUntil;
- if(pose==="twirl"){spinStart=now;spinUntil=now+1500;spinDirection=Math.random()<.5?-1:1;}
- const w=Math.max(8,innerWidth-130),h=Math.max(55,innerHeight-140);
- if(pose==="glide"){tx=clamp(x+(Math.random()<.5?-1:1)*rand(190,Math.min(440,w)),8,w);ty=clamp(y+rand(-155,155),55,h);}
- else if(pose==="float"||pose==="wave"||pose==="curl"){tx=clamp(x+rand(-125,125),8,w);ty=clamp(y+rand(-95,95),55,h);}
- else{tx=clamp(x+rand(-85,85),8,w);ty=clamp(y+rand(-65,65),55,h);}
- mood(pose==="wave"?"curious":pose==="curl"?"sleepy":"happy",now,duration);
+ if(travelTarget&&behavior!=='glide'){
+  const r=travelTarget.getBoundingClientRect();
+  const point=placeAround(r,innerWidth,innerHeight,behavior,perchSide);
+  tx=point.x;ty=point.y;
+  if(behavior==='peek')peekAt=now+Math.min(1500,duration*.45);
+ }else{
+  tx=clamp(x+rand(-270,270),5,Math.max(5,innerWidth-125));
+  ty=clamp(y+rand(-170,170),55,Math.max(55,innerHeight-125));
+ }
+ mood(behavior==='peek'?'curious':behavior==='perch'?'sleepy':behavior==='orbit'?'happy':'curious',now,duration);
 }
 
 // Cut a real rectangular opening in the mascot layer while M is behind a card.
 // This avoids relying on the page's many independent stacking contexts.
 function updateOcclusion(){
- if(!travelTarget||!travelTarget.isConnected||front||mode!=="peek"){
-  layer.style.clipPath="";return;
+ // True DOM stacking contexts do not represent 3D depth. When M enters
+ // behind a real panel, clip her foreground rendering by that panel's
+ // current viewport rectangle. The page remains fully interactive.
+ if(!travelTarget||!travelTarget.isConnected||front){
+  layer.style.clipPath='';return;
  }
  const r=travelTarget.getBoundingClientRect();
- const left=clamp(r.left,0,innerWidth),right=clamp(r.right,0,innerWidth);
- const top=clamp(r.top,0,innerHeight),bottom=clamp(r.bottom,0,innerHeight);
- if(right-left<8||bottom-top<8){layer.style.clipPath="";return;}
- const w=innerWidth,h=innerHeight;
- layer.style.clipPath=`polygon(evenodd, 0px 0px, ${w}px 0px, ${w}px ${h}px, 0px ${h}px, 0px 0px, ${left}px ${top}px, ${left}px ${bottom}px, ${right}px ${bottom}px, ${right}px ${top}px, ${left}px ${top}px)`;
+ layer.style.clipPath=exclusionPolygon(r,innerWidth,innerHeight,1);
 }
+
 function animateTail(dt,px,py){
  const h=clamp(dt,.008,.033),dx=px-prevX,dy=py-prevY;prevX=px;prevY=py;
  // Tail follows actual body velocity with bounded lag; never stretches.
