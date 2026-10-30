@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0d1b">
 <meta name="description" content="Laboratório isolado para testar interações da mascote M antes da integração no portefólio.">
-<title>M V9 • Organic Tail Motion Lab</title>
+<title>M V10 • Expressive Tail & Body Motion</title>
 <style>
 :root{color-scheme:dark;--bg:#0b0d1b;--panel:#181b32;--card:#20233e;--stroke:#494267;--text:#f4edff;--muted:#b4afce;--accent:#b69aff;--active:#7053be}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -52,7 +52,7 @@ small{font-size:11px;color:#a8a2bc}
 <body>
 <main>
 <header>
-<div class="eyebrow">M / INTERACTION LAB V9 · FLUID TAIL</div>
+<div class="eyebrow">M / INTERACTION LAB V10 · EXPRESSIVE TAIL</div>
 <h1>Vamos dar personalidade à M</h1>
 <p>Testa a M V6 com natação, piscadelas independentes e três expressões faciais. Experimenta também as interações com toques, cursor e scroll.</p>
 <div class="chip">LAB ISOLADO · SEM ALTERAÇÕES AO PORTFÓLIO</div>
@@ -78,7 +78,7 @@ small{font-size:11px;color:#a8a2bc}
 <label class="range-label" for="clipSelect">Animação corporal detetada <select id="clipSelect" disabled><option>Carrega um GLB primeiro</option></select></label>
 </section>
 <section class="panel">
-<h2>2 · Movimento orgânico V9</h2>
+<h2>2 · Movimento orgânico V10</h2>
 <div class="modes">
 <button data-mode="float" disabled>☁ Flutuar</button>
 <button data-mode="swim" disabled>〰 Nadar</button>
@@ -94,8 +94,10 @@ small{font-size:11px;color:#a8a2bc}
 <label class="range-label" for="speed">Velocidade do clip <input id="speed" type="range" min="25" max="150" value="100" step="5"></label>
 <label class="range-label" for="energy">Vida do corpo · <span id="energyLabel">85%</span><input id="energy" type="range" min="0" max="100" value="85" step="5"></label>
 <label class="range-label" for="smoothness">Fluidez das transições · <span id="smoothnessLabel">78%</span><input id="smoothness" type="range" min="15" max="100" value="78" step="1"></label>
-<label class="range-label" for="tailEnergy">Movimento da cauda · <span id="tailEnergyLabel">115%</span>
-<input id="tailEnergy" type="range" min="0" max="150" value="115" step="5"></label>
+<label class="range-label" for="tailEnergy">Ondulação base da cauda · <span id="tailEnergyLabel">110%</span>
+<input id="tailEnergy" type="range" min="0" max="150" value="110" step="5"></label>
+<label class="range-label" for="tailReactivity">Reatividade emocional e corporal · <span id="tailReactivityLabel">150%</span>
+<input id="tailReactivity" type="range" min="0" max="200" value="150" step="5"></label>
 <label class="range-label" for="tailStyle">Personalidade da cauda
 <select id="tailStyle" aria-label="Estilo de movimento da cauda">
 <option value="organic" selected>Ondulante · natural</option>
@@ -104,7 +106,7 @@ small{font-size:11px;color:#a8a2bc}
 </select></label>
 <label class="check"><input id="reduce" type="checkbox"> Movimento reduzido</label>
 </div>
-<p class="note"><b>Novidade:</b> A cauda move-se nos três eixos com ondulação em S, atraso até à ponta e pequenas reações a emoções. Experimenta os três estilos e ajusta a intensidade sem perder a natação V6. Espiar, Nok nok e Esconder continuam protótipos.</p>
+<p class="note"><b>Novidade:</b> A cauda V10 segue viragens, deslocações e natação, reagindo claramente às expressões Feliz, Curiosa e Surpreendida. A base mantém uma ondulação discreta e a ponta acompanha os gestos com atraso. Experimenta os dois controlos de intensidade. Espiar, Nok nok e Esconder continuam gestos em protótipo.</p>
 </section>
 <section class="panel">
 <h2>3 · Expressões V6 + linguagem corporal</h2>
@@ -186,7 +188,7 @@ const director=new MInteractionDirector(mode=>{
  if(mode==='knock')pulse();
 });
 let loaded=null,mixer=null,clips=[],action=null,activeClip=null,paused=false,chosenClip=null;
-let facial=null,motion=null,motionEnergy=.85,tailEnergy=1.15,tailStyle='organic';
+let facial=null,motion=null,motionEnergy=.85,tailEnergy=1.10,tailReactivity=1.5,tailStyle='organic';
 function setExpressionUI(key) {
  if(!facial?.setExpression(key))return;
  for(const el of document.querySelectorAll('button[data-face]'))
@@ -337,7 +339,7 @@ async function openGLB(file){
    'Morphs faciais: '+facial.diagnostics().bodyMorphs.join(', '),
    'Canais de piscar: L '+facial.diagnostics().leftBlinkTracks+' / R '+facial.diagnostics().rightBlinkTracks,
    'Ossos com movimento secundário: '+motion.availableBones,
-   'Cauda orgânica V9: 10 segmentos; estilos natural, tranquila e brincalhona']);
+   'Cauda expressiva V10: 10 ossos; emoções, viragens e natação']);
   status('✓ M carregada · escolhe uma reação ou inicia a demo');
  }catch(err){status('Erro ao carregar a M: '+(err?.message||String(err)),true);buttonState(Boolean(loaded))}
 }
@@ -352,6 +354,7 @@ let clipSpeed=1;$('speed').oninput=e=>{clipSpeed=Number(e.target.value)/100};
 $('smoothness').oninput=e=>{smoothness=Number(e.target.value)/100;$('smoothnessLabel').textContent=e.target.value+'%'};
 $('energy').oninput=e=>{motionEnergy=Number(e.target.value)/100;$('energyLabel').textContent=e.target.value+'%'};
 $('tailEnergy').oninput=e=>{tailEnergy=Number(e.target.value)/100;$('tailEnergyLabel').textContent=e.target.value+'%'};
+$('tailReactivity').oninput=e=>{tailReactivity=Number(e.target.value)/100;$('tailReactivityLabel').textContent=e.target.value+'%'};
 $('tailStyle').onchange=e=>{tailStyle=e.target.value;status('Estilo da cauda: '+e.target.selectedOptions[0].textContent)}
 $('reduce').checked=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 $('reduce').onchange=()=>{facial?.setAutoBlink($('autoBlink').checked&&!$('reduce').checked);status($('reduce').checked?'Movimento reduzido ativo':'Movimento completo ativo')};
@@ -402,7 +405,13 @@ function animate(now){
   motion?.update(dt,{
    mode:ms,expression:facial?.expression||'neutral',
    pointer:director.pointer,energy:motionEnergy*reduced,
-   smoothness,tailEnergy,tailStyle,clipActive:Boolean(action)
+   smoothness,tailEnergy,tailReactivity,tailStyle,clipActive:Boolean(action),
+   swimWeight:swimSpring.value,
+   bodyMotion:{
+    rotation:{x:stageRig.rotation.x,y:stageRig.rotation.y,z:stageRig.rotation.z},
+    angularVelocity:{x:stageSprings.rx.velocity,y:stageSprings.ry.velocity,z:stageSprings.rz.velocity},
+    velocity:{x:stageSprings.x.velocity,y:stageSprings.y.velocity,z:stageSprings.z.velocity}
+   }
   });
   orbit.enabled=ms!=='follow';
   const updateAxis=(axis,target,frequency=omega,damping=.93)=>
