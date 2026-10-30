@@ -38,12 +38,22 @@ try {
  await page.setViewport({width:390,height:780,deviceScaleFactor:1});
  await new Promise(resolve=>setTimeout(resolve,1000));
  await page.screenshot({path:'/tmp/m-world-smoke/m-mobile.png',fullPage:false});
- const mobile=await page.evaluate(()=>({
-  horizontalOverflow:document.documentElement.scrollWidth-window.innerWidth,
-  pauseButton:document.querySelector('.m-world-toggle')?.getBoundingClientRect().width
- }));
+ const mobile=await page.evaluate(()=>{
+  const layer=document.querySelector('.mascot-world-v9');
+  const currentOverflow=document.documentElement.scrollWidth-window.innerWidth;
+  layer.style.display='none';
+  const baselineOverflow=document.documentElement.scrollWidth-window.innerWidth;
+  layer.style.display='';
+  const culprits=[...document.querySelectorAll('body *')].filter(el=>{
+   const r=el.getBoundingClientRect();
+   return r.right>window.innerWidth+20 && getComputedStyle(el).position!=='fixed';
+  }).slice(0,8).map(el=>({tag:el.tagName,selector:el.className?.baseVal||el.className||el.id,right:Math.round(el.getBoundingClientRect().right)}));
+  return {currentOverflow,baselineOverflow,
+   addedByM:currentOverflow-baselineOverflow,culprits,
+   pauseButton:document.querySelector('.m-world-toggle')?.getBoundingClientRect().width};
+ });
  console.log('Mobile diagnostic',JSON.stringify(mobile));
- if(mobile.horizontalOverflow>15)throw new Error('M World caused mobile horizontal overflow');
+ if(mobile.addedByM>2)throw new Error('M World introduced extra horizontal overflow');
  if(errors.length||badRequests.length){
   console.error('Browser errors:',errors,'Failed network:',badRequests);
   throw new Error('Browser console or request failures');
