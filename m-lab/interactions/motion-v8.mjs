@@ -1,6 +1,6 @@
 import {smoothSpring,createSpring,transitionFrequency} from './fluid-v8.mjs';
 import {tailPoseV15} from './tail-v15.mjs';
-import {performanceBodyPoseV15} from './performance-v15.mjs';
+import {performanceBodyPoseV15} from './performance-v15.mjs?v16';
 
 /**
  * M V8 fluid secondary-body motion layer.
