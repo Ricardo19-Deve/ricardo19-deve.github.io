@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0d1b">
 <meta name="description" content="Laboratório isolado para testar interações da mascote M antes da integração no portefólio.">
-<title>M V11 • Corrected Tail Rig Animation</title>
+<title>M V12 • Rig Binding Verified</title>
 <style>
 :root{color-scheme:dark;--bg:#0b0d1b;--panel:#181b32;--card:#20233e;--stroke:#494267;--text:#f4edff;--muted:#b4afce;--accent:#b69aff;--active:#7053be}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -52,7 +52,7 @@ small{font-size:11px;color:#a8a2bc}
 <body>
 <main>
 <header>
-<div class="eyebrow">M / INTERACTION LAB V11 · TAIL RIG FIX</div>
+<div class="eyebrow">M / INTERACTION LAB V12 · REAL RIG FIX</div>
 <h1>Vamos dar personalidade à M</h1>
 <p>Testa a M V6 com natação, piscadelas independentes e três expressões faciais. Experimenta também as interações com toques, cursor e scroll.</p>
 <div class="chip">LAB ISOLADO · SEM ALTERAÇÕES AO PORTFÓLIO</div>
@@ -78,7 +78,7 @@ small{font-size:11px;color:#a8a2bc}
 <label class="range-label" for="clipSelect">Animação corporal detetada <select id="clipSelect" disabled><option>Carrega um GLB primeiro</option></select></label>
 </section>
 <section class="panel">
-<h2>2 · Movimento orgânico V11</h2>
+<h2>2 · Movimento orgânico V12</h2>
 <div class="modes">
 <button data-mode="float" disabled>☁ Flutuar</button>
 <button data-mode="swim" disabled>〰 Nadar</button>
@@ -106,7 +106,7 @@ small{font-size:11px;color:#a8a2bc}
 </select></label>
 <label class="check"><input id="reduce" type="checkbox"> Movimento reduzido</label>
 </div>
-<p class="note"><b>Novidade:</b> A V11 corrige o eixo dos 10 ossos: X/Z dobram a cauda, enquanto Y serve para uma torção subtil. Feliz abana, Curiosa levanta/inclina, Surpreendida recua e Esconder enrola. O indicador «Cauda» mostra os ossos reconhecidos e a flexão real. Usa Ver cauda para comparar as poses.</p>
+<p class="note"><b>Novidade:</b> A V12 corrige a ligação efetiva entre os ossos do Blender (Tail.01) e os do Three.js (Tail_01). Antes o indicador mostrava 0/10, por isso os movimentos não chegavam aos ossos. Agora verifica 10/10 e a flexão em graus. Também foram corrigidos nomes dos braços e orelhas. Usa Ver cauda e testa Feliz, Curiosa e Surpreendida.</p>
 </section>
 <section class="panel">
 <h2>3 · Expressões V6 + linguagem corporal</h2>
@@ -147,7 +147,7 @@ import {readGLB} from '../swim-v3/threejs/glb-reader.js';
 import {preserveFullSkinning} from '../swim-v3/threejs/full-skinning.js';
 import {MInteractionDirector,M_MODES} from './behavior.mjs';
 import {createFacialV6,FACIAL_LABELS} from './facial-v6.mjs';
-import {createMotionV8} from './motion-v8.mjs';
+import {createMotionV8} from './motion-v8.mjs?rig=v12';
 import {smoothSpring,createSpring,transitionFrequency} from './fluid-v8.mjs';
 
 const $=id=>document.getElementById(id);
@@ -339,9 +339,14 @@ async function openGLB(file){
    'Morphs faciais: '+facial.diagnostics().bodyMorphs.join(', '),
    'Canais de piscar: L '+facial.diagnostics().leftBlinkTracks+' / R '+facial.diagnostics().rightBlinkTracks,
    'Ossos com movimento secundário: '+motion.availableBones,
-   'Cauda V11: flexão X/Z, torção Y; '+motion.tailDiagnostics.connected+' de 10 ossos reconhecidos']);
-   $('tailStatus').textContent='Cauda: '+motion.tailDiagnostics.connected+'/10 ossos reconhecidos';
-  status('✓ M carregada · escolhe uma reação ou inicia a demo');
+   'Cauda V12: '+motion.tailDiagnostics.connected+'/10 ossos ligados ao motor',
+   'Aliases importados: '+motion.tailDiagnostics.mapped.slice(0,3).map(item=>item.loaded+' → '+item.expected).join('; '),
+   'Nomes no GLB importado: '+skin.meshes[0].skeleton.bones.filter(b=>b.name.toLowerCase().includes('tail')).map(b=>b.name).join(', ')]);
+   const mappedCount=motion.tailDiagnostics.connected;
+   $('tailStatus').textContent='Cauda: '+mappedCount+'/10 ossos ligados';
+   $('tailStatus').style.color=mappedCount===10?'#c2f9df':'#ffb9c5';
+   if(mappedCount!==10)status('⚠ '+mappedCount+'/10 ossos da cauda ligados. Consulta o diagnóstico.',true);
+   else status('✓ M V12: 10/10 ossos ligados · experimenta Feliz e Surpreendida');
  }catch(err){status('Erro ao carregar a M: '+(err?.message||String(err)),true);buttonState(Boolean(loaded))}
 }
 $('file').addEventListener('change',event=>openGLB(event.target.files?.[0]));
@@ -437,6 +442,7 @@ function animate(now){
  orbit.update();renderer.render(scene,camera);
  if(motion&&now-fpsAt>1200){const d=motion.tailDiagnostics;
   $('tailStatus').textContent='Cauda: '+d.connected+'/10 ossos · flexão '+(d.maxBend*180/Math.PI).toFixed(1)+'°';
+  $('tailStatus').style.color=d.connected===10?'#c2f9df':'#ffb9c5';
  }
  fpsFrames++;
  if(now-fpsAt>1200){$('fps').textContent='FPS aproximados: '+Math.round(fpsFrames*1000/(now-fpsAt));fpsFrames=0;fpsAt=now}
