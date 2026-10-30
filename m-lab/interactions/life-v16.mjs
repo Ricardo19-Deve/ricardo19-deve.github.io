@@ -63,6 +63,7 @@ export class MLifeV16 {
    this.pointerInside=false;this.nextGaze=Math.min(this.nextGaze,this.time+1.1);
   }else if(kind==='tap'){
    this.lastActivity=this.time;
+   this.manualUntil=this.time; // a new tap interrupts the manual inactivity lock
    this.tapHistory=this.tapHistory.filter(time=>this.time-time<4);
    this.tapHistory.push(this.time);
    this.bond=Math.min(1,this.bond+.09);
