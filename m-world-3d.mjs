@@ -70,11 +70,18 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
  renderer.setClearColor(0x000000,0);
  // Render a genuinely sharp 3D portrait, not a tiny 180px texture stretched
  // by browser compositing. DPR is capped by device class to protect mobile.
- const mobile=window.matchMedia('(max-width:720px)').matches;
- const viewportSize=mobile?232:272;
- const pixelRatio=Math.min(window.devicePixelRatio||1,mobile?2:2.5);
- renderer.setPixelRatio(pixelRatio);
- renderer.setSize(viewportSize,viewportSize,false);
+ let viewportSize=0,pixelRatio=0;
+ const syncResolution=()=>{
+  const mobile=window.matchMedia('(max-width:720px)').matches;
+  const nextSize=mobile?232:272;
+  const nextRatio=Math.min(window.devicePixelRatio||1,mobile?2:2.5);
+  if(viewportSize===nextSize&&pixelRatio===nextRatio)return;
+  viewportSize=nextSize;pixelRatio=nextRatio;
+  renderer.setPixelRatio(pixelRatio);
+  renderer.setSize(viewportSize,viewportSize,false);
+ };
+ syncResolution();
+ window.addEventListener('resize',syncResolution,{passive:true});
  renderer.outputColorSpace=THREE.SRGBColorSpace;
  renderer.toneMapping=THREE.ACESFilmicToneMapping;
  renderer.toneMappingExposure=0.98;
@@ -209,6 +216,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
  };
  const dispose=()=>{
   if(disposed)return;disposed=true;
+  window.removeEventListener('resize',syncResolution);
   renderer.dispose();
   for(const tex of textures.values())tex.dispose();
   scene.traverse(o=>{
