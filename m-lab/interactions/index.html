@@ -358,7 +358,7 @@ async function openGLB(file){
   loaded={gltf,wrapper,baseScale,skin,file:file.name};mixer=new THREE.AnimationMixer(gltf.scene);
   clips=gltf.animations;action=null;activeClip=null;chosenClip=null;
   facial=createFacialV6(gltf.scene,clips);motion=createMotionV8(gltf.scene,THREE);configureFaceUI();restoreStageSprings();actingExpression='neutral';actingExpressionAge=100;faceManual=false;
-   life=new MLifeV16({enabled:$('autoLife').checked,personality:$('lifePersonality').value});lifeState=life.snapshot(null);
+   life=new MLifeV16({seed:(Math.floor(performance.now()*9973)^Date.now())>>>0,enabled:$('autoLife').checked,personality:$('lifePersonality').value});lifeState=life.snapshot(null);
   const select=$('clipSelect');select.replaceChildren();
   if(clips.length){
     for(const clip of clips.filter(c=>/swim|float|hover|idle/i.test(c.name))){const option=document.createElement('option');option.value=clip.name;option.textContent=clip.name+' · '+clip.duration.toFixed(1)+'s';select.appendChild(option)}
