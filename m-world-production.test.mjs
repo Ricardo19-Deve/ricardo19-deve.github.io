@@ -8,8 +8,8 @@ const css=readFileSync(new URL('m-world.css',here),'utf8');
 const world=readFileSync(new URL('m-world-spatial.mjs',here),'utf8');
 
 test('homepage loads exactly one M World script as module',()=>{
- assert.match(page,/type="module" src="scroll-buddy\.js\?v=17"/);
- assert.match(page,/href="m-world\.css\?v=17"/);
+ assert.match(page,/type="module" src="scroll-buddy\.js\?v=18"/);
+ assert.match(page,/href="m-world\.css\?v=18"/);
  assert.equal((page.match(/src="scroll-buddy\.js/g)||[]).length,1);
 });
 test('M runtime and geometry helper parse as JavaScript',()=>{
