@@ -77,7 +77,10 @@ function choose(now){
  peekAt=0;peekRevealed=false;spinUntil=0;
  perchSide=Math.random()<.5?-1:1;travelSide=perchSide;
  const roll=Math.random();
- const behavior=!travelTarget?'glide':roll<.39?'peek':roll<.74?'perch':roll<.94?'orbit':'glide';
+ const compact=innerWidth<720;
+ const behavior=!travelTarget?'glide':compact?
+  (roll<.58?'perch':roll<.89?'orbit':'peek'):
+  (roll<.39?'peek':roll<.74?'perch':roll<.94?'orbit':'glide');
  mode=behavior;pose=behavior==='perch'?'curl':behavior==='peek'?'wave':
   behavior==='orbit'?'glide':'float';
  actionStart=now;
@@ -113,13 +116,14 @@ function updateOcclusion(){
  }
  // Protect readable content even when an unexpected resize or velocity
  // pushes a foreground gesture deep into a different card.
- if(!occluder&&mode!=='play'){
+ if(!occluder&&mode!=='play'&&innerWidth>=720){
   const middleX=x+60,middleY=y+60;
   const overlap=candidates().find(({rect})=>
    middleX>rect.left+25&&middleX<rect.right-25&&
    middleY>rect.top+25&&middleY<rect.bottom-25);
   if(overlap)occluder=overlap.rect;
  }
+ if(innerWidth<720&&mode!=='peek')occluder=null;
  layer.style.clipPath=occluder?exclusionPolygon(occluder,innerWidth,innerHeight,1):'';
  layer.dataset.depth=occluder?'behind':'front';
  layer.dataset.worldAction=mode;
@@ -172,9 +176,14 @@ function animate(now){
     travelTarget=scrollWorldTarget;
     front=false;layer.classList.remove("in-front");
     const r=scrollWorldTarget.getBoundingClientRect();
-    const point=placeAround(r,innerWidth,innerHeight,'orbit',scrollDirection>0?1:-1);
-    tx=clamp(point.x+Math.sin(clock*1.2)*25,8,Math.max(8,innerWidth-125));
-    ty=clamp(point.y-scrollDirection*38*glide+Math.sin(clock*2.6)*14,55,Math.max(55,innerHeight-125));
+    const compact=innerWidth<720;
+    const point=compact?
+     cardPerformance(r,innerWidth,innerHeight,'perch',scrollDirection>0?1:-1,.9):
+     placeAround(r,innerWidth,innerHeight,'orbit',scrollDirection>0?1:-1);
+    front=compact;layer.classList.toggle('in-front',front);
+    tx=clamp(point.x+Math.sin(clock*1.2)*(compact?8:25),8,Math.max(8,innerWidth-125));
+    ty=clamp(point.y-scrollDirection*(compact?12:38)*glide+
+     Math.sin(clock*2.6)*(compact?5:14),55,Math.max(55,innerHeight-125));
    }else{
     tx=clamp(innerWidth*.65,8,Math.max(8,innerWidth-125));
     ty=clamp(innerHeight*(.43-scrollDirection*.20*glide),55,Math.max(55,innerHeight-125));
@@ -194,7 +203,10 @@ function animate(now){
      const progress=clamp((now-actionStart)/Math.max(1,actionDuration),0,1);
      const waypoint=cardPerformance(r,innerWidth,innerHeight,mode,travelSide,progress);
      tx=waypoint.x;ty=waypoint.y;
-     front=!waypoint.behind;
+     // Mobile cards fill the viewport, so a full behind-mask would make
+     // M disappear. Keep perching/orbiting in the open space above them.
+     front=innerWidth<720&&mode!=='peek'?true:
+      innerWidth<720&&progress>.40?true:!waypoint.behind;
      layer.classList.toggle("in-front",front);
      // The character's movement is glued to the panel as it scrolls
      // through the viewport. No center-of-card text traversal.
