@@ -8,7 +8,7 @@ const wave=(t,speed,phase=0)=>Math.sin(t*speed+phase);
 const bump=(t,at,width)=>Math.exp(-Math.pow((t-at)/width,2));
 
 /** Pure pose evaluator: values are local additive Euler angles in radians. */
-export function motionPose({time=0,modeAge=0,mode='float',expression='neutral',pointer={x:0,y:0},energy=.7}={}) {
+export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',expression='neutral',pointer={x:0,y:0},energy=.7}={}) {
  const e=clamp(energy,0,1.3),t=Math.max(0,time),p={x:clamp(pointer?.x,-1,1),y:clamp(pointer?.y,-1,1)};
  const bones={};
  const add=(name,x=0,y=0,z=0)=>{
@@ -23,8 +23,8 @@ export function motionPose({time=0,modeAge=0,mode='float',expression='neutral',p
  add('Ear.R',.03*wave(t,2.05,.35),0,-.058*wave(t,1.2,.25));
  add('EarTip.L',.04*wave(t,2.6,.5),0,.045*wave(t,1.6));
  add('EarTip.R',.04*wave(t,2.4,1.1),0,-.04*wave(t,1.65));
- add('Arm.L',.085*wave(t,1.65),0,.06*wave(t,1.1));
- add('Arm.R',.075*wave(t,1.65,1.6),0,-.065*wave(t,1.07,.8));
+ add('Arm.L',.11*wave(t,1.65),0,.07*wave(t,1.1));
+ add('Arm.R',.10*wave(t,1.65,1.6),0,-.075*wave(t,1.07,.8));
  add('Forearm.L',.07*wave(t,1.7,.5),0,.025*wave(t,.9));
  add('Forearm.R',.075*wave(t,1.73,1.8),0,-.03*wave(t,.95));
  add('Leg.L',.045*wave(t,1.25),0,.025*wave(t,1.4));
@@ -39,21 +39,21 @@ export function motionPose({time=0,modeAge=0,mode='float',expression='neutral',p
  }
  // Emotion is expressed using the body, rather than the tiny facial morph alone.
  if(expression==='happy') {
-  add('Head',-.025*wave(t,2.8),0,.065*wave(t,2.15));
+  add('Head',-.055*wave(t,2.8),0,.12*wave(t,2.15));
   add('Ear.L',-.075,0,.115);add('Ear.R',-.075,0,-.115);
-  add('Arm.L',.13*wave(t,2.9),0,.09);
-  add('Arm.R',.14*wave(t,3.05,1.6),0,-.09);
+  add('Arm.L',.20*wave(t,2.9),0,.15);
+  add('Arm.R',.20*wave(t,3.05,1.6),0,-.15);
  }
  if(expression==='curious') {
-  add('Head',-.045,.08,.18);
+  add('Head',-.06,.10,.28);
   add('Neck',0,.035,.075);
   add('Ear.L',-.1,0,.065);add('Ear.R',.04,0,-.045);
   add('Arm.L',.05,0,.13);add('Arm.R',-.03,0,-.07);
  }
  if(expression==='surprised') {
-  add('Head',-.12,0,-.04);
-  add('Ear.L',-.19,0,.12);add('Ear.R',-.19,0,-.12);
-  add('Arm.L',-.15,0,.19);add('Arm.R',-.15,0,-.19);
+  add('Head',-.19,0,-.06);
+  add('Ear.L',-.23,0,.16);add('Ear.R',-.23,0,-.16);
+  add('Arm.L',-.24,0,.28);add('Arm.R',-.24,0,-.28);
   add('Chest',-.045,0,0);
  }
  if(mode==='curious') {
@@ -82,6 +82,11 @@ export function motionPose({time=0,modeAge=0,mode='float',expression='neutral',p
   add('Hand.R',.13*hit);
   add('Head',-.06*hit,0,.03*hit);
  }
+ // Short emotional anticipation adds life whenever a face button is selected.
+ const pulse=Math.exp(-Math.max(0,emotionAge)*3)*Math.sin(Math.max(0,emotionAge)*11);
+ if(expression==='happy'){add('Head',-.085*pulse,0,.05*pulse);add('Arm.L',.10*pulse);add('Arm.R',.10*pulse);}
+ if(expression==='curious')add('Head',0,.08*pulse,.08*pulse);
+ if(expression==='surprised'){add('Body',-.13*pulse);add('Head',-.09*pulse);add('Ear.L',-.08*pulse);add('Ear.R',-.08*pulse);}
  // Reduce secondary motion while the baked swim clip is moving every bone.
  const damp=mode==='swim'?.7:1;
  for(const a of Object.values(bones))for(let i=0;i<3;i++)a[i]*=e*damp;
@@ -96,14 +101,15 @@ export function createMotionV7(root,THREE) {
   rest.set(o.name,o.quaternion.clone());
   current.set(o.name,[0,0,0]);
  });
- let elapsed=0,modeElapsed=0,previousMode=null;
+ let elapsed=0,modeElapsed=0,emotionElapsed=999,previousMode=null,previousExpression=null;
  return {
   get availableBones(){return bones.size;},
-  reset(){elapsed=0;modeElapsed=0;previousMode=null;for(const [name,bone] of bones){bone.quaternion.copy(rest.get(name));current.set(name,[0,0,0]);}},
+  reset(){elapsed=0;modeElapsed=0;emotionElapsed=999;previousMode=null;previousExpression=null;for(const [name,bone] of bones){bone.quaternion.copy(rest.get(name));current.set(name,[0,0,0]);}},
   update(dt,{mode='float',expression='neutral',pointer={x:0,y:0},energy=.7,clipActive=false}={}){
    dt=clamp(dt,0,.09);elapsed+=dt;
    if(mode!==previousMode){modeElapsed=0;previousMode=mode;}else modeElapsed+=dt;
-   const poses=motionPose({time:elapsed,modeAge:modeElapsed,mode,expression,pointer,energy});
+   if(expression!==previousExpression){emotionElapsed=0;previousExpression=expression;}else emotionElapsed+=dt;
+   const poses=motionPose({time:elapsed,modeAge:modeElapsed,emotionAge:emotionElapsed,mode,expression,pointer,energy});
    const blend=1-Math.exp(-5.5*dt);
    for(const [name,bone] of bones){
     const previous=current.get(name),desired=poses[name]||[0,0,0];
