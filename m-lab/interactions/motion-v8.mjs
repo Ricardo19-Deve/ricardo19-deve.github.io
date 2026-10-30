@@ -1,5 +1,5 @@
 import {smoothSpring,createSpring,transitionFrequency} from './fluid-v8.mjs';
-import {tailPose} from './tail-v9.mjs';
+import {tailPoseV10} from './tail-v10.mjs';
 
 /**
  * M V8 fluid secondary-body motion layer.
@@ -11,7 +11,7 @@ const wave=(t,speed,phase=0)=>Math.sin(t*speed+phase);
 const bump=(t,at,width)=>Math.exp(-Math.pow((t-at)/width,2));
 
 /** Pure pose evaluator: values are local additive Euler angles in radians. */
-export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',expression='neutral',pointer={x:0,y:0},energy=.7,tailEnergy=1.15,tailStyle='organic'}={}) {
+export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',expression='neutral',pointer={x:0,y:0},energy=.7,tailEnergy=1.1,tailReactivity=1.5,tailStyle='organic',bodyMotion={},swimWeight=0}={}) {
  const e=clamp(energy,0,1.3),t=Math.max(0,time),p={x:clamp(pointer?.x,-1,1),y:clamp(pointer?.y,-1,1)};
  const bones={};
  const add=(name,x=0,y=0,z=0)=>{
@@ -34,11 +34,6 @@ export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',express
  add('Forearm.R',.075*wave(t,1.73,1.8),0,-.03*wave(t,.95));
  add('Leg.L',.045*wave(t,1.25),0,.025*wave(t,1.4));
  add('Leg.R',.055*wave(t,1.2,1.3),0,-.025*wave(t,1.35,.6));
- // Ten-bone flowing S-wave with an independent delayed phase per segment.
- // All components remain additive to the original baked GLB swim animation.
- const tail=tailPose({time:t,mode,modeAge,expression,emotionAge,
-  style:tailStyle,amount:tailEnergy});
- for(const [bone,rotation] of Object.entries(tail))add(bone,...rotation);
  // Emotion is expressed using the body, rather than the tiny facial morph alone.
  if(expression==='happy') {
   add('Head',-.055*wave(t,2.8),0,.12*wave(t,2.15));
@@ -89,9 +84,17 @@ export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',express
  if(expression==='happy'){add('Head',-.085*pulse,0,.05*pulse);add('Arm.L',.10*pulse);add('Arm.R',.10*pulse);}
  if(expression==='curious')add('Head',0,.08*pulse,.08*pulse);
  if(expression==='surprised'){add('Body',-.13*pulse);add('Head',-.09*pulse);add('Ear.L',-.08*pulse);add('Ear.R',-.08*pulse);}
- // Reduce secondary motion while the baked swim clip is moving every bone.
+ // Body response is driven by its own energy slider. V10 tail uses the
+ // same global master energy, but independent base and emotion amplitudes,
+ // without the old .7 Swim penalty that hid it during swimming.
  const damp=mode==='swim'?.7:1;
  for(const a of Object.values(bones))for(let i=0;i<3;i++)a[i]=e===0?0:a[i]*e*damp;
+ const headTurn=bones.Head?.[1]||0;
+ const tail=tailPoseV10({time:t,mode,modeAge,expression,emotionAge,
+  pointer:p,headTurn,bodyMotion,swimWeight,
+  style:tailStyle,amount:tailEnergy,reactivity:tailReactivity});
+ for(const [name,angles] of Object.entries(tail))
+  bones[name]=angles.map(angle=>e===0?0:angle*e);
  return bones;
 }
 
@@ -136,11 +139,11 @@ export function createMotionV8(root,THREE){
   get availableBones(){return bones.size;},
   prepare,reset,
   update(dt,{mode='float',expression='neutral',pointer={x:0,y:0},energy=.7,
-              clipActive=false,smoothness=.75,tailEnergy=1.15,tailStyle='organic'}={}){
+              clipActive=false,smoothness=.75,tailEnergy=1.1,tailReactivity=1.5,tailStyle='organic',bodyMotion={},swimWeight=0}={}){
    dt=Math.max(0,Math.min(.075,dt));time+=dt;
    if(mode!==priorMode){modeAge=0;priorMode=mode;}else modeAge+=dt;
    if(expression!==priorEmotion){emotionAge=0;priorEmotion=expression;}else emotionAge+=dt;
-   const poses=motionPose({time,modeAge,emotionAge,mode,expression,pointer,energy,tailEnergy,tailStyle});
+   const poses=motionPose({time,modeAge,emotionAge,mode,expression,pointer,energy,tailEnergy,tailReactivity,tailStyle,bodyMotion,swimWeight});
    const baseFrequency=transitionFrequency(smoothness);
    for(const [name,bone] of bones){
     const state=states.get(name),target=poses[name]||[0,0,0];
