@@ -7,7 +7,9 @@ on:
       - 'scroll-buddy.js'
       - 'm-world.css'
       - 'index.html'
-      - 'assets/m-v6-web/**'\n      - 'assets/m-v6-detail/**'\n      - 'm-world-spatial.mjs'
+      - 'assets/m-v6-web/**'
+      - 'assets/m-v6-detail/**'
+      - 'm-world-spatial.mjs'
       - '.github/workflows/m-world-browser.yml'
   workflow_dispatch:
 permissions:
