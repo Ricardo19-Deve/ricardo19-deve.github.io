@@ -103,14 +103,37 @@ export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',express
  * AnimationMixer.update(), then update() AFTER, so unanimated bones never
  * accumulate procedural rotations across frames, even with partial clips.
  */
+/** Three.js GLTFLoader sanitizes period-containing node names like
+ * Tail.01 -> Tail_01 and Ear.L -> Ear_L. The original GLB animation
+ * still targets those same bone instances. Do not rename Three.js nodes.
+ * Instead, resolve runtime names to the canonical Blender motion keys.
+ */
+export function canonicalBoneName(rawName){
+ const name=String(rawName||'');
+ if(name.startsWith('Tail_')){
+  const segment=Number(name.slice(5));
+  if(Number.isInteger(segment)&&segment>=1&&segment<=10)
+   return 'Tail.'+String(segment).padStart(2,'0');
+ }
+ const dotNames=['Ear','EarTip','Arm','Forearm','Hand','Leg','Foot'];
+ for(const stem of dotNames)
+  if(name===stem+'_L'||name===stem+'_R')
+   return stem+'.'+name.slice(-1);
+ return name;
+}
+
 export function createMotionV8(root,THREE){
- const bones=new Map(),rest=new Map(),states=new Map();
+ const bones=new Map(),rest=new Map(),states=new Map(),originalNames=new Map();
  const extra=new THREE.Quaternion(),inverse=new THREE.Quaternion(),angles=new THREE.Euler();
  root.traverse(o=>{
   if(!o.isBone)return;
-  bones.set(o.name,o);
-  rest.set(o.name,o.quaternion.clone());
-  states.set(o.name,{
+  const canonical=canonicalBoneName(o.name);
+  if(bones.has(canonical)&&bones.get(canonical)!==o)
+   throw new Error('Duplicate canonical bone name: '+canonical);
+  bones.set(canonical,o);
+  originalNames.set(canonical,o.name);
+  rest.set(canonical,o.quaternion.clone());
+  states.set(canonical,{
    angles:[createSpring(),createSpring(),createSpring()],
    applied:new THREE.Quaternion()
   });
@@ -138,11 +161,16 @@ export function createMotionV8(root,THREE){
  }
  return {
   get availableBones(){return bones.size;},
-  get tailDiagnostics(){return {
-   connected:[...bones.keys()].filter(n=>n.startsWith('Tail.')&&Number.isInteger(Number(n.slice(5)))).length,
-   maxBend:lastTailBend,
-   animationAxes:'X/Z bend, Y twist'
-  };},
+  get tailDiagnostics(){
+   const tailNames=[...bones.keys()].filter(n=>n.startsWith('Tail.')&&Number.isInteger(Number(n.slice(5))));
+   const renamed=tailNames.map(n=>({expected:n,loaded:originalNames.get(n)}));
+   return {
+    connected:tailNames.length,
+    mapped:renamed,
+    maxBend:lastTailBend,
+    animationAxes:'X/Z bend, Y twist'
+   };
+  },
   prepare,reset,
   update(dt,{mode='float',expression='neutral',pointer={x:0,y:0},energy=.7,
               clipActive=false,smoothness=.75,tailEnergy=1.1,tailReactivity=1.5,tailStyle='organic',bodyMotion={},swimWeight=0}={}){
