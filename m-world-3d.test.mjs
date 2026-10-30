@@ -53,3 +53,19 @@ test('main portfolio loads V6 canvas rather than deliberately replacing it with 
  assert.match(three,/PART_COUNT=19/);
  assert.doesNotThrow(()=>new Function(three.replace(/^import .*;$/gm,'').replace(/^export /gm,'')));
 });
+
+test('high fidelity facial and body maps are hosted from original V6 textures',()=>{
+ const assets=[0,1,2,3,4,6,8,9,11,12];
+ for(const id of assets){
+  const ext=[3,8,11].includes(id)?'webp':[0,1,2].includes(id)?'jpg':'png';
+  const file=new URL('assets/m-v6-detail/m-original-'+id+'.'+ext,base);
+  const raw=readFileSync(file);
+  assert.ok(raw.byteLength>12000,id+' detail map missing or corrupt');
+  if(ext==='png')assert.equal(raw.subarray(1,4).toString(),'PNG');
+  if(ext==='jpg')assert.equal(raw[0],0xff);
+ }
+ const renderer=readFileSync(new URL('m-world-3d.mjs',base),'utf8');
+ assert.ok(renderer.includes('tex.flipY=false'));
+ assert.ok(renderer.includes('detailMaps'));
+ assert.ok(renderer.includes('renderer.setPixelRatio(pixelRatio)'));
+});
