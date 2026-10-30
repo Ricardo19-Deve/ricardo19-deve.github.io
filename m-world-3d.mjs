@@ -89,15 +89,15 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
  scene.add(new THREE.HemisphereLight(0xfff6ff,0x71718e,1.55));
  const key=new THREE.DirectionalLight(0xfff7f9,2.2);key.position.set(-4,7,9);scene.add(key);
  const rim=new THREE.DirectionalLight(0xab9bff,.8);rim.position.set(5,3,-5);scene.add(rim);
- const camera=new THREE.PerspectiveCamera(31,1,.03,100);
- camera.position.set(0,.05,3.35);camera.lookAt(0,0,0);
+ const camera=new THREE.PerspectiveCamera(36,1,.03,100);
+ camera.position.set(0,.05,4.35);camera.lookAt(0,0,0);
  const stage=new THREE.Group();scene.add(stage);
  const container=new THREE.Group();stage.add(container);container.add(source);
  source.updateMatrixWorld(true);
  const bbox=new THREE.Box3().setFromObject(source);
  const center=bbox.getCenter(new THREE.Vector3()),size=bbox.getSize(new THREE.Vector3());
  source.position.sub(center);
- const modelScale=2.22/Math.max(size.x,size.y,size.z);
+ const modelScale=2.15/Math.max(size.x,size.y,size.z);
  container.scale.setScalar(modelScale);
  // Keep detail visible on high-density displays; mipmaps remain enabled
  // to avoid shimmering while M moves across the portfolio.
