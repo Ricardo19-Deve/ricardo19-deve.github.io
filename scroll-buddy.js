@@ -1,4 +1,4 @@
-import {sectionElements,visibleTargets,chooseTarget,placeAround,exclusionPolygon,interactiveTarget,insideMascot,bound} from './m-world-spatial.mjs';
+import {sectionElements,visibleTargets,chooseTarget,placeAround,exclusionPolygon,interactiveTarget,insideMascot,bound,cardPerformance,activeOccluder} from './m-world-spatial.mjs';
 (()=>{"use strict";
 const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
 const layer=document.createElement("div");layer.className="mascot-world-v9";layer.setAttribute("aria-hidden","true");
@@ -42,7 +42,7 @@ const mascot=layer.querySelector(".mascot-creature"),svg=mascot.querySelector("s
 const parts=Object.fromEntries(["arm-left","arm-right","leg-left","leg-right","ear-left","ear-right","eyes"].map(k=>[k,svg.querySelector("."+k)]));
 const clamp=bound,rand=(a,b)=>a+Math.random()*(b-a);
 let x=innerWidth*.65,y=innerHeight*.4,vx=0,vy=0,tx=x,ty=y,clock=0,last=0,next=0,mode="swim",modeUntil=0,playUntil=0,idle=performance.now(),knocked=0,tailX=43,tailY=33,tailVX=0,tailVY=0,prevX=x,prevY=y,front=false,active=true,emotion="curious",emotionUntil=0,lastScroll=scrollY,peekAt=0,lastInteraction=performance.now(),curiosityCooldown=0,scrollUntil=0,scrollImpulse=0,scrollVelocity=0,scrollTarget=0,scrollLast=scrollY,scrollDirection=0,pose="float",poseUntil=0,spinStart=0,spinUntil=0,spinDirection=1,travelTarget=null,travelSide=1,peekRevealed=false,bodyTilt=0,bodyTiltVelocity=0,bodyBob=0,bodyBobVelocity=0,blinkNext=performance.now()+rand(2400,5700),blinkUntil=0;
-let lastTarget=null,perchSide=1,nextWorldScan=0,scrollWorldTarget=null;
+let lastTarget=null,perchSide=1,nextWorldScan=0,scrollWorldTarget=null,actionStart=0,actionDuration=0;
 const worldElements=sectionElements(document);
 function candidates(){return visibleTargets(worldElements,innerWidth,innerHeight).filter(x=>!x.el.closest('[aria-hidden="true"]'))}
 function cards(){return candidates().map(item=>item.el);}
@@ -63,50 +63,61 @@ try{if(localStorage.getItem('m-world-enabled')==='no')setActive(false,false)}cat
 
 function mood(name,now,duration=1600){emotion=name;emotionUntil=now+duration;mascot.dataset.mood=name;}
 function choose(now){
- const options=candidates();
- const selected=chooseTarget(options,{x:x+55,y:y+55},innerWidth,innerHeight,Math.random);
+ // Explore actual visible components instead of arbitrary viewport points.
+ // Avoid choosing the same card immediately after leaving it.
+ const all=candidates();
+ const pool=all.length>1?all.filter(item=>item.el!==lastTarget):all;
+ const selected=chooseTarget(pool.length?pool:all,{x:x+55,y:y+55},innerWidth,innerHeight,Math.random);
  travelTarget=selected?.el||null;
  lastTarget=travelTarget;
  peekAt=0;peekRevealed=false;spinUntil=0;
  perchSide=Math.random()<.5?-1:1;travelSide=perchSide;
  const roll=Math.random();
- const behavior=!travelTarget?'glide':roll<.37?'peek':roll<.63?'perch':roll<.83?'orbit':'glide';
- mode=behavior;
- pose=behavior==='perch'?'curl':behavior==='peek'?'wave':behavior==='orbit'?'glide':'float';
- // Stay behind the card by default: the face and tail peek out at
- // its borders, rather than covering readable project descriptions.
- front=!travelTarget||(behavior==='perch'&&travelTarget.getBoundingClientRect().top>145);
-
- layer.classList.toggle('in-front',front);
- layer.style.clipPath='';
- const duration=behavior==='peek'?rand(3300,4600):behavior==='perch'?rand(3800,6000):
-  behavior==='orbit'?rand(3300,4800):rand(2500,4000);
- poseUntil=now+duration;next=poseUntil;
+ const behavior=!travelTarget?'glide':roll<.39?'peek':roll<.74?'perch':roll<.94?'orbit':'glide';
+ mode=behavior;pose=behavior==='perch'?'curl':behavior==='peek'?'wave':
+  behavior==='orbit'?'glide':'float';
+ actionStart=now;
+ actionDuration=behavior==='peek'?rand(3600,4900):
+  behavior==='perch'?rand(4600,6000):
+  behavior==='orbit'?rand(4500,5700):rand(2500,3600);
+ poseUntil=now+actionDuration;next=poseUntil;
+ front=behavior!=='peek';
  if(travelTarget&&behavior!=='glide'){
   const r=travelTarget.getBoundingClientRect();
-  const point=placeAround(r,innerWidth,innerHeight,behavior,perchSide);
-  tx=point.x;ty=point.y;
-  if(behavior==='peek')peekAt=now+Math.min(1500,duration*.45);
+  const point=cardPerformance(r,innerWidth,innerHeight,behavior,perchSide,0);
+  tx=point.x;ty=point.y;front=!point.behind;
  }else{
-  tx=clamp(x+rand(-270,270),5,Math.max(5,innerWidth-125));
-  ty=clamp(y+rand(-170,170),55,Math.max(55,innerHeight-125));
+  tx=clamp(x+rand(-250,250),5,Math.max(5,innerWidth-125));
+  ty=clamp(y+rand(-145,145),55,Math.max(55,innerHeight-125));
  }
- mood(behavior==='peek'?'curious':behavior==='perch'?'sleepy':behavior==='orbit'?'happy':'curious',now,duration);
+ layer.classList.toggle('in-front',front);
+ layer.style.clipPath='';
+ layer.dataset.worldAction=mode;
+ layer.dataset.worldTarget=travelTarget?.className?.toString().slice(0,120)||'corridor';
+ mood(behavior==='peek'?'curious':behavior==='perch'?'sleepy':
+   behavior==='orbit'?'happy':'curious',now,actionDuration);
 }
 
 // Cut a real rectangular opening in the mascot layer while M is behind a card.
 // This avoids relying on the page's many independent stacking contexts.
 function updateOcclusion(){
- // A character crosses a card by going BEHIND its surface, never covering
- // readable text. Only short, explicit play gestures can be in front.
- const centerX=x+60,centerY=y+60;
- const overlapping=mode!=='play'?candidates().find(({rect})=>
-  centerX>rect.left+8&&centerX<rect.right-8&&
-  centerY>rect.top+8&&centerY<rect.bottom-8):null;
- let occluder=overlapping?.rect||null;
- if(!occluder&&!front&&travelTarget?.isConnected)
-  occluder=travelTarget.getBoundingClientRect();
+ let occluder=null;
+ const actor={x:x-12,y:y-14,size:142};
+ if(travelTarget?.isConnected){
+  const rect=travelTarget.getBoundingClientRect();
+  if(activeOccluder(rect,actor,!front,3))occluder=rect;
+ }
+ // Protect readable content even when an unexpected resize or velocity
+ // pushes a foreground gesture deep into a different card.
+ if(!occluder&&mode!=='play'){
+  const middleX=x+60,middleY=y+60;
+  const overlap=candidates().find(({rect})=>
+   middleX>rect.left+25&&middleX<rect.right-25&&
+   middleY>rect.top+25&&middleY<rect.bottom-25);
+  if(overlap)occluder=overlap.rect;
+ }
  layer.style.clipPath=occluder?exclusionPolygon(occluder,innerWidth,innerHeight,1):'';
+ layer.dataset.depth=occluder?'behind':'front';
 }
 
 function animateTail(dt,px,py){
@@ -144,8 +155,12 @@ function animate(now){
    // the viewport, rather than flying to an unrelated fixed coordinate.
    const glide=clamp((scrollUntil+1250-now)/1250,0,1);
    if(now>nextWorldScan){
-    nextWorldScan=now+420;
-    scrollWorldTarget=chooseTarget(candidates(),{x:x+55,y:y+55},innerWidth,innerHeight,Math.random)?.el||null;
+    nextWorldScan=now+520;
+    const r=scrollWorldTarget?.isConnected?scrollWorldTarget.getBoundingClientRect():null;
+    const stillVisible=r&&r.bottom>90&&r.top<innerHeight-85;
+    if(!stillVisible){
+     scrollWorldTarget=chooseTarget(candidates(),{x:x+55,y:y+55},innerWidth,innerHeight,Math.random)?.el||null;
+    }
    }
    if(scrollWorldTarget?.isConnected){
     travelTarget=scrollWorldTarget;
@@ -165,33 +180,18 @@ function animate(now){
  if(!document.hidden){
   if(!reduce){
    if(travelTarget&&!travelTarget.isConnected){travelTarget=null;next=0;front=true;}
-   if(travelTarget&&(mode==="peek"&&!peekRevealed||mode==="perch"||mode==="orbit")){
+   if(travelTarget&&(mode==="peek"||mode==="perch"||mode==="orbit")){
     const r=travelTarget.getBoundingClientRect();
-    if(r.bottom<42||r.top>innerHeight-25){travelTarget=null;next=now+100;front=true;}
-    else {
-     let pos=placeAround(r,innerWidth,innerHeight,mode,travelSide);
-     if(mode==="orbit"){
-      // Fly a curved, measured circuit along the external edges of the card.
-      const phase=(now%4400)/4400*Math.PI*2;
-      pos.x=clamp(pos.x+Math.sin(phase)*Math.min(30,r.width*.08),4,Math.max(4,innerWidth-124));
-      pos.y=clamp(pos.y+Math.cos(phase)*Math.min(45,r.height*.16),55,Math.max(55,innerHeight-124));
-      if(now>poseUntil-700){front=true;layer.classList.add("in-front");}
-     }
-     tx=pos.x;ty=pos.y;
-    }
-   }
-   if(mode==="peek"&&peekAt&&now>peekAt&&Math.hypot(tx-x,ty-y)<70){
-    peekAt=0;peekRevealed=true;
-    // Slide out of the card silhouette before moving to the foreground.
-    tx=clamp(tx+(travelSide<0?-100:100),5,Math.max(5,innerWidth-125));
-    ty=clamp(ty-18,55,Math.max(55,innerHeight-125));
-    next=Math.max(next,now+2600);mood("curious",now,1600);
-   }
-   if(mode==="peek"&&peekRevealed&&!front&&travelTarget){
-    const r=travelTarget.getBoundingClientRect();
-    const center=x+55;
-    if(center<r.left-15||center>r.right+15){
-      front=true;layer.classList.add("in-front");
+    if(r.bottom<44||r.top>innerHeight-30){
+     travelTarget=null;next=now+150;front=true;
+    }else{
+     const progress=clamp((now-actionStart)/Math.max(1,actionDuration),0,1);
+     const waypoint=cardPerformance(r,innerWidth,innerHeight,mode,travelSide,progress);
+     tx=waypoint.x;ty=waypoint.y;
+     front=!waypoint.behind;
+     layer.classList.toggle("in-front",front);
+     // The character's movement is glued to the panel as it scrolls
+     // through the viewport. No center-of-card text traversal.
     }
    }
    if(now>next&&now>playUntil&&now>scrollUntil+1250)choose(now);
