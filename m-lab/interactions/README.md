@@ -1,6 +1,23 @@
-# M Interaction Lab — V9 organic tail and V6 facial controls (isolated prototype)
+# M Interaction Lab — V10 reactive tail, V6 facial controls (isolated prototype)
 
 URL: https://ricardo19-deve.github.io/m-lab/interactions/
+
+## V10 reactive tail choreography — 30 October 2026
+
+The V10 layer responds to feedback that the tail still did not visibly accompany the character's expressions and actions. The GLB has been directly inspected: `Tail.01` to `Tail.10` are connected in a joint chain, and each is animated by `M_Swim_V4`.
+
+- `tail-v10.mjs`: new, independent 3-axis animation layer, additive to the original clip
+- Tail response is driven by the current facial expression, interaction mode, head-turn pose and measured spring-smoothed body orientation/translation velocities, plus swim clip weight
+- **Feliz**: active wag, **Curiosa**: raised/side-curved tail, **Surpreendida**: travelling kick and recovery, **Esconder**: curled retreat, **Nok nok**: two travelling pulses; swimming adds a propulsion wave
+- `Ondulação base da cauda` controls idle wave amplitude (0–150%, default 110%)
+- `Reatividade emocional e corporal` controls response to emotions and body movement (0–200%, default 150%); the channels are independent, so idle can be zero while reaction is strong
+- The global `Vida do corpo` control remains the master limiter for all extra procedural motion, including accessibility reduced-motion mode
+- Existing natural/calm/playful styles and the tail camera focus are preserved
+- Every tail joint receives a delayed target and a soft-bounded additive rotation; no destructive Blender edits, new model assets, or uploads to the public repository
+
+The V10 regression suite additionally checks that emotion-only reactions remain visible with base idle at zero, that rotation/velocity feed noticeable counter-motion, that swim blend weight affects the wave smoothly, and that 30/60 FPS pose differences stay bounded.
+
+The checks run in GitHub Actions and do not constitute a visual approval of the V6 GLB on mobile or desktop. Check that no shoulder deformation, excessive tail curl or collision with the body occurs before production integration. The portfolio homepage is unchanged.
 
 ## V9 organic tail motion — 30 October 2026
 
