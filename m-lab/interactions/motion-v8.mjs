@@ -12,7 +12,7 @@ const wave=(t,speed,phase=0)=>Math.sin(t*speed+phase);
 const bump=(t,at,width)=>Math.exp(-Math.pow((t-at)/width,2));
 
 /** Pure pose evaluator: values are local additive Euler angles in radians. */
-export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',expression='neutral',pointer={x:0,y:0},energy=.7,tailEnergy=1.1,tailReactivity=1.5,tailStyle='organic',tailFlow=.73,performanceImpact=1.12,bodyMotion={},swimWeight=0}={}) {
+export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',expression='neutral',pointer={x:0,y:0},attention={x:0,y:0},energy=.7,tailEnergy=1.1,tailReactivity=1.5,tailStyle='organic',tailFlow=.73,performanceImpact=1.12,bodyMotion={},swimWeight=0}={}) {
  const e=clamp(energy,0,1.3),t=Math.max(0,time),p={x:clamp(pointer?.x,-1,1),y:clamp(pointer?.y,-1,1)};
  const bones={};
  const add=(name,x=0,y=0,z=0)=>{
@@ -38,7 +38,7 @@ export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',express
  // Deliberate full-body acting poses replace the old small facial gestures.
  // All are smoothly blended by bone springs downstream.
  const acting=performanceBodyPoseV15({time:t,mode,expression,emotionAge,modeAge,
-  pointer:p,impact:performanceImpact});
+  pointer:p,attention,impact:performanceImpact});
  for(const [bone,rotation] of Object.entries(acting))add(bone,...rotation);
  if(mode==='curious') {
   add('Head',-.035,p.x*.16,.12);
@@ -160,12 +160,12 @@ export function createMotionV8(root,THREE){
    };
   },
   prepare,reset,
-  update(dt,{mode='float',expression='neutral',pointer={x:0,y:0},energy=.7,
+  update(dt,{mode='float',expression='neutral',pointer={x:0,y:0},attention={x:0,y:0},energy=.7,
               clipActive=false,smoothness=.75,tailEnergy=1.1,tailReactivity=1.5,tailStyle='organic',tailFlow=.73,performanceImpact=1.12,bodyMotion={},swimWeight=0}={}){
    dt=Math.max(0,Math.min(.075,dt));time+=dt;
    if(mode!==priorMode){modeAge=0;priorMode=mode;}else modeAge+=dt;
    if(expression!==priorEmotion){emotionAge=0;priorEmotion=expression;}else emotionAge+=dt;
-   const poses=motionPose({time,modeAge,emotionAge,mode,expression,pointer,energy,tailEnergy,tailReactivity,tailStyle,tailFlow,performanceImpact,bodyMotion,swimWeight});
+   const poses=motionPose({time,modeAge,emotionAge,mode,expression,pointer,attention,energy,tailEnergy,tailReactivity,tailStyle,tailFlow,performanceImpact,bodyMotion,swimWeight});
    const baseFrequency=transitionFrequency(smoothness);
    lastTailBend=0;
    for(const [name,bone] of bones){
