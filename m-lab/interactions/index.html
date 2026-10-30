@@ -112,7 +112,7 @@ small{font-size:11px;color:#a8a2bc}
 </select></label>
 <label class="check"><input id="reduce" type="checkbox"> Movimento reduzido</label>
 </div>
-<p class="note"><b>Novidade V15:</b> M maior no palco e expressões que envolvem cabeça, orelhas, braços, corpo e cauda. Experimenta Expressividade da M a 0% e depois a 120% para comparar. O GLB V6 e os seus corretivos continuam preservados.</p>
+<p class="note"><b>Novidade V15:</b> A M aparece maior e reage com cabeça, orelhas, braços, corpo e cauda. Os modos escolhem automaticamente uma emoção; ao clicar numa expressão, ela fica fixa até Pose neutra ou Demo. Compara Expressividade da M a 0% e a 120%. O GLB V6 permanece intacto.</p>
 </section>
 <section class="panel">
 <h2>3 · Expressões V6 + linguagem corporal</h2>
@@ -188,14 +188,15 @@ const director=new MInteractionDirector(mode=>{
  $('state').textContent='Estado: '+M_MODES[mode].label;
  for(const button of document.querySelectorAll('button[data-mode]'))button.classList.toggle('active',button.dataset.mode===mode);
  if(loaded)applyAnimation(mode);
-  if(facial && director.demo){
-   const autoFace={float:'neutral',swim:'happy',curious:'curious',peek:'curious',knock:'surprised',shy:'curious',follow:'curious'};
-   setExpressionUI(autoFace[mode]||'neutral');
-  }else if(mode==='curious'&&facial)setExpressionUI('curious');
+ if(facial){
+  const autoFace={float:'neutral',swim:'happy',curious:'curious',peek:'curious',knock:'surprised',shy:'curious',follow:'curious'};
+  if(director.demo||!faceManual)setExpressionUI(autoFace[mode]||'neutral');
+ }
  if(mode==='knock')pulse();
 });
 let loaded=null,mixer=null,clips=[],action=null,activeClip=null,paused=false,chosenClip=null;
 let facial=null,motion=null,motionEnergy=.85,tailEnergy=.85,tailReactivity=1.75,tailFlow=.73,tailStyle='organic',performanceImpact=1.20,stageSize=1.30,actingExpression='neutral',actingExpressionAge=100;
+let faceManual=false;
 function setExpressionUI(key) {
  if(!facial?.setExpression(key))return;
  for(const el of document.querySelectorAll('button[data-face]'))
@@ -220,7 +221,7 @@ function configureFaceUI() {
   : 'Rig facial não detetado.';
  if(facial){facial.setIntensity(Number($('faceIntensity').value)/100);facial.setAutoBlink($('autoBlink').checked&&!$('reduce').checked);}
 }
-for(const el of document.querySelectorAll('button[data-face]'))el.onclick=()=>setExpressionUI(el.dataset.face);
+for(const el of document.querySelectorAll('button[data-face]'))el.onclick=()=>{faceManual=true;setExpressionUI(el.dataset.face)};
 $('blinkL').oninput=e=>facial?.setBlink('left',Number(e.target.value)/100);
 $('blinkR').oninput=e=>facial?.setBlink('right',Number(e.target.value)/100);
 $('blinkLeft').onclick=()=>facial?.blink('left');
@@ -329,7 +330,7 @@ async function openGLB(file){
   stageRig.add(wrapper);
   loaded={gltf,wrapper,baseScale,skin,file:file.name};mixer=new THREE.AnimationMixer(gltf.scene);
   clips=gltf.animations;action=null;activeClip=null;chosenClip=null;
-  facial=createFacialV6(gltf.scene,clips);motion=createMotionV8(gltf.scene,THREE);configureFaceUI();restoreStageSprings();actingExpression='neutral';actingExpressionAge=100;
+  facial=createFacialV6(gltf.scene,clips);motion=createMotionV8(gltf.scene,THREE);configureFaceUI();restoreStageSprings();actingExpression='neutral';actingExpressionAge=100;faceManual=false;
   const select=$('clipSelect');select.replaceChildren();
   if(clips.length){
     for(const clip of clips.filter(c=>/swim|float|hover|idle/i.test(c.name))){const option=document.createElement('option');option.value=clip.name;option.textContent=clip.name+' · '+clip.duration.toFixed(1)+'s';select.appendChild(option)}
@@ -360,9 +361,9 @@ async function openGLB(file){
 $('file').addEventListener('change',event=>openGLB(event.target.files?.[0]));
 $('clipSelect').onchange=()=>{chosenClip=$('clipSelect').value;if(loaded)director.setMode('swim')};
 for(const button of document.querySelectorAll('button[data-mode]'))button.onclick=()=>{director.setMode(button.dataset.mode);status('A testar: '+M_MODES[button.dataset.mode].label)};
-$('neutral').onclick=()=>{director.setMode('float');status('Pose neutra / idle')};
-$('demo').onclick=()=>{director.setDemo(true);status('▶ Demonstração automática ativa');$('demo').classList.add('active')};
-$('stopDemo').onclick=()=>{director.setDemo(false);director.setMode('float');$('demo').classList.remove('active');status('Demonstração parada')};
+$('neutral').onclick=()=>{faceManual=false;director.setMode('float');setExpressionUI('neutral');status('Pose neutra / idle')};
+$('demo').onclick=()=>{faceManual=false;director.setDemo(true);status('▶ Demonstração automática ativa');$('demo').classList.add('active')};
+$('stopDemo').onclick=()=>{faceManual=false;director.setDemo(false);director.setMode('float');$('demo').classList.remove('active');status('Demonstração parada')};
 $('scroll').oninput=e=>director.setScroll(Number(e.target.value)/100);
 let clipSpeed=1;$('speed').oninput=e=>{clipSpeed=Number(e.target.value)/100};
 $('smoothness').oninput=e=>{smoothness=Number(e.target.value)/100;$('smoothnessLabel').textContent=e.target.value+'%'};
