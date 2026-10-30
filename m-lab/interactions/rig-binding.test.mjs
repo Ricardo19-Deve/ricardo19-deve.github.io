@@ -15,11 +15,11 @@ class EulerMock {
  set(x,y,z){this.x=x;this.y=y;this.z=z;return this;}
 }
 function model(){
- // This is how Three.js GLTFLoader sanitizes names from the V6 GLB.
+ // Exact THREE r184 PropertyBinding.sanitizeNodeName on real V6 GLB names.
  const names=['CTRL_Global','Body','Chest','Neck','Head',
-  'Ear_L','EarTip_L','Ear_R','EarTip_R','Arm_L','Arm_R',
-  'Forearm_L','Forearm_R','Leg_L','Leg_R',
-  ...Array.from({length:10},(_,i)=>'Tail_'+String(i+1).padStart(2,'0'))];
+  'EarL','EarTipL','EarR','EarTipR','ArmL','ArmR',
+  'ForearmL','ForearmR','LegL','LegR',
+  ...Array.from({length:10},(_,i)=>'Tail'+String(i+1).padStart(2,'0'))];
  const objects=names.map(name=>({name,isBone:true,quaternion:new QuaternionMock(.1)}));
  const root={traverse:callback=>objects.forEach(callback)};
  return {root,objects,THREE:{Quaternion:QuaternionMock,Euler:EulerMock}};
@@ -27,39 +27,40 @@ function model(){
 test('normalize sanitized GLTFLoader names without renaming original bones',()=>{
  for(let i=1;i<=10;i++){
   const digits=String(i).padStart(2,'0');
+  assert.equal(canonicalBoneName('Tail'+digits),'Tail.'+digits);
   assert.equal(canonicalBoneName('Tail_'+digits),'Tail.'+digits);
   assert.equal(canonicalBoneName('Tail.'+digits),'Tail.'+digits);
  }
- for(const [key,value] of [['Ear_L','Ear.L'],['EarTip_R','EarTip.R'],
-  ['Arm_R','Arm.R'],['Forearm_L','Forearm.L'],['Hand_R','Hand.R'],
-  ['Leg_L','Leg.L'],['Foot_R','Foot.R'],['Head','Head']])
+ for(const [key,value] of [['EarL','Ear.L'],['Ear_L','Ear.L'],['EarTipR','EarTip.R'],['EarTip_R','EarTip.R'],
+  ['ArmR','Arm.R'],['Arm_R','Arm.R'],['ForearmL','Forearm.L'],['Forearm_L','Forearm.L'],['HandR','Hand.R'],
+  ['LegL','Leg.L'],['Leg_L','Leg.L'],['FootR','Foot.R'],['Head','Head']])
   assert.equal(canonicalBoneName(key),value);
 });
 
 test('all ten sanitized tail bones genuinely receive changing rotations',()=>{
  const m=model(),motion=createMotionV8(m.root,m.THREE);
  assert.equal(motion.tailDiagnostics.connected,10);
- assert.equal(motion.tailDiagnostics.mapped[0].loaded,'Tail_01');
- assert.equal(motion.tailDiagnostics.mapped[9].loaded,'Tail_10');
+ assert.equal(motion.tailDiagnostics.mapped[0].loaded,'Tail01');
+ assert.equal(motion.tailDiagnostics.mapped[9].loaded,'Tail10');
  for(let n=0;n<120;n++){
   motion.prepare();
   motion.update(1/60,{mode:'float',expression:'happy',
    energy:.85,tailEnergy:.85,tailReactivity:1.75,clipActive:false});
  }
- const base=m.objects.find(o=>o.name==='Tail_01');
- const tip=m.objects.find(o=>o.name==='Tail_10');
+ const base=m.objects.find(o=>o.name==='Tail01');
+ const tip=m.objects.find(o=>o.name==='Tail10');
  assert.ok(motion.tailDiagnostics.maxBend>.003,'No real flex applied');
  assert.ok(Math.abs(base.quaternion.value-.1)>.001,'Tail root not animated');
  assert.ok(Math.abs(tip.quaternion.value-.1)>.001,'Tail tip not animated');
 });
 
-test('Arm_L and Ear_R are also driven by emotional body poses',()=>{
+test('ArmL and EarR are also driven by emotional body poses',()=>{
  const m=model(),motion=createMotionV8(m.root,m.THREE);
  for(let n=0;n<100;n++){
   motion.prepare();motion.update(1/60,{mode:'float',expression:'surprised',
    energy:1,tailEnergy:0,tailReactivity:0,clipActive:false});
  }
- const arm=m.objects.find(o=>o.name==='Arm_L'),ear=m.objects.find(o=>o.name==='Ear_R');
+ const arm=m.objects.find(o=>o.name==='ArmL'),ear=m.objects.find(o=>o.name==='EarR');
  assert.ok(Math.abs(arm.quaternion.value-.1)>.01,'Arm alias still broken');
  assert.ok(Math.abs(ear.quaternion.value-.1)>.01,'Ear alias still broken');
 });
