@@ -91,7 +91,7 @@ small{font-size:11px;color:#a8a2bc}
 <div class="advanced">
 <label class="range-label" for="scroll">Simular scroll <input id="scroll" type="range" min="-100" max="100" value="0"></label>
 <label class="range-label" for="speed">Velocidade do clip <input id="speed" type="range" min="25" max="150" value="100" step="5"></label>
-<label class="range-label" for="energy">Vida do corpo · <span id="energyLabel">70%</span><input id="energy" type="range" min="0" max="100" value="70" step="5"></label>
+<label class="range-label" for="energy">Vida do corpo · <span id="energyLabel">85%</span><input id="energy" type="range" min="0" max="100" value="85" step="5"></label>
 <label class="check"><input id="reduce" type="checkbox"> Movimento reduzido</label>
 </div>
 <p class="note"><b>Novidade:</b> cabeça, orelhas, braços, pernas e os dez segmentos da cauda recebem movimento secundário independente e suavizado. Espiar, Nok nok e Esconder continuam protótipos, não clips esqueléticos finalizados.</p>
@@ -114,8 +114,8 @@ small{font-size:11px;color:#a8a2bc}
 <button id="blinkBoth" disabled>◡ Piscar ambos</button>
 </div>
 <div class="face-settings">
-<label class="range-label" for="faceIntensity">Intensidade da expressão · <span id="faceIntensityLabel">165%</span>
-<input id="faceIntensity" type="range" min="100" max="250" step="5" value="165" disabled></label>
+<label class="range-label" for="faceIntensity">Intensidade da expressão · <span id="faceIntensityLabel">185%</span>
+<input id="faceIntensity" type="range" min="100" max="250" step="5" value="185" disabled></label>
 <label class="check"><input id="autoBlink" type="checkbox" checked disabled> Piscadelas automáticas naturais</label>
 </div>
 </div>
@@ -164,11 +164,14 @@ const director=new MInteractionDirector(mode=>{
  $('state').textContent='Estado: '+M_MODES[mode].label;
  for(const button of document.querySelectorAll('button[data-mode]'))button.classList.toggle('active',button.dataset.mode===mode);
  if(loaded)applyAnimation(mode);
-  if(mode==='curious'&&facial)setExpressionUI('curious');
+  if(facial && director.demo){
+   const autoFace={float:'neutral',swim:'happy',curious:'curious',peek:'curious',knock:'surprised',shy:'curious',follow:'curious'};
+   setExpressionUI(autoFace[mode]||'neutral');
+  }else if(mode==='curious'&&facial)setExpressionUI('curious');
  if(mode==='knock')pulse();
 });
 let loaded=null,mixer=null,clips=[],action=null,activeClip=null,paused=false,chosenClip=null;
-let facial=null,motion=null,motionEnergy=.70;
+let facial=null,motion=null,motionEnergy=.85;
 function setExpressionUI(key) {
  if(!facial?.setExpression(key))return;
  for(const el of document.querySelectorAll('button[data-face]'))
@@ -191,7 +194,7 @@ function configureFaceUI() {
   ? 'Expressões: '+info.expressions.join(', ')+' · Clips: '+(info.leftBlinkClip||'sem esquerdo')+
     ' / '+(info.rightBlinkClip||'sem direito')+' · Canais L '+info.leftBlinkTracks+' / R '+info.rightBlinkTracks
   : 'Rig facial não detetado.';
- if(facial){facial.setIntensity(Number($('faceIntensity').value)/100);facial.setAutoBlink($('autoBlink').checked);}
+ if(facial){facial.setIntensity(Number($('faceIntensity').value)/100);facial.setAutoBlink($('autoBlink').checked&&!$('reduce').checked);}
 }
 for(const el of document.querySelectorAll('button[data-face]'))el.onclick=()=>setExpressionUI(el.dataset.face);
 $('blinkL').oninput=e=>facial?.setBlink('left',Number(e.target.value)/100);
@@ -203,7 +206,7 @@ $('faceIntensity').oninput=e=>{
  const value=Number(e.target.value);
  $('faceIntensityLabel').textContent=value+'%';facial?.setIntensity(value/100);
 };
-$('autoBlink').onchange=e=>facial?.setAutoBlink(e.target.checked);
+$('autoBlink').onchange=e=>facial?.setAutoBlink(e.target.checked&&!$('reduce').checked);
 let elapsed=performance.now(),fpsFrames=0,fpsAt=performance.now(),autoScroll=0,prevScroll=window.scrollY;
 function releaseOldModel(){
  if(!loaded)return;
@@ -308,7 +311,7 @@ $('scroll').oninput=e=>director.setScroll(Number(e.target.value)/100);
 let clipSpeed=1;$('speed').oninput=e=>{clipSpeed=Number(e.target.value)/100};
 $('energy').oninput=e=>{motionEnergy=Number(e.target.value)/100;$('energyLabel').textContent=e.target.value+'%'};
 $('reduce').checked=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-$('reduce').onchange=()=>status($('reduce').checked?'Movimento reduzido ativo':'Movimento completo ativo');
+$('reduce').onchange=()=>{facial?.setAutoBlink($('autoBlink').checked&&!$('reduce').checked);status($('reduce').checked?'Movimento reduzido ativo':'Movimento completo ativo')};
 function pulse(){
  const ripple=$('ripple');ripple.classList.remove('active');void ripple.offsetWidth;ripple.classList.add('active');
 }
