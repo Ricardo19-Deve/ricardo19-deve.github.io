@@ -1,6 +1,18 @@
-# M Interaction Lab — V13 three.js rig naming fix (isolated prototype)
+# M Interaction Lab — V14 elastic tail motion (isolated prototype)
 
 URL: https://ricardo19-deve.github.io/m-lab/interactions/
+
+## V14 — fluid tail follow-through and elastic wave (30 October 2026)
+
+After the user recorded the correctly bound V13 tail, the visible issue remained that it held nearly the same curled silhouette while other parts moved. A new animation is now added using `tail-v14.mjs`, and the existing runtime uses faster springs at the base, longer lag and softer damping toward the tip, plus a small amount of upstream angular-velocity transfer between adjacent joints.
+
+- Root-to-tip phase delay on a continuous dual-frequency S-wave, including gentle idle breathing and separate swimming propulsion.
+- Happy: repeating celebratory wag and a longer initial sweep; Curious: raised, gently exploring posture; Surprised: travelling recoil and recovery; gestures continue driving counter-motion.
+- New `Elasticidade da cauda` slider (0–100%, default 73%) changes phase propagation and the spring follow-through, independently from `Ondulação base`, `Reatividade`, and the global `Vida do corpo` control.
+- Existing r184 `Tail01` normalization, 10/10 connected-bone diagnostics, V6 baked swimming action and original corrective morphs are unchanged.
+- The procedural layer remains non-destructive to the local GLB and no edits are made to the portfolio main page.
+
+Tests in `tail-v14.test.mjs` cover 10 joint names, distinct phase differences, 30/60 FPS continuous targets, different reactions and elastic control ranges, and hundreds of animated frames without quaternion accumulation. **These are code validations**; the user should validate the visual appearance of the GLB in the web laboratory before production integration.
 
 ## V13 — actual Three.js r184 node-name fix, confirmed against upstream source
 
