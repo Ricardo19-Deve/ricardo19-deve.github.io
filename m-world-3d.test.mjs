@@ -43,7 +43,7 @@ test('main portfolio loads V6 canvas rather than deliberately replacing it with 
  const three=readFileSync(new URL('m-world-3d.mjs',base),'utf8');
  const css=readFileSync(new URL('m-world.css',base),'utf8');
  assert.match(main,/loadRealMascot\(\)/);
- assert.match(main,/import\('\.\/m-world-3d\.mjs\?v=18'\)/);
+ assert.match(main,/import\('\.\/m-world-3d\.mjs\?v=20'\)/);
  assert.match(main,/if\(m3d\)m3d\.update\(dt/);
  assert.match(css,/\.m-world-3d \.mascot-creature svg/);
  assert.match(three,/mountMWorld3D/);
