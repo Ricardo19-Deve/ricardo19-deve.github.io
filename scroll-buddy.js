@@ -10,6 +10,29 @@ toggle.setAttribute('aria-label','Pausar a mascote M');
 toggle.textContent='M · Pausar';
 toggle.title='Pausar ou reativar a M';
 document.body.appendChild(toggle);
+let m3d=null,m3dLoading=false;
+async function loadRealMascot(){
+ if(m3dLoading||m3d)return;
+ m3dLoading=true;
+ layer.classList.add('m-world-loading');
+ try{
+  const {mountMWorld3D}=await import('./m-world-3d.mjs?v=18');
+  const avatar=await mountMWorld3D(layer.querySelector('.mascot-creature'),{
+   onProgress(percent){layer.dataset.loadProgress=String(percent);},
+   onReady(info){console.info('[M World V18] Real Blender V6 ready',info);}
+  });
+  if(avatar.diagnostics.bones!==10)throw new Error('Faltam ossos da cauda 3D');
+  m3d=avatar;
+  layer.classList.add('m-world-3d');
+  layer.classList.remove('m-world-loading');
+  layer.dataset.model='V6 GLB';
+ }catch(error){
+  layer.classList.remove('m-world-loading');
+  layer.classList.add('m-world-fallback');
+  console.error('[M World V18] Falha ao iniciar a M 3D:',error);
+  layer.dataset.model='Fallback SVG';
+ }
+}
 const mascot=layer.querySelector(".mascot-creature"),svg=mascot.querySelector("svg"),tail=mascot.querySelector(".tail-stroke"),tip=mascot.querySelector(".tail-tip"),tap=layer.querySelector(".mascot-tap");
 const parts=Object.fromEntries(["arm-left","arm-right","leg-left","leg-right","ear-left","ear-right","eyes"].map(k=>[k,svg.querySelector("."+k)]));
 const clamp=bound,rand=(a,b)=>a+Math.random()*(b-a);
@@ -199,7 +222,8 @@ function animate(now){
   const stretch=reduce?1:mode==="dash"?1.07:mode==="surf"?1.035:pose==="curl"?.94:1;
   mascot.style.transform=`translate3d(${x.toFixed(1)}px,${(y+bob).toFixed(1)}px,0) rotate(${rotation.toFixed(1)}deg) scale(${stretch.toFixed(3)})`;
   updateOcclusion();
-  animateTail(dt,x,y+bob);
+  if(m3d)m3d.update(dt,{mode,emotion,vx,vy,clock,reducedMotion:reduce});
+  else animateTail(dt,x,y+bob);
   const energy=mode==="surf"?5:mode==="dash"?5.8:mode==="play"?4:
     mode==="perch"?.85:pose==="curl"?.8:2;
   const t=clock*energy,swim=Math.sin(t),kick=Math.sin(t+Math.PI*.8);
@@ -251,4 +275,5 @@ window.addEventListener("scroll",()=>{lastInteraction=performance.now();idle=las
 window.addEventListener("resize",()=>{next=0;travelTarget=null;peekAt=0;layer.style.clipPath='';});
 document.addEventListener("visibilitychange",()=>{last=performance.now();prevX=x;prevY=y;});
 if(active){choose(performance.now());requestAnimationFrame(animate);}
+loadRealMascot();
 })();
