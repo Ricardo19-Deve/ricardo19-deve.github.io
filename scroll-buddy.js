@@ -89,14 +89,16 @@ function choose(now){
 // Cut a real rectangular opening in the mascot layer while M is behind a card.
 // This avoids relying on the page's many independent stacking contexts.
 function updateOcclusion(){
- // True DOM stacking contexts do not represent 3D depth. When M enters
- // behind a real panel, clip her foreground rendering by that panel's
- // current viewport rectangle. The page remains fully interactive.
- if(!travelTarget||!travelTarget.isConnected||front){
-  layer.style.clipPath='';return;
- }
- const r=travelTarget.getBoundingClientRect();
- layer.style.clipPath=exclusionPolygon(r,innerWidth,innerHeight,1);
+ // A character crosses a card by going BEHIND its surface, never covering
+ // readable text. Only short, explicit play gestures can be in front.
+ const centerX=x+60,centerY=y+60;
+ const overlapping=mode!=='play'?candidates().find(({rect})=>
+  centerX>rect.left+8&&centerX<rect.right-8&&
+  centerY>rect.top+8&&centerY<rect.bottom-8):null;
+ let occluder=overlapping?.rect||null;
+ if(!occluder&&!front&&travelTarget?.isConnected)
+  occluder=travelTarget.getBoundingClientRect();
+ layer.style.clipPath=occluder?exclusionPolygon(occluder,innerWidth,innerHeight,1):'';
 }
 
 function animateTail(dt,px,py){
@@ -280,6 +282,17 @@ window.addEventListener("pointermove",e=>{
 window.addEventListener("scroll",()=>{lastInteraction=performance.now();idle=lastInteraction;},{passive:true});
 window.addEventListener("resize",()=>{next=0;travelTarget=null;peekAt=0;layer.style.clipPath='';});
 document.addEventListener("visibilitychange",()=>{last=performance.now();prevX=x;prevY=y;});
-if(active){choose(performance.now());requestAnimationFrame(animate);}
+if(active){
+ const now=performance.now();
+ if(innerWidth>=960&&!reduce){
+  // A welcoming first appearance in the hero's open corridor, before
+  // she begins exploring the real panels and depth layers.
+  x=innerWidth*.545;y=innerHeight*.46;prevX=x;prevY=y;
+  tx=x+10;ty=y-8;mode='swim';pose='float';front=true;
+  layer.classList.add('in-front');travelTarget=null;next=now+2600;
+  mood('curious',now,2600);
+ }else choose(now);
+ requestAnimationFrame(animate);
+}
 loadRealMascot();
 })();
