@@ -76,3 +76,68 @@ export function insideMascot(px,py,x,y,size=120){
  const dx=px-(x+size*.53),dy=py-(y+size*.50);
  return (dx*dx)/(size*.33)**2+(dy*dy)/(size*.36)**2<1;
 }
+
+/**
+ * Choreographed movement around a real card. Positions are viewport-local
+ * and stay attached as scrolling moves the card rectangle.
+ * A change of depth happens only while M is already crossing a card edge.
+ */
+export function cardPerformance(rect,w,h,kind,side=1,progress=0,character=120){
+ const t=bound(progress,0,1),direction=side<0?-1:1,size=character;
+ const clipX=x=>bound(x,3,Math.max(3,w-size-3));
+ const clipY=y=>bound(y,48,Math.max(48,h-size-8));
+ const outside=(edge,visible)=>
+  direction<0?edge-size*(1-visible):edge-size*visible;
+ const edge=direction<0?rect.left:rect.right;
+ const opposite=direction<0?rect.right:rect.left;
+ const topY=clipY(rect.top-size*.90);
+ const edgeY=clipY(rect.top+Math.min(rect.height*.31,120)-size*.52);
+ const ease=x=>x*x*(3-2*x);
+ if(kind==='peek'){
+  // Start almost completely occluded. Then let the face, followed by
+  // the body and tail, emerge from behind the same panel.
+  const reveal=ease(bound(t/.82,0,1));
+  const visible=.17+.70*reveal;
+  const x=outside(edge,visible);
+  const y=edgeY-8*Math.sin(Math.PI*reveal);
+  return {x:clipX(x),y:clipY(y),behind:t<.90,phase:reveal,kind};
+ }
+ if(kind==='perch'){
+  const start={x:outside(edge,.6),y:edgeY-10};
+  const target={
+   x:rect.left+rect.width*(direction<0?.29:.71)-size*.5,
+   y:topY
+  };
+  const u=ease(bound(t/.63,0,1));
+  return {x:clipX(start.x+(target.x-start.x)*u),
+   y:clipY(start.y+(target.y-start.y)*u-22*Math.sin(Math.PI*u)),
+   behind:false,phase:u,kind};
+ }
+ if(kind==='orbit'){
+  const begin={x:outside(edge,.68),y:edgeY};
+  const mid={x:rect.left+rect.width*.5-size*.5,y:topY};
+  const finish={x:outside(opposite,.67),y:edgeY};
+  const u=bound(t/.58,0,1);
+  const v=bound((t-.58)/.42,0,1);
+  const first=cubic(begin,{x:begin.x,y:topY-18},
+   {x:mid.x,y:topY-20},mid,ease(u));
+  const second=cubic(mid,{x:mid.x,y:topY-20},
+   {x:finish.x,y:topY-12},finish,ease(v));
+  const point=t<.58?first:second;
+  return {x:clipX(point.x),y:clipY(point.y),
+   behind:t>.76,phase:t,kind};
+ }
+ const p=placeAround(rect,w,h,kind,side,character);
+ return {...p,behind:false,phase:t,kind};
+}
+
+/** Only the selected card should mask the M, and only on a behind phase.
+ * This does not synthesize true 3D: it is purposeful per-card 2D occlusion.
+ */
+export function activeOccluder(rect,actor,behind,buffer=0){
+ if(!behind||!rect)return false;
+ return actor.x+actor.size>rect.left-buffer &&
+  actor.x<rect.right+buffer &&
+  actor.y+actor.size>rect.top-buffer &&
+  actor.y<rect.bottom+buffer;
+}
