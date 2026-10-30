@@ -40,3 +40,11 @@ test('existing portfolio content still includes all six section anchors and link
  assert.ok(page.includes('Ricardo-Pinheiro-Public-CV.pdf'));
  assert.ok(page.includes('interactions.js'));
 });
+
+test('M V20 uses purposeful real-card choreography and front/back geometry',()=>{
+ assert.match(script,/cardPerformance\(/);
+ assert.match(script,/activeOccluder\(/);
+ assert.match(script,/layer\.dataset\.depth/);
+ assert.match(script,/layer\.dataset\.worldTarget/);
+ assert.match(script,/attention:focus/);
+});
