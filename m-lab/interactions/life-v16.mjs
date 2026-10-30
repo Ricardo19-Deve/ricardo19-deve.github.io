@@ -97,18 +97,19 @@ export class MLifeV16 {
    this.target={x:(this.random()-.5)*.95,y:(this.random()-.5)*.6};
    this.nextGaze=this.time+2.5+this.random()*3.3;
    if(this.mood==='watching')this.mood='exploring';
+   if(mode==='float'&&this.time-this.lastActivity>5)this.mood='resting';
   }
   this.gaze.x+=(this.target.x-this.gaze.x)*gazeSpeed;
   this.gaze.y+=(this.target.y-this.gaze.y)*gazeSpeed;
   let action=null;
-  if(this.pending&&this.time>=this.manualUntil){
+  if(this.pending&&!manualFace&&this.time>=this.manualUntil){
    action=this.pending;this.pending=null;
   }else if(this.time>=this.nextAction && this.time>=this.manualUntil &&
-             (mode==='float'||mode==='swim') && !this.pointerInside){
+             (mode==='float'||mode==='swim') && !this.pointerInside && !manualFace){
    const energetic=this.personality==='playful';
    const quiet=this.personality==='calm';
    const next=this.choose([
-    ['curious',quiet?4:3],['peek',quiet?2:3],['swim',energetic?3:1.4],
+    ['curious',quiet?4:3],['peek',quiet?2:3+this.bond],['swim',energetic?3+this.bond:1.4],
     ['shy',quiet?1.2:.6],['float',quiet?4:1.5]
    ].filter(([key])=>key!==this.lastAction));
    const mappings={
