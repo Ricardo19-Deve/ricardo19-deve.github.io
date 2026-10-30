@@ -37,14 +37,17 @@ body > header.top.glass-nav{z-index:92!important}
 .mascot-world-v9.m-world-3d .mascot-creature svg,
 .mascot-world-v9.m-world-3d .mascot-tap{display:none!important}
 .mascot-world-v9 .m-world-canvas{
- display:block;position:absolute;left:-30px;top:-30px;
- width:180px;height:180px;max-width:none;pointer-events:none;
- background:transparent;filter:drop-shadow(0 8px 16px rgba(164,126,255,.21));
+ display:block;position:absolute;left:-76px;top:-76px;
+ width:272px;height:272px;max-width:none;pointer-events:none;
+ background:transparent;
+ /* Keep the 3D render crisp: avoid an extra CSS filter / offscreen blur pass. */
+ filter:none;image-rendering:auto;
+ backface-visibility:hidden;
 }
 .mascot-world-v9.m-world-3d .mascot-creature{
  filter:none!important;overflow:visible;
 }
 .mascot-world-v9.m-world-fallback .mascot-creature svg{display:block}
 @media(max-width:720px){
- .mascot-world-v9 .m-world-canvas{left:-30px;top:-30px}
+ .mascot-world-v9 .m-world-canvas{width:232px;height:232px;left:-56px;top:-56px}
 }
