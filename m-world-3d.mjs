@@ -68,25 +68,46 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
  canvas.setAttribute('aria-hidden','true');
  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,powerPreference:'low-power'});
  renderer.setClearColor(0x000000,0);
- renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75));
- renderer.setSize(180,180,false);
+ // Render a genuinely sharp 3D portrait, not a tiny 180px texture stretched
+ // by browser compositing. DPR is capped by device class to protect mobile.
+ const mobile=window.matchMedia('(max-width:720px)').matches;
+ const viewportSize=mobile?232:272;
+ const pixelRatio=Math.min(window.devicePixelRatio||1,mobile?2:2.5);
+ renderer.setPixelRatio(pixelRatio);
+ renderer.setSize(viewportSize,viewportSize,false);
  renderer.outputColorSpace=THREE.SRGBColorSpace;
  renderer.toneMapping=THREE.ACESFilmicToneMapping;
- renderer.toneMappingExposure=1.25;
+ renderer.toneMappingExposure=0.98;
  const scene=new THREE.Scene();
- scene.add(new THREE.HemisphereLight(0xfff6ff,0x71718e,2.5));
- const key=new THREE.DirectionalLight(0xfff7f9,3.1);key.position.set(-4,7,9);scene.add(key);
- const rim=new THREE.DirectionalLight(0xab9bff,1.6);rim.position.set(5,3,-5);scene.add(rim);
- const camera=new THREE.PerspectiveCamera(37,1,.03,100);
- camera.position.set(0,.06,4.1);camera.lookAt(0,0,0);
+ scene.add(new THREE.HemisphereLight(0xfff6ff,0x71718e,1.55));
+ const key=new THREE.DirectionalLight(0xfff7f9,2.2);key.position.set(-4,7,9);scene.add(key);
+ const rim=new THREE.DirectionalLight(0xab9bff,.8);rim.position.set(5,3,-5);scene.add(rim);
+ const camera=new THREE.PerspectiveCamera(31,1,.03,100);
+ camera.position.set(0,.05,3.35);camera.lookAt(0,0,0);
  const stage=new THREE.Group();scene.add(stage);
  const container=new THREE.Group();stage.add(container);container.add(source);
  source.updateMatrixWorld(true);
  const bbox=new THREE.Box3().setFromObject(source);
  const center=bbox.getCenter(new THREE.Vector3()),size=bbox.getSize(new THREE.Vector3());
  source.position.sub(center);
- const modelScale=2.00/Math.max(size.x,size.y,size.z);
+ const modelScale=2.22/Math.max(size.x,size.y,size.z);
  container.scale.setScalar(modelScale);
+ // Keep detail visible on high-density displays; mipmaps remain enabled
+ // to avoid shimmering while M moves across the portfolio.
+ const maxAnisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+ source.traverse(o=>{
+  if(!o.isMesh)return;
+  for(const material of Array.isArray(o.material)?o.material:(o.material?[o.material]:[])){
+   for(const name of ['map','normalMap','roughnessMap','metalnessMap','aoMap']){
+    const texture=material[name];
+    if(!texture)continue;
+    texture.anisotropy=maxAnisotropy;
+    texture.magFilter=THREE.LinearFilter;
+    texture.minFilter=THREE.LinearMipmapLinearFilter;
+    texture.needsUpdate=true;
+   }
+  }
+ });
  const clips=gltf.animations||[];
  const mixer=new THREE.AnimationMixer(source);
  const swim=clips.find(c=>c.name==='M_Swim_V4');
@@ -98,7 +119,9 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
  if(motion.tailDiagnostics.connected!==10)console.warn('[M 3D] Tail bones:',motion.tailDiagnostics);
  let clock=0;
  host.prepend(canvas);
- onReady({bones:motion.tailDiagnostics.connected,clips:clips.length,skinSets:skin.sets||0});
+ onReady({bones:motion.tailDiagnostics.connected,clips:clips.length,skinSets:skin.sets||0,
+  renderPixels:[renderer.domElement.width,renderer.domElement.height],
+  viewportSize,pixelRatio});
  let disposed=false;
  const update=(dt,state={})=>{
   if(disposed)return;
@@ -137,5 +160,5 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   canvas.remove();
  };
  return {canvas,update,dispose,diagnostics:{bones:motion.tailDiagnostics.connected,
-  clips:clips.map(c=>c.name),skinSets:skin.sets||0},ready:true};
+  clips:clips.map(c=>c.name),skinSets:skin.sets||0,viewportSize,pixelRatio},ready:true};
 }
