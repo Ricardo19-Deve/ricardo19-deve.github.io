@@ -1,6 +1,24 @@
-# M Interaction Lab — V10 reactive tail, V6 facial controls (isolated prototype)
+# M Interaction Lab — V11 tail-axis fix, V6 facial controls (isolated prototype)
 
 URL: https://ricardo19-deve.github.io/m-lab/interactions/
+
+## V11 — Correct tail axes, expressive bends (30 October 2026)
+
+**Root cause identified from the actual V6 GLB**: in all nine tail parent-to-child segments, local +Y is aligned with the bone length (dot product 1.0 within numerical tolerance). The V9/V10 engines were concentrating much of their additive wag in local Y, which mostly twisted the tail and produced limited change in its silhouette.
+
+V11 uses `tail-v11.mjs` and fixes that specific root cause:
+
+- Tail side bends and vertical lifts now act in **local X and Z**. Local Y is reserved for a very small longitudinal twist.
+- **Feliz**: distinct repeated lateral wag and a brief celebratory kick.
+- **Curiosa**: holds a raised, side-curved pose while gently moving.
+- **Surpreendida**: recoils upwards with a delayed traveling kick.
+- **Esconder**: tucks the tail behind the body; **Espiar**, **Nok nok** and **Seguir dedo** trigger their own counter-movements.
+- `Ondulação base` defaults to **85%** and `Reatividade emocional e corporal` to **175%**, independently adjustable.
+- Spring-smoothed head/body coupling and original V6 baked Swim V4 playback are preserved.
+- The laboratory shows **Cauda: N/10 ossos · flexão X°** as live diagnostics. If N is not 10, the rig did not bind correctly. This number measures additional procedural rotation at the joints, not final silhouette displacement.
+- V11 does not change the original Blender GLB, mesh, weights or corrective morphs. The GLB remains local to the user's browser, not committed to the public repository.
+
+The CI suite now checks the critical bend-vs-twist ratio, distinctive expressive poses, 30/60 FPS continuity, extreme angle bounds and zero-motion controls. CI does not replace visual browser testing on the real GLB. Do not integrate into the portfolio production page until the user approves the final silhouette and animation quality.
 
 ## V10 reactive tail choreography — 30 October 2026
 
