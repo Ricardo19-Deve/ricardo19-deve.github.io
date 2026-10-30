@@ -17,7 +17,7 @@ test('M runtime and geometry helper parse as JavaScript',()=>{
  assert.doesNotThrow(()=>new Function(world.replace(/^export /gm,'')));
 });
 test('M passes behind real cards, has perches, and tracks scrolling targets',()=>{
- for(const snippet of ["chooseTarget(","visibleTargets(","placeAround(","exclusionPolygon(","mode==='perch'",'mode==="perch"','mode==="peek"','mode==="orbit"']){
+ for(const snippet of ["chooseTarget(","visibleTargets(","placeAround(","exclusionPolygon(","behavior==='perch'",'mode==="perch"','mode==="peek"','mode==="orbit"']){
   assert.ok(script.includes(snippet),'Missing M world behavior: '+snippet);
  }
  assert.ok(script.includes('travelTarget.getBoundingClientRect()'));
