@@ -103,22 +103,28 @@ export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',express
  * AnimationMixer.update(), then update() AFTER, so unanimated bones never
  * accumulate procedural rotations across frames, even with partial clips.
  */
-/** Three.js GLTFLoader sanitizes period-containing node names like
- * Tail.01 -> Tail_01 and Ear.L -> Ear_L. The original GLB animation
- * still targets those same bone instances. Do not rename Three.js nodes.
- * Instead, resolve runtime names to the canonical Blender motion keys.
+/**
+ * The actual THREE r184 PropertyBinding.sanitizeNodeName strips dots.
+ *   "Tail.01" -> "Tail01"; "Ear.L" -> "EarL".
+ * Keep original imported bone objects/names for AnimationMixer bindings.
+ * Resolve only our separate procedural motion target names.
+ *
+ * Also accept _ and . variants for GLBs produced by other exporters.
  */
 export function canonicalBoneName(rawName){
  const name=String(rawName||'');
- if(name.startsWith('Tail_')){
-  const segment=Number(name.slice(5));
-  if(Number.isInteger(segment)&&segment>=1&&segment<=10)
+ const compact=name.replace(/[._\\s-]/g,'');
+ if(/^Tail\\d{1,2}$/i.test(compact)){
+  const segment=Number(compact.slice(4));
+  if(segment>=1&&segment<=10)
    return 'Tail.'+String(segment).padStart(2,'0');
  }
- const dotNames=['Ear','EarTip','Arm','Forearm','Hand','Leg','Foot'];
- for(const stem of dotNames)
-  if(name===stem+'_L'||name===stem+'_R')
-   return stem+'.'+name.slice(-1);
+ const stems=['EarTip','Forearm','Shoulder','Hand','Foot','Arm','Leg','Ear'];
+ for(const stem of stems){
+  for(const side of ['L','R'])
+   if(compact.toLowerCase()===(stem+side).toLowerCase())
+    return stem+'.'+side;
+ }
  return name;
 }
 
