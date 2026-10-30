@@ -126,7 +126,7 @@ small{font-size:11px;color:#a8a2bc}
 </section>
 <section class="panel">
 <h2>3 · Personalidade e comportamento autónomo</h2>
-<p class="note">A M observa o cursor, reage aos toques e alterna entre curiosidade, brincadeira, natação e descanso. Tudo funciona no navegador, sem serviços externos nem recolha de dados.</p>
+<p class="note">A M observa o cursor, reage aos toques e alterna entre curiosidade, brincadeira, natação e descanso. O comportamento é executado localmente, sem chamadas a IA nem envio dos eventos de interação. As bibliotecas 3D continuam a ser carregadas pelo CDN do laboratório.</p>
 <div class="life-panel-controls">
 <label class="check"><input id="autoLife" type="checkbox" checked> Vida autónoma ativada</label>
 <label class="range-label" for="lifePersonality">Temperamento
@@ -387,7 +387,7 @@ async function openGLB(file){
  }catch(err){status('Erro ao carregar a M: '+(err?.message||String(err)),true);buttonState(Boolean(loaded))}
 }
 $('file').addEventListener('change',event=>openGLB(event.target.files?.[0]));
-$('clipSelect').onchange=()=>{chosenClip=$('clipSelect').value;if(loaded)director.setMode('swim')};
+$('clipSelect').onchange=()=>{life.manual();chosenClip=$('clipSelect').value;if(loaded)director.setMode('swim')};
 for(const button of document.querySelectorAll('button[data-mode]'))button.onclick=()=>{life.manual();director.setMode(button.dataset.mode);status('A testar: '+M_MODES[button.dataset.mode].label)};
 $('neutral').onclick=()=>{life.manual();faceManual=false;director.setMode('float');setExpressionUI('neutral');status('Pose neutra / idle')};
 $('demo').onclick=()=>{life.manual();faceManual=false;director.setDemo(true);status('▶ Demonstração automática ativa');$('demo').classList.add('active')};
@@ -399,6 +399,8 @@ $('autoLife').onchange=e=>{
 };
 $('lifePersonality').onchange=e=>life.setPersonality(e.target.value);
 $('lifeHello').onclick=()=>{
+ if($('reduce').checked){status('Desativa Movimento reduzido para experimentar esta reação');return;}
+ if(!life.enabled){$('autoLife').checked=true;life.setEnabled(true);}
  director.setDemo(false);faceManual=false;life.signal('tap');
  status('♡ A M reparou em ti');
 };
