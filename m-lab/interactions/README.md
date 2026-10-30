@@ -1,6 +1,16 @@
-# M Interaction Lab — V12 rig binding fix, V6 facial controls (isolated prototype)
+# M Interaction Lab — V13 three.js rig naming fix (isolated prototype)
 
 URL: https://ricardo19-deve.github.io/m-lab/interactions/
+
+## V13 — actual Three.js r184 node-name fix, confirmed against upstream source
+
+The original V12 fix was incomplete. It assumed Three.js replaced Blender dots with underscores (e.g., `Tail.01 → Tail_01`), but the **actual r184 implementation** of `PropertyBinding.sanitizeNodeName()` removes reserved punctuation. `GLTFLoader.createUniqueName()` uses this sanitizer. Therefore, with this GLB, the actual imported bone names are `Tail01 ... Tail10`, `EarL`, `ArmL`, and so on, not the previously assumed underscore aliases.
+
+`canonicalBoneName()` now supports the **real punctuation-stripped form**, legacy underscore names, and unsanitized Blender names, while leaving the original imported Object3D names untouched (so baked Swim V4 can still play correctly). The runtime maps them to the canonical procedural animation targets `Tail.01 ... Tail.10` and `Arm.L`/etc.
+
+Updated `rig-binding.test.mjs` specifically emulates r184 names and asserts that the ten actual bone objects, plus both arm/ear samples, receive nonzero expressive rotations with reversible additive quaternions. The lab now displays **V13**, forces a new module URL to avoid cache re-use, and lists all recognized original→canonical bone aliases in the diagnostic panel.
+
+**User verification still required:** load local `M_FacialExpressions_V6_Test.glb` and confirm `Cauda: 10/10 ossos`. This is not a browser-rendering claim until tested with the real file. The source GLB and main portfolio remain unchanged.
 
 ## V12 — Root cause confirmed from user video: missing bone binding
 
