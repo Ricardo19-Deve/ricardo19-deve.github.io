@@ -30,3 +30,21 @@
 
 /* Sticky navigation is always a foreground world object, including on mobile. */
 body > header.top.glass-nav{z-index:92!important}
+
+/* Actual Blender V6 WebGL character replaces the old SVG once ready. */
+.mascot-world-v9.m-world-loading .mascot-creature svg,
+.mascot-world-v9.m-world-loading .mascot-tap,
+.mascot-world-v9.m-world-3d .mascot-creature svg,
+.mascot-world-v9.m-world-3d .mascot-tap{display:none!important}
+.mascot-world-v9 .m-world-canvas{
+ display:block;position:absolute;left:-30px;top:-30px;
+ width:180px;height:180px;max-width:none;pointer-events:none;
+ background:transparent;filter:drop-shadow(0 8px 16px rgba(164,126,255,.21));
+}
+.mascot-world-v9.m-world-3d .mascot-creature{
+ filter:none!important;overflow:visible;
+}
+.mascot-world-v9.m-world-fallback .mascot-creature svg{display:block}
+@media(max-width:720px){
+ .mascot-world-v9 .m-world-canvas{left:-30px;top:-30px}
+}
