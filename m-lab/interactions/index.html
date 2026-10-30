@@ -40,6 +40,12 @@ select{width:100%;min-height:43px;background:#272841;color:var(--text);border:1p
 small{font-size:11px;color:#a8a2bc}
 @media(min-width:690px){.toolbar{grid-template-columns:repeat(4,minmax(0,1fr))}.modes{grid-template-columns:repeat(4,minmax(0,1fr))}.advanced{grid-template-columns:2fr 1fr 1fr}}
 @media(max-width:390px){.modes{grid-template-columns:repeat(2,minmax(0,1fr))}.viewport{min-height:330px}}
+.face-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+.face-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;grid-column:1/-1}
+.face-controls .face-settings{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.face-controls .face-settings label{display:grid;gap:6px}
+.face-modes button.active{box-shadow:0 0 0 1px #cbb5ff inset}
+@media(max-width:480px){.face-controls{grid-template-columns:1fr}.face-buttons{grid-template-columns:1fr 1fr 1fr}.face-controls .face-settings{grid-template-columns:1fr}}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/"}}</script>
 </head>
@@ -63,6 +69,7 @@ small{font-size:11px;color:#a8a2bc}
 <label class="upload" for="file">📁 Escolher GLB</label>
 <input class="file" type="file" id="file" accept=".glb,model/gltf-binary,application/octet-stream">
 <button id="resetCamera" disabled>◉ Repor câmara</button>
+<button id="faceFocus" disabled>◉ Ver rosto</button>
 <button id="neutral" disabled>↺ Pose neutra</button>
 <button id="demo" disabled>▶ Demo automática</button>
 </div>
@@ -70,7 +77,7 @@ small{font-size:11px;color:#a8a2bc}
 <label class="range-label" for="clipSelect">Animação corporal detetada <select id="clipSelect" disabled><option>Carrega um GLB primeiro</option></select></label>
 </section>
 <section class="panel">
-<h2>2 · Testar comportamentos</h2>
+<h2>2 · Movimento natural V7</h2>
 <div class="modes">
 <button data-mode="float" disabled>☁ Flutuar</button>
 <button data-mode="swim" disabled>〰 Nadar</button>
@@ -84,12 +91,13 @@ small{font-size:11px;color:#a8a2bc}
 <div class="advanced">
 <label class="range-label" for="scroll">Simular scroll <input id="scroll" type="range" min="-100" max="100" value="0"></label>
 <label class="range-label" for="speed">Velocidade do clip <input id="speed" type="range" min="25" max="150" value="100" step="5"></label>
+<label class="range-label" for="energy">Vida do corpo · <span id="energyLabel">70%</span><input id="energy" type="range" min="0" max="100" value="70" step="5"></label>
 <label class="check"><input id="reduce" type="checkbox"> Movimento reduzido</label>
 </div>
-<p class="note"><b>Importante:</b> Espiar, Nok nok, Esconder e Seguir dedo ainda são movimentos globais provisórios. A natação e as expressões reais são lidas do GLB.</p>
+<p class="note"><b>Novidade:</b> cabeça, orelhas, braços, pernas e os dez segmentos da cauda recebem movimento secundário independente e suavizado. Espiar, Nok nok e Esconder continuam protótipos, não clips esqueléticos finalizados.</p>
 </section>
 <section class="panel">
-<h2>3 · Expressões V6 e piscadelas independentes</h2>
+<h2>3 · Expressões V6 + linguagem corporal</h2>
 <p class="note">Feliz, Curiosa e Surpreendida usam morph targets separados; não alteram os corretivos dos ombros. O piscar de cada olho funciona em paralelo com a natação.</p>
 <div class="face-modes" role="group" aria-label="Expressões da M">
 <button data-face="neutral" disabled>◯ Neutra</button>
@@ -97,13 +105,18 @@ small{font-size:11px;color:#a8a2bc}
 <button data-face="curious" disabled>◉ Curiosa</button>
 <button data-face="surprised" disabled>✧ Surpreendida</button>
 </div>
-<div class="advanced">
+<div class="face-controls">
 <label class="range-label" for="blinkL">Fechar olho esquerdo <input id="blinkL" type="range" min="0" max="100" value="0" disabled></label>
 <label class="range-label" for="blinkR">Fechar olho direito <input id="blinkR" type="range" min="0" max="100" value="0" disabled></label>
-<div class="toolbar">
+<div class="face-buttons">
 <button id="blinkLeft" disabled>◡ Piscar esquerdo</button>
 <button id="blinkRight" disabled>◡ Piscar direito</button>
 <button id="blinkBoth" disabled>◡ Piscar ambos</button>
+</div>
+<div class="face-settings">
+<label class="range-label" for="faceIntensity">Intensidade da expressão · <span id="faceIntensityLabel">165%</span>
+<input id="faceIntensity" type="range" min="100" max="250" step="5" value="165" disabled></label>
+<label class="check"><input id="autoBlink" type="checkbox" checked disabled> Piscadelas automáticas naturais</label>
 </div>
 </div>
 <p class="note" id="faceInfo" aria-live="polite">Carrega o GLB para verificar as expressões disponíveis.</p>
@@ -122,13 +135,14 @@ import {readGLB} from '../swim-v3/threejs/glb-reader.js';
 import {preserveFullSkinning} from '../swim-v3/threejs/full-skinning.js';
 import {MInteractionDirector,M_MODES} from './behavior.mjs';
 import {createFacialV6,FACIAL_LABELS} from './facial-v6.mjs';
+import {createMotionV7} from './motion-v7.mjs';
 
 const $=id=>document.getElementById(id);
 const stage=$('stage');
 function status(message,error=false){$('status').textContent=message;$('status').classList.toggle('error',error)}
 function debug(lines){$('debug').textContent=lines.join('\n')}
 function buttonState(enabled){
- for(const id of ['resetCamera','neutral','demo','stopDemo'])$(id).disabled=!enabled;
+ for(const id of ['resetCamera','faceFocus','neutral','demo','stopDemo'])$(id).disabled=!enabled;
  for(const el of document.querySelectorAll('button[data-mode]'))el.disabled=!enabled;
  $('clipSelect').disabled=!enabled;
 }
@@ -154,7 +168,7 @@ const director=new MInteractionDirector(mode=>{
  if(mode==='knock')pulse();
 });
 let loaded=null,mixer=null,clips=[],action=null,activeClip=null,paused=false,chosenClip=null;
-let facial=null;
+let facial=null,motion=null,motionEnergy=.70;
 function setExpressionUI(key) {
  if(!facial?.setExpression(key))return;
  for(const el of document.querySelectorAll('button[data-face]'))
@@ -169,12 +183,15 @@ function configureFaceUI() {
  }
  const left=Boolean(facial?.hasBlink('left')),right=Boolean(facial?.hasBlink('right'));
  $('blinkL').disabled=!left;$('blinkR').disabled=!right;
+ $('faceIntensity').disabled=!info?.bodyMorphs?.length;
+ $('autoBlink').disabled=!(left&&right);
  $('blinkLeft').disabled=!left;$('blinkRight').disabled=!right;$('blinkBoth').disabled=!(left&&right);
  $('blinkL').value=0;$('blinkR').value=0;
  $('faceInfo').textContent=info
   ? 'Expressões: '+info.expressions.join(', ')+' · Clips: '+(info.leftBlinkClip||'sem esquerdo')+
     ' / '+(info.rightBlinkClip||'sem direito')+' · Canais L '+info.leftBlinkTracks+' / R '+info.rightBlinkTracks
   : 'Rig facial não detetado.';
+ if(facial){facial.setIntensity(Number($('faceIntensity').value)/100);facial.setAutoBlink($('autoBlink').checked);}
 }
 for(const el of document.querySelectorAll('button[data-face]'))el.onclick=()=>setExpressionUI(el.dataset.face);
 $('blinkL').oninput=e=>facial?.setBlink('left',Number(e.target.value)/100);
@@ -182,6 +199,11 @@ $('blinkR').oninput=e=>facial?.setBlink('right',Number(e.target.value)/100);
 $('blinkLeft').onclick=()=>facial?.blink('left');
 $('blinkRight').onclick=()=>facial?.blink('right');
 $('blinkBoth').onclick=()=>{const now=performance.now();facial?.blink('left',now);facial?.blink('right',now)};
+$('faceIntensity').oninput=e=>{
+ const value=Number(e.target.value);
+ $('faceIntensityLabel').textContent=value+'%';facial?.setIntensity(value/100);
+};
+$('autoBlink').onchange=e=>facial?.setAutoBlink(e.target.checked);
 let elapsed=performance.now(),fpsFrames=0,fpsAt=performance.now(),autoScroll=0,prevScroll=window.scrollY;
 function releaseOldModel(){
  if(!loaded)return;
@@ -200,11 +222,13 @@ function releaseOldModel(){
  }
  for(const geometry of geometries)geometry.dispose();
  for(const texture of textures)texture.dispose();
- loaded=null;facial=null;configureFaceUI();
+ loaded=null;facial=null;motion=null;configureFaceUI();
 }
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
 window.addEventListener('resize',resize);resize();
-function cameraHome(){camera.position.set(0,.1,7.4);orbit.target.set(0,0,0);orbit.update()}
+function cameraHome(){camera.position.set(0,.1,7.4);orbit.target.set(0,0,0);orbit.update();$('faceFocus').classList.remove('active');$('faceFocus').textContent='◉ Ver rosto'}
+function cameraFace(){camera.position.set(0,.35,4.7);orbit.target.set(0,.26,0);orbit.update();$('faceFocus').classList.add('active');$('faceFocus').textContent='◉ Rosto em detalhe'}
+$('faceFocus').onclick=()=>$('faceFocus').classList.contains('active')?cameraHome():cameraFace();
 $('resetCamera').onclick=cameraHome;
 function pickClip(kind){
  const normalized=clips.map(c=>({clip:c,name:c.name.toLowerCase()}));
@@ -253,7 +277,7 @@ async function openGLB(file){
   stageRig.add(wrapper);
   loaded={gltf,wrapper,skin,file:file.name};mixer=new THREE.AnimationMixer(gltf.scene);
   clips=gltf.animations;action=null;activeClip=null;chosenClip=null;
-  facial=createFacialV6(gltf.scene,clips);configureFaceUI();
+  facial=createFacialV6(gltf.scene,clips);motion=createMotionV7(gltf.scene,THREE);configureFaceUI();
   const select=$('clipSelect');select.replaceChildren();
   if(clips.length){
     for(const clip of clips.filter(c=>/swim|float|hover|idle/i.test(c.name))){const option=document.createElement('option');option.value=clip.name;option.textContent=clip.name+' · '+clip.duration.toFixed(1)+'s';select.appendChild(option)}
@@ -269,7 +293,8 @@ async function openGLB(file){
     'Influências máximas: '+skin.maxUsed,'Vértices com pesos adicionais: '+skin.affectedVertices,
     'Modos simulados: espiar, nok nok, esconder, seguir dedo.',
    'Morphs faciais: '+facial.diagnostics().bodyMorphs.join(', '),
-   'Canais de piscar: L '+facial.diagnostics().leftBlinkTracks+' / R '+facial.diagnostics().rightBlinkTracks]);
+   'Canais de piscar: L '+facial.diagnostics().leftBlinkTracks+' / R '+facial.diagnostics().rightBlinkTracks,
+   'Ossos com movimento secundário: '+motion.availableBones]);
   status('✓ M carregada · escolhe uma reação ou inicia a demo');
  }catch(err){status('Erro ao carregar a M: '+(err?.message||String(err)),true);buttonState(Boolean(loaded))}
 }
@@ -281,6 +306,7 @@ $('demo').onclick=()=>{director.setDemo(true);status('▶ Demonstração automá
 $('stopDemo').onclick=()=>{director.setDemo(false);director.setMode('float');$('demo').classList.remove('active');status('Demonstração parada')};
 $('scroll').oninput=e=>director.setScroll(Number(e.target.value)/100);
 let clipSpeed=1;$('speed').oninput=e=>{clipSpeed=Number(e.target.value)/100};
+$('energy').oninput=e=>{motionEnergy=Number(e.target.value)/100;$('energyLabel').textContent=e.target.value+'%'};
 $('reduce').checked=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 $('reduce').onchange=()=>status($('reduce').checked?'Movimento reduzido ativo':'Movimento completo ativo');
 function pulse(){
@@ -314,13 +340,15 @@ function animate(now){
  requestAnimationFrame(animate);const dt=Math.min(.06,(now-elapsed)/1000);elapsed=now;
  const pose=director.step(dt);
  if(loaded){
-  const reduced=$('reduce').checked?0.35:1;
+  const reduced=$('reduce').checked?0.20:1;
   const ms=director.mode;
   if(mixer&&action)mixer.update(dt*clipSpeed*(reduced===1?1:.65));
   facial?.update(dt,now);
+  motion?.update(dt,{mode:ms,expression:facial?.expression||'neutral',
+   pointer:director.pointer,energy:motionEnergy*reduced,clipActive:Boolean(action)});
   orbit.enabled=ms!=='follow';
-  stageRig.position.x=damping(stageRig.position.x,pose.x*reduced,dt);
-  stageRig.position.y=damping(stageRig.position.y,(pose.y+autoScroll*.13)*reduced,dt);
+  stageRig.position.x=damping(stageRig.position.x,pose.x*reduced*(1+.35*motionEnergy),dt);
+  stageRig.position.y=damping(stageRig.position.y,(pose.y+autoScroll*.13)*reduced*(1+.25*motionEnergy),dt);
   stageRig.position.z=damping(stageRig.position.z,pose.z*reduced,dt);
   stageRig.rotation.x=damping(stageRig.rotation.x,pose.rx*reduced,dt);
   stageRig.rotation.y=damping(stageRig.rotation.y,pose.ry*reduced,dt);
