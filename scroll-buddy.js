@@ -14,7 +14,7 @@ const mascot=layer.querySelector(".mascot-creature"),svg=mascot.querySelector("s
 const parts=Object.fromEntries(["arm-left","arm-right","leg-left","leg-right","ear-left","ear-right","eyes"].map(k=>[k,svg.querySelector("."+k)]));
 const clamp=bound,rand=(a,b)=>a+Math.random()*(b-a);
 let x=innerWidth*.65,y=innerHeight*.4,vx=0,vy=0,tx=x,ty=y,clock=0,last=0,next=0,mode="swim",modeUntil=0,playUntil=0,idle=performance.now(),knocked=0,tailX=43,tailY=33,tailVX=0,tailVY=0,prevX=x,prevY=y,front=false,active=true,emotion="curious",emotionUntil=0,lastScroll=scrollY,peekAt=0,lastInteraction=performance.now(),curiosityCooldown=0,scrollUntil=0,scrollImpulse=0,scrollVelocity=0,scrollTarget=0,scrollLast=scrollY,scrollDirection=0,pose="float",poseUntil=0,spinStart=0,spinUntil=0,spinDirection=1,travelTarget=null,travelSide=1,peekRevealed=false,bodyTilt=0,bodyTiltVelocity=0,bodyBob=0,bodyBobVelocity=0,blinkNext=performance.now()+rand(2400,5700),blinkUntil=0;
-let lastTarget=null,perchSide=1,nextWorldScan=0;
+let lastTarget=null,perchSide=1,nextWorldScan=0,scrollWorldTarget=null;
 const worldElements=sectionElements(document);
 function candidates(){return visibleTargets(worldElements,innerWidth,innerHeight).filter(x=>!x.el.closest('[aria-hidden="true"]'))}
 function cards(){return candidates().map(item=>item.el);}
@@ -103,10 +103,22 @@ function animate(now){
    const moving=now<scrollUntil;
    const speed=clamp(Math.abs(scrollVelocity)/650,0,1);
    mode="surf";front=true;spinUntil=0;layer.classList.add("in-front");layer.style.clipPath="";
-   // The creature visibly swims across the viewport, not just a few pixels.
+   // Follow the actual components in the section passing through
+   // the viewport, rather than flying to an unrelated fixed coordinate.
    const glide=clamp((scrollUntil+1250-now)/1250,0,1);
-   tx=clamp(innerWidth*(.64+.10*Math.sin(clock*.9))+Math.sin(clock*2.3)*30,8,Math.max(8,innerWidth-125));
-   ty=clamp(innerHeight*(.43-scrollDirection*.23*glide)+Math.sin(clock*2.6)*17,55,Math.max(55,innerHeight-125));
+   if(now>nextWorldScan){
+    nextWorldScan=now+420;
+    scrollWorldTarget=chooseTarget(candidates(),{x:x+55,y:y+55},innerWidth,innerHeight,Math.random)?.el||null;
+   }
+   if(scrollWorldTarget?.isConnected){
+    const r=scrollWorldTarget.getBoundingClientRect();
+    const point=placeAround(r,innerWidth,innerHeight,'orbit',scrollDirection>0?1:-1);
+    tx=clamp(point.x+Math.sin(clock*1.2)*25,8,Math.max(8,innerWidth-125));
+    ty=clamp(point.y-scrollDirection*38*glide+Math.sin(clock*2.6)*14,55,Math.max(55,innerHeight-125));
+   }else{
+    tx=clamp(innerWidth*.65,8,Math.max(8,innerWidth-125));
+    ty=clamp(innerHeight*(.43-scrollDirection*.20*glide),55,Math.max(55,innerHeight-125));
+   }
    scrollVelocity*=Math.exp(-2.3*dt);
    next=Math.max(next,scrollUntil+1300);
  }
@@ -166,7 +178,7 @@ function animate(now){
    y=clamp(y+vy*dt,42,Math.max(42,innerHeight-125));
    if((x===0&&vx<0)||(x===Math.max(0,innerWidth-120)&&vx>0))vx=0;
    if((y===42&&vy<0)||(y===Math.max(42,innerHeight-125)&&vy>0))vy=0;
-  }else{x=clamp(innerWidth-115,0,innerWidth);y=clamp(innerHeight-145,50,innerHeight);}
+  }else{x=clamp(14,0,innerWidth);y=clamp(innerHeight-145,50,innerHeight);}
   // Body inertia is a damped spring, so the head and torso follow turns smoothly.
   const targetTilt=reduce?0:clamp(vx*.065+vy*.035+Math.sin(clock*.7)*1.4,-18,18);
   const targetBob=reduce?0:Math.sin(clock*(mode==="surf"?3.1:mode==="dash"?3.6:1.6))*
