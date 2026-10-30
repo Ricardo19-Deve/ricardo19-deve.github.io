@@ -1,0 +1,29 @@
+/* M World V17: an unobtrusive character in the portfolio's space. */
+.mascot-world-v9,.mascot-world-v9.in-front{
+ position:fixed;inset:0;z-index:65;pointer-events:none;overflow:hidden;
+ isolation:isolate;contain:layout style;
+}
+.mascot-world-v9[hidden]{display:none!important}
+.mascot-world-v9 .mascot-creature{
+ pointer-events:none!important;cursor:default;border:0;background:transparent;
+ filter:drop-shadow(0 8px 14px rgba(189,151,255,.36));
+}
+.m-world-toggle{
+ position:fixed;right:18px;bottom:max(18px,env(safe-area-inset-bottom));
+ z-index:100;display:inline-flex;align-items:center;justify-content:center;
+ min-height:36px;min-width:96px;padding:7px 12px;
+ border:1px solid rgba(179,151,255,.42);border-radius:999px;
+ background:rgba(17,22,39,.92);color:#e7dbff;font:600 12px/1.2 'DM Sans',sans-serif;
+ backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+ box-shadow:0 6px 24px rgba(0,0,0,.23);cursor:pointer;
+}
+.m-world-toggle:hover{border-color:#c3a9ff;background:#27213f}
+.m-world-toggle:focus-visible{outline:3px solid #94dcff;outline-offset:3px}
+@media(max-width:720px){
+ .mascot-world-v9 .mascot-creature{scale:.76}
+ .m-world-toggle{right:12px;bottom:max(12px,env(safe-area-inset-bottom));padding:6px 10px;min-height:34px;min-width:86px}
+}
+@media(prefers-reduced-motion:reduce){
+ .mascot-world-v9 .mascot-creature{animation:none!important;transition:none!important}
+}
+/* Links and navigation never sit inside the creature's hit target. */
