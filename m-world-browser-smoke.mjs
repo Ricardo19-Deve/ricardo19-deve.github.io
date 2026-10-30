@@ -37,7 +37,7 @@ try {
  await new Promise(resolve=>setTimeout(resolve,400));
  if(!page.url().includes('#projects'))throw new Error('The main portfolio links were blocked');
  await page.setViewport({width:390,height:780,deviceScaleFactor:2});
- await new Promise(resolve=>setTimeout(resolve,1000));
+ await new Promise(resolve=>setTimeout(resolve,2700));
  await page.screenshot({path:'/tmp/m-world-smoke/m-mobile.png',fullPage:false});
  const mobile=await page.evaluate(()=>{
   const layer=document.querySelector('.mascot-world-v9');
@@ -49,12 +49,21 @@ try {
    const r=el.getBoundingClientRect();
    return r.right>window.innerWidth+20 && getComputedStyle(el).position!=='fixed';
   }).slice(0,8).map(el=>({tag:el.tagName,selector:el.className?.baseVal||el.className||el.id,right:Math.round(el.getBoundingClientRect().right)}));
+  const character=layer.querySelector('.mascot-creature')?.getBoundingClientRect();
+  const centerX=character?.left+60,centerY=character?.top+60;
+  const interiorCard=[...document.querySelectorAll('.card,.role,.cert,.about-tile')]
+   .map(el=>el.getBoundingClientRect()).find(r=>
+    centerX>r.left+25&&centerX<r.right-25&&centerY>r.top+25&&centerY<r.bottom-25);
   return {currentOverflow,baselineOverflow,
    addedByM:currentOverflow-baselineOverflow,culprits,
+   depth:layer.dataset.depth,worldAction:layer.dataset.worldAction,
+   overCardText:!!interiorCard,
    pauseButton:document.querySelector('.m-world-toggle')?.getBoundingClientRect().width};
  });
  console.log('Mobile diagnostic',JSON.stringify(mobile));
  if(mobile.addedByM>2)throw new Error('M World introduced extra horizontal overflow');
+ if(mobile.overCardText&&mobile.depth==='front')
+  throw new Error('Mobile M obscures card text instead of passing behind it');
  if(errors.length||badRequests.length){
   console.error('Browser errors:',errors,'Failed network:',badRequests);
   throw new Error('Browser console or request failures');
