@@ -65,7 +65,10 @@ function choose(now){
  const behavior=!travelTarget?'glide':roll<.37?'peek':roll<.63?'perch':roll<.83?'orbit':'glide';
  mode=behavior;
  pose=behavior==='perch'?'curl':behavior==='peek'?'wave':behavior==='orbit'?'glide':'float';
- front=behavior!=='peek' && !(behavior==='orbit'&&Math.random()<.55);
+ // Stay behind the card by default: the face and tail peek out at
+ // its borders, rather than covering readable project descriptions.
+ front=!travelTarget||(behavior==='perch'&&travelTarget.getBoundingClientRect().top>145);
+
  layer.classList.toggle('in-front',front);
  layer.style.clipPath='';
  const duration=behavior==='peek'?rand(3300,4600):behavior==='perch'?rand(3800,6000):
@@ -119,13 +122,14 @@ function animate(now){
    scrollDirection=Math.sign(scrollVelocity)||scrollDirection;
    scrollUntil=now+900;
    travelTarget=null;peekAt=0;peekRevealed=false;
-   mode="surf";front=true;spinUntil=0;next=now+2300;
-   layer.classList.add("in-front");layer.style.clipPath="";
+   mode="surf";front=false;spinUntil=0;next=now+2300;
+   layer.classList.remove("in-front");layer.style.clipPath="";
  }
  if(!reduce&&now<scrollUntil+1250){
    const moving=now<scrollUntil;
    const speed=clamp(Math.abs(scrollVelocity)/650,0,1);
-   mode="surf";front=true;spinUntil=0;layer.classList.add("in-front");layer.style.clipPath="";
+   mode="surf";spinUntil=0;front=!scrollWorldTarget;
+   layer.classList.toggle("in-front",front);
    // Follow the actual components in the section passing through
    // the viewport, rather than flying to an unrelated fixed coordinate.
    const glide=clamp((scrollUntil+1250-now)/1250,0,1);
@@ -134,6 +138,8 @@ function animate(now){
     scrollWorldTarget=chooseTarget(candidates(),{x:x+55,y:y+55},innerWidth,innerHeight,Math.random)?.el||null;
    }
    if(scrollWorldTarget?.isConnected){
+    travelTarget=scrollWorldTarget;
+    front=false;layer.classList.remove("in-front");
     const r=scrollWorldTarget.getBoundingClientRect();
     const point=placeAround(r,innerWidth,innerHeight,'orbit',scrollDirection>0?1:-1);
     tx=clamp(point.x+Math.sin(clock*1.2)*25,8,Math.max(8,innerWidth-125));
