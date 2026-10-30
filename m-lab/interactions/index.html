@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0d1b">
 <meta name="description" content="Laboratório isolado para testar interações da mascote M antes da integração no portefólio.">
-<title>M V13 • Three.js Bone Name Fix</title>
+<title>M V14 • Fluid Tail Follow-through</title>
 <style>
 :root{color-scheme:dark;--bg:#0b0d1b;--panel:#181b32;--card:#20233e;--stroke:#494267;--text:#f4edff;--muted:#b4afce;--accent:#b69aff;--active:#7053be}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -52,7 +52,7 @@ small{font-size:11px;color:#a8a2bc}
 <body>
 <main>
 <header>
-<div class="eyebrow">M / INTERACTION LAB V13 · TAIL01 FIX</div>
+<div class="eyebrow">M / INTERACTION LAB V14 · FLUID TAIL</div>
 <h1>Vamos dar personalidade à M</h1>
 <p>Testa a M V6 com natação, piscadelas independentes e três expressões faciais. Experimenta também as interações com toques, cursor e scroll.</p>
 <div class="chip">LAB ISOLADO · SEM ALTERAÇÕES AO PORTFÓLIO</div>
@@ -78,7 +78,7 @@ small{font-size:11px;color:#a8a2bc}
 <label class="range-label" for="clipSelect">Animação corporal detetada <select id="clipSelect" disabled><option>Carrega um GLB primeiro</option></select></label>
 </section>
 <section class="panel">
-<h2>2 · Movimento orgânico V13</h2>
+<h2>2 · Movimento orgânico V14</h2>
 <div class="modes">
 <button data-mode="float" disabled>☁ Flutuar</button>
 <button data-mode="swim" disabled>〰 Nadar</button>
@@ -98,6 +98,8 @@ small{font-size:11px;color:#a8a2bc}
 <input id="tailEnergy" type="range" min="0" max="150" value="85" step="5"></label>
 <label class="range-label" for="tailReactivity">Reatividade emocional e corporal · <span id="tailReactivityLabel">175%</span>
 <input id="tailReactivity" type="range" min="0" max="200" value="175" step="5"></label>
+<label class="range-label" for="tailFlow">Elasticidade da cauda · <span id="tailFlowLabel">73%</span>
+<input id="tailFlow" type="range" min="0" max="100" value="73" step="1"></label>
 <label class="range-label" for="tailStyle">Personalidade da cauda
 <select id="tailStyle" aria-label="Estilo de movimento da cauda">
 <option value="organic" selected>Ondulante · natural</option>
@@ -106,7 +108,7 @@ small{font-size:11px;color:#a8a2bc}
 </select></label>
 <label class="check"><input id="reduce" type="checkbox"> Movimento reduzido</label>
 </div>
-<p class="note"><b>Novidade:</b> A V13 resolve a causa real: o Three.js transforma Tail.01 em Tail01 (sem ponto nem underscore). Corrigimos também Ear.L → EarL e Arm.L → ArmL. O indicador tem de mostrar 10/10 ossos; o diagnóstico revela os nomes importados. Não é necessário alterar o GLB. Usa Ver cauda e alterna entre Feliz, Curiosa e Surpreendida.</p>
+<p class="note"><b>Novidade:</b> V14: a cauda responde primeiro na base e transmite o gesto até à ponta com atraso e inércia. As emoções têm ondas diferentes e os movimentos do corpo continuam sincronizados. Regula «Elasticidade da cauda» para definir quanto tempo a ponta demora a acompanhar. Mantém o diagnóstico 10/10 ossos da V13.</p>
 </section>
 <section class="panel">
 <h2>3 · Expressões V6 + linguagem corporal</h2>
@@ -147,7 +149,7 @@ import {readGLB} from '../swim-v3/threejs/glb-reader.js';
 import {preserveFullSkinning} from '../swim-v3/threejs/full-skinning.js';
 import {MInteractionDirector,M_MODES} from './behavior.mjs';
 import {createFacialV6,FACIAL_LABELS} from './facial-v6.mjs';
-import {createMotionV8} from './motion-v8.mjs?rig=v13';
+import {createMotionV8} from './motion-v8.mjs?rig=v14';
 import {smoothSpring,createSpring,transitionFrequency} from './fluid-v8.mjs';
 
 const $=id=>document.getElementById(id);
@@ -188,7 +190,7 @@ const director=new MInteractionDirector(mode=>{
  if(mode==='knock')pulse();
 });
 let loaded=null,mixer=null,clips=[],action=null,activeClip=null,paused=false,chosenClip=null;
-let facial=null,motion=null,motionEnergy=.85,tailEnergy=.85,tailReactivity=1.75,tailStyle='organic';
+let facial=null,motion=null,motionEnergy=.85,tailEnergy=.85,tailReactivity=1.75,tailFlow=.73,tailStyle='organic';
 function setExpressionUI(key) {
  if(!facial?.setExpression(key))return;
  for(const el of document.querySelectorAll('button[data-face]'))
@@ -339,14 +341,14 @@ async function openGLB(file){
    'Morphs faciais: '+facial.diagnostics().bodyMorphs.join(', '),
    'Canais de piscar: L '+facial.diagnostics().leftBlinkTracks+' / R '+facial.diagnostics().rightBlinkTracks,
    'Ossos com movimento secundário: '+motion.availableBones,
-   'Cauda V13: '+motion.tailDiagnostics.connected+'/10 ossos ligados ao motor',
+   'Cauda V14: '+motion.tailDiagnostics.connected+'/10 ossos ligados ao motor; atraso progressivo e inércia',
    'Aliases importados: '+motion.tailDiagnostics.mapped.map(item=>item.loaded+' → '+item.expected).join('; '),
    'Nomes no GLB importado: '+skin.meshes[0].skeleton.bones.filter(b=>b.name.toLowerCase().includes('tail')).map(b=>b.name).join(', ')]);
    const mappedCount=motion.tailDiagnostics.connected;
    $('tailStatus').textContent='Cauda: '+mappedCount+'/10 ossos ligados';
    $('tailStatus').style.color=mappedCount===10?'#c2f9df':'#ffb9c5';
    if(mappedCount!==10)status('⚠ '+mappedCount+'/10 ossos da cauda ligados. Consulta o diagnóstico.',true);
-   else status('✓ M V13: 10/10 ossos ligados · experimenta Feliz e Surpreendida');
+   else status('✓ M V14: 10/10 ossos ligados · testa Feliz, Curiosa e Nadar');
  }catch(err){status('Erro ao carregar a M: '+(err?.message||String(err)),true);buttonState(Boolean(loaded))}
 }
 $('file').addEventListener('change',event=>openGLB(event.target.files?.[0]));
@@ -361,6 +363,7 @@ $('smoothness').oninput=e=>{smoothness=Number(e.target.value)/100;$('smoothnessL
 $('energy').oninput=e=>{motionEnergy=Number(e.target.value)/100;$('energyLabel').textContent=e.target.value+'%'};
 $('tailEnergy').oninput=e=>{tailEnergy=Number(e.target.value)/100;$('tailEnergyLabel').textContent=e.target.value+'%'};
 $('tailReactivity').oninput=e=>{tailReactivity=Number(e.target.value)/100;$('tailReactivityLabel').textContent=e.target.value+'%'};
+$('tailFlow').oninput=e=>{tailFlow=Number(e.target.value)/100;$('tailFlowLabel').textContent=e.target.value+'%'};
 $('tailStyle').onchange=e=>{tailStyle=e.target.value;status('Estilo da cauda: '+e.target.selectedOptions[0].textContent)}
 $('reduce').checked=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 $('reduce').onchange=()=>{facial?.setAutoBlink($('autoBlink').checked&&!$('reduce').checked);status($('reduce').checked?'Movimento reduzido ativo':'Movimento completo ativo')};
@@ -411,7 +414,7 @@ function animate(now){
   motion?.update(dt,{
    mode:ms,expression:facial?.expression||'neutral',
    pointer:director.pointer,energy:motionEnergy*reduced,
-   smoothness,tailEnergy,tailReactivity,tailStyle,clipActive:Boolean(action),
+   smoothness,tailEnergy,tailReactivity,tailStyle,tailFlow,clipActive:Boolean(action),
    swimWeight:swimSpring.value,
    bodyMotion:{
     rotation:{x:stageRig.rotation.x,y:stageRig.rotation.y,z:stageRig.rotation.z},
