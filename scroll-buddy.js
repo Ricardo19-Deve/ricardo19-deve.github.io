@@ -116,14 +116,13 @@ function updateOcclusion(){
  }
  // Protect readable content even when an unexpected resize or velocity
  // pushes a foreground gesture deep into a different card.
- if(!occluder&&mode!=='play'&&innerWidth>=720){
+ if(!occluder&&mode!=='play'){
   const middleX=x+60,middleY=y+60;
   const overlap=candidates().find(({rect})=>
    middleX>rect.left+25&&middleX<rect.right-25&&
    middleY>rect.top+25&&middleY<rect.bottom-25);
   if(overlap)occluder=overlap.rect;
  }
- if(innerWidth<720&&mode!=='peek')occluder=null;
  layer.style.clipPath=occluder?exclusionPolygon(occluder,innerWidth,innerHeight,1):'';
  layer.dataset.depth=occluder?'behind':'front';
  layer.dataset.worldAction=mode;
@@ -314,7 +313,16 @@ window.addEventListener("pointermove",e=>{
  }
 },{passive:true});
 window.addEventListener("scroll",()=>{lastInteraction=performance.now();idle=lastInteraction;},{passive:true});
-window.addEventListener("resize",()=>{next=0;travelTarget=null;peekAt=0;layer.style.clipPath='';});
+window.addEventListener("resize",()=>{
+ next=0;travelTarget=null;scrollWorldTarget=null;peekAt=0;
+ layer.style.clipPath='';
+ if(innerWidth<720){
+  // A viewport switch must never teleport M into a reading card.
+  x=8;y=Math.min(Math.max(68,innerHeight*.19),Math.max(68,innerHeight-130));
+  vx=0;vy=0;tx=x;ty=y;prevX=x;prevY=y;
+  front=false;layer.classList.remove('in-front');
+ }
+});
 document.addEventListener("visibilitychange",()=>{last=performance.now();prevX=x;prevY=y;});
 if(active){
  const now=performance.now();
@@ -325,7 +333,13 @@ if(active){
   tx=x+10;ty=y-8;mode='swim';pose='float';front=true;
   layer.classList.add('in-front');travelTarget=null;next=now+2600;
   mood('curious',now,2600);
- }else choose(now);
+ }else{
+  if(innerWidth<720){
+   x=8;y=Math.min(Math.max(68,innerHeight*.19),Math.max(68,innerHeight-130));
+   prevX=x;prevY=y;tx=x;ty=y;
+  }
+  choose(now);
+ }
  requestAnimationFrame(animate);
 }
 if(active)loadRealMascot();
