@@ -1,3 +1,32 @@
+# M World V20 — High-definition 3D M in the real portfolio
+
+## Quality improvements (30 October 2026)
+
+The user's video showed a visibly soft M and weak interactions with card content. The public portfolio now uses the genuine Blender V6 GLB plus **10 restored high-detail original material maps**, not an invented substitute. The maps include the main body's diffuse texture and normal/roughness support, detailed left-eye and eyelid skin colours, and three higher-quality tangent-space normal maps. They are separately cached under `assets/m-v6-detail/` and loaded by `m-world-3d.mjs` in addition to the ~16.9MB optimized geometry+animation GLB.
+
+Rendering upgrades:
+- Native 272×272 desktop and 232×232 mobile transparent canvas, drawn up to 2.5×/2× device-pixel density respectively (actual framebuffer size scales with DPR)
+- Revised perspective and model framing for crisp but non-obstructive placement
+- Correct sRGB on colour maps, linear space on normal/roughness maps, anisotropic filtering and mipmaps
+- Lighting/exposure calibrated to retain eye/face detail without washing out the skin
+- Responsive framebuffer resize when moving between desktop and mobile
+- Production cache busting: `scroll-buddy.js?v=20`, `m-world-3d.mjs?v=20`, `m-world-spatial.mjs?v=20`
+
+Spatial interactions:
+- Card-attached **Peeking** that emerges from behind the edge instead of remaining invisible
+- **Perching** on the panel's upper border without landing on paragraph text
+- **Orbiting** using a curved route across the card's upper edge and behind the far side
+- Matching eye/head gaze toward the real card being visited
+- Mobile transitions begin in a safe gutter; card interiors mask M when she passes behind them, so text remains readable
+- The mobile browser smoke check now fails when M covers the interior of readable cards instead of passing behind them
+
+CI:
+- `node --test m-lab/interactions/*.test.mjs m-world*.test.mjs`
+- Headless Chrome / SwiftShader tests of real 3D asset loading, high-DPI canvas, original-detail asset restoration, navigation, mobile horizontal overflow and card-depth status
+
+**Limitations:** Card occlusion is a purposeful 2D viewport cutout, not mesh-depth collision or physically based simulation. Browser visual testing is still needed on real devices and browsers after automated checks pass.
+
+---
 # M World V19 — Original Blender V6 in the live portfolio
 
 ## Real 3D mascot now deployed
