@@ -44,7 +44,7 @@ test('main portfolio loads V6 canvas rather than deliberately replacing it with 
  const css=readFileSync(new URL('m-world.css',base),'utf8');
  assert.match(main,/loadRealMascot\(\)/);
  assert.match(main,/import\('\.\/m-world-3d\.mjs\?v=20'\)/);
- assert.match(main,/if\(m3d\)m3d\.update\(dt/);
+ assert.match(main,/m3d\.update\(dt,\{mode,emotion/);
  assert.match(css,/\.m-world-3d \.mascot-creature svg/);
  assert.match(three,/mountMWorld3D/);
  assert.match(three,/preserveFullSkinning/);
