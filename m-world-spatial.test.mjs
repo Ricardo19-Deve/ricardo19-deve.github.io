@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {bound,center,intersectsViewport,visibleTargets,chooseTarget,
- placeAround,exclusionPolygon,cubic,interactiveTarget,insideMascot} from './m-world-spatial.mjs';
+ placeAround,exclusionPolygon,cubic,interactiveTarget,insideMascot,cardPerformance,activeOccluder} from './m-world-spatial.mjs';
 
 const rect={left:200,top:220,right:470,bottom:480,width:270,height:260};
 test('visible card and viewport clipping reject offscreen geometry',()=>{
@@ -60,4 +60,48 @@ test('click zones cannot intercept buttons and links',()=>{
 test('helper safely clamps invalid inputs',()=>{
  assert.equal(bound(NaN,0,1),0);
  assert.equal(bound(2,0,1),1);
+});
+
+test('peeking begins mostly hidden then reveals M beyond a real card edge',()=>{
+ const first=cardPerformance(rect,900,650,'peek',1,0);
+ const middle=cardPerformance(rect,900,650,'peek',1,.55);
+ const final=cardPerformance(rect,900,650,'peek',1,1);
+ assert.equal(first.behind,true);
+ assert.equal(final.behind,false);
+ assert.ok(first.x<final.x-55,JSON.stringify({first,middle,final}));
+ assert.ok(final.x>rect.right-35);
+ assert.equal(activeOccluder(rect,{x:first.x,y:first.y,size:120},true),true);
+ assert.equal(activeOccluder(rect,{x:first.x,y:first.y,size:120},false),false);
+});
+test('perch crosses the upper edge but never lands over card text',()=>{
+ const early=cardPerformance(rect,900,650,'perch',-1,0);
+ const late=cardPerformance(rect,900,650,'perch',-1,1);
+ assert.ok(late.y<rect.top-65,JSON.stringify({early,late}));
+ assert.equal(late.behind,false);
+ assert.ok(Math.abs(early.x-late.x)>8);
+});
+test('orbit travels across the card rather than oscillating at one border',()=>{
+ const start=cardPerformance(rect,900,650,'orbit',-1,0);
+ const top=cardPerformance(rect,900,650,'orbit',-1,.58);
+ const end=cardPerformance(rect,900,650,'orbit',-1,1);
+ assert.ok(start.x<rect.left);
+ assert.ok(top.x>rect.left+70&&top.x<rect.right-100);
+ assert.ok(end.x>rect.right-100);
+ assert.equal(start.behind,false);
+ assert.equal(end.behind,true);
+ assert.ok(top.y<rect.top-60);
+});
+test('all spatial choreography stays within mobile and desktop bounds',()=>{
+ for(const [w,h] of [[390,700],[1280,820]]){
+  for(const kind of ['peek','perch','orbit']){
+   for(const side of [-1,1]){
+    for(let i=0;i<=20;i++){
+     const p=cardPerformance(rect,w,h,kind,side,i/20);
+     assert.ok(Number.isFinite(p.x)&&Number.isFinite(p.y));
+     assert.ok(p.x>=3&&p.x<=Math.max(3,w-123));
+     assert.ok(p.y>=48&&p.y<=Math.max(48,h-128));
+    }
+   }
+  }
+ }
 });
