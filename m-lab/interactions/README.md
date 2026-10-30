@@ -1,6 +1,28 @@
-# M Interaction Lab — V15 full-body character acting (isolated prototype)
+# M Interaction Lab — V16 local character intelligence (isolated prototype)
 
 URL: https://ricardo19-deve.github.io/m-lab/interactions/
+
+## V16 — Local personality, attention and autonomous behavior (30 October 2026)
+
+The V15 video showed convincing full-body acting, but the M still looked as if it was only responding to static button presets. The goal of V16 is not higher animation amplitude: it is **timing, attention and autonomous behavior**.
+
+New module: `life-v16.mjs`. A deterministic, local finite-state behavior director runs without any LLM, API key, event collection, user tracking or persistent storage.
+
+- **Attention:** smooth head/neck/ear gaze follows the pointer while it is over the M stage; when the user leaves, the character gradually explores other points.
+- **Autonomous curiosity:** while idle, the M occasionally peeks, becomes curious, swims, hides briefly or rests. Randomized durations have stable deterministic seed and avoid repeating the same action immediately.
+- **Touch reactions:** first touch is welcoming/curious, repeated touches are surprised, very frequent touches make it shy. A small within-session familiarity value influences the weights of future playful decisions.
+- **Priority order:** manual expressions are pinned and override autonomous face changes; manually chosen animation modes pause autonomous interruptions; Demo mode has full priority. Reduced-motion pauses autonomous actions.
+- **Personality:** Equilibrada / Tranquila / Brincalhona selector controls the pacing and relative likelihood of behaviors.
+- **Controls:** Vida autónoma toggle and **Chamar a atenção da M** button. Mood and attention state appear as discrete status labels, not speech bubbles.
+- **No network intelligence:** behavior executes in the browser, does not send click or pointer events to a server, and stores no interaction history after a reload. The laboratory itself continues to load its existing Three.js libraries from a CDN.
+- **Animation architecture:** existing body and facial clips, 10-bone tail, spring smoothing, Blender V6 GLB and shoulder-corrective morphs are untouched. The autonomy director only chooses which existing gesture to perform and passes a smoothed attention vector into the V15 head/neck/ear acting system.
+- **Safety and mobile:** no external conversational model or microphone is enabled. Reduced-motion preferences and manual overrides take precedence, and the existing touch/drag stage still works.
+
+Run `node --test m-lab/interactions/*.test.mjs` from the repo root. New `life-v16.test.mjs` tests pointer attention, context-aware touch sequences, manual/demo priority, reduced motion, deterministic autonomy and session-only familiarity. `lab-v16-integration.test.mjs` protects browser markup/event wiring and local-only behavior from regression.
+
+**Next acceptance step:** load `M_FacialExpressions_V6_Test.glb` on mobile and desktop, keep Vida autónoma on, then leave the M alone, move the pointer near it, touch the stage once, and touch several times rapidly. Observe whether transitions look organic and whether the rig stays stable. Unit tests do not prove visual quality.
+
+**Potential future use of real generative AI:** only if a conversational/site-context assistant is justified, through an opt-in Cloudflare Worker with a secret API key, strong rate limits, bounded actions, consent and graceful offline fallback. It is deliberately not implemented in this release. The main portfolio remains unchanged.
 
 ## V15 — Bigger presence, emotion-specific full-body acting (30 October 2026)
 
