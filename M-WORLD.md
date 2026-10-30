@@ -1,7 +1,40 @@
-# M World V17 — Portfolio spatial integration
+# M World V19 — Original Blender V6 in the live portfolio
 
-The homepage now runs the production M World script, powered by
-`scroll-buddy.js`, `m-world-spatial.mjs` and `m-world.css`.
+## Real 3D mascot now deployed
+
+The original `M_FacialExpressions_V6_Test.glb` was found in the owner's
+ChatGPT file library, optimized **30.9 MB → 16.9 MB** by reducing embedded
+texture resolution, and uploaded to the public GitHub repository as
+19 static binary pieces under `assets/m-v6-web/`. The geometry, real 43-node
+rig, 10-bone tail, all 11 meshes, facial morph targets, and six animation
+clips were preserved. The blobs were checked against matching Git SHA-1
+content hashes and the binary glTF header and buffers were validated.
+
+The front end uses `m-world-3d.mjs` and the same Three.js version as the
+lab. It reconstructs the 19 pieces in memory, imports with GLTFLoader,
+retains the original skin weights with the full-skinning adapter,
+and executes `createFacialV6` and `createMotionV8` for expressions,
+blink, swimming and flowing tail motion.
+
+The SVG is **fallback only** when WebGL or real 3D initialization fails.
+It is hidden when the real V6 canvas loads. The pause button shows
+download progress and stores the on/off preference. With the mascot disabled,
+the 16.9 MB file is not needlessly downloaded.
+
+CI checks the assembled GLB bytes, animation names, tail joints, facial
+morphs and host-side JavaScript. A separate Chrome smoke workflow loads the
+full 3D character from local static hosting and checks both desktop and mobile,
+the canvas, hidden SVG, navigation and no M-induced horizontal overflow.
+A successful smoke run on 30 October 2026 confirmed `model: V6 GLB`,
+`svgHidden: true`, all 3D modules loaded, and navigation worked.
+There remains a pre-existing 93px document overflow from decorative aurora
+elements on a 390px viewport; M did not add any overflow.
+
+The M World spatial layer chooses real visible cards and varies between
+foreground play, peeking from behind, perching and orbiting. It dynamically
+masks the 3D canvas when overlapping readable cards, so text remains visible.
+It deliberately uses **2D simulated depth** relative to DOM elements; there
+is no true 3D collision mesh of the webpage.
 
 ## What the character can do
 
@@ -23,20 +56,6 @@ The homepage now runs the production M World script, powered by
 - Respect `prefers-reduced-motion` with a parked, calm character.
 - Avoid high-frequency layout work: target discovery occurs only on gesture
   selection or at an approximately 420ms interval during scrolling.
-
-## Important asset distinction
-
-The website **currently uses its existing illustrated SVG representation**
-of M. The character model `M_FacialExpressions_V6_Test.glb` (about 30.9 MB)
-is in the owner’s ChatGPT file library, but was not present in the public
-GitHub repository. It has **not** been silently substituted for another
-3D model or published in this release.
-
-The real V6 rig, facial expression and swim work remains safely isolated at
-`/m-lab/interactions/`. A later production 3D renderer can reuse this same
-world positioning, occlusion and behavior layer after the actual GLB is
-optimised and intentionally hosted as a public asset (e.g. a versioned file
-under `assets/`), without changing the homepage navigation.
 
 ## Limitations and acceptance
 
