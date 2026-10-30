@@ -1,5 +1,6 @@
 import {smoothSpring,createSpring,transitionFrequency} from './fluid-v8.mjs';
-import {tailPoseV14} from './tail-v14.mjs';
+import {tailPoseV15} from './tail-v15.mjs';
+import {performanceBodyPoseV15} from './performance-v15.mjs';
 
 /**
  * M V8 fluid secondary-body motion layer.
@@ -11,7 +12,7 @@ const wave=(t,speed,phase=0)=>Math.sin(t*speed+phase);
 const bump=(t,at,width)=>Math.exp(-Math.pow((t-at)/width,2));
 
 /** Pure pose evaluator: values are local additive Euler angles in radians. */
-export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',expression='neutral',pointer={x:0,y:0},energy=.7,tailEnergy=1.1,tailReactivity=1.5,tailStyle='organic',tailFlow=.73,bodyMotion={},swimWeight=0}={}) {
+export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',expression='neutral',pointer={x:0,y:0},energy=.7,tailEnergy=1.1,tailReactivity=1.5,tailStyle='organic',tailFlow=.73,performanceImpact=1.12,bodyMotion={},swimWeight=0}={}) {
  const e=clamp(energy,0,1.3),t=Math.max(0,time),p={x:clamp(pointer?.x,-1,1),y:clamp(pointer?.y,-1,1)};
  const bones={};
  const add=(name,x=0,y=0,z=0)=>{
@@ -34,25 +35,11 @@ export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',express
  add('Forearm.R',.075*wave(t,1.73,1.8),0,-.03*wave(t,.95));
  add('Leg.L',.045*wave(t,1.25),0,.025*wave(t,1.4));
  add('Leg.R',.055*wave(t,1.2,1.3),0,-.025*wave(t,1.35,.6));
- // Emotion is expressed using the body, rather than the tiny facial morph alone.
- if(expression==='happy') {
-  add('Head',-.055*wave(t,2.8),0,.12*wave(t,2.15));
-  add('Ear.L',-.075,0,.115);add('Ear.R',-.075,0,-.115);
-  add('Arm.L',.20*wave(t,2.9),0,.15);
-  add('Arm.R',.20*wave(t,3.05,1.6),0,-.15);
- }
- if(expression==='curious') {
-  add('Head',-.06,.10,.28);
-  add('Neck',0,.035,.075);
-  add('Ear.L',-.1,0,.065);add('Ear.R',.04,0,-.045);
-  add('Arm.L',.05,0,.13);add('Arm.R',-.03,0,-.07);
- }
- if(expression==='surprised') {
-  add('Head',-.19,0,-.06);
-  add('Ear.L',-.23,0,.16);add('Ear.R',-.23,0,-.16);
-  add('Arm.L',-.24,0,.28);add('Arm.R',-.24,0,-.28);
-  add('Chest',-.045,0,0);
- }
+ // Deliberate full-body acting poses replace the old small facial gestures.
+ // All are smoothly blended by bone springs downstream.
+ const acting=performanceBodyPoseV15({time:t,mode,expression,emotionAge,modeAge,
+  pointer:p,impact:performanceImpact});
+ for(const [bone,rotation] of Object.entries(acting))add(bone,...rotation);
  if(mode==='curious') {
   add('Head',-.035,p.x*.16,.12);
   add('Neck',0,p.x*.06,.04);
@@ -79,20 +66,15 @@ export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',express
   add('Hand.R',.13*hit);
   add('Head',-.06*hit,0,.03*hit);
  }
- // Short emotional anticipation adds life whenever a face button is selected.
- const pulse=Math.exp(-Math.max(0,emotionAge)*3)*Math.sin(Math.max(0,emotionAge)*11);
- if(expression==='happy'){add('Head',-.085*pulse,0,.05*pulse);add('Arm.L',.10*pulse);add('Arm.R',.10*pulse);}
- if(expression==='curious')add('Head',0,.08*pulse,.08*pulse);
- if(expression==='surprised'){add('Body',-.13*pulse);add('Head',-.09*pulse);add('Ear.L',-.08*pulse);add('Ear.R',-.08*pulse);}
  // Body response is driven by its own energy slider. V10 tail uses the
  // same global master energy, but independent base and emotion amplitudes,
  // without the old .7 Swim penalty that hid it during swimming.
  const damp=mode==='swim'?.7:1;
  for(const a of Object.values(bones))for(let i=0;i<3;i++)a[i]=e===0?0:a[i]*e*damp;
  const headTurn=bones.Head?.[1]||0;
- const tail=tailPoseV14({time:t,mode,modeAge,expression,emotionAge,
+ const tail=tailPoseV15({time:t,mode,modeAge,expression,emotionAge,
   pointer:p,headTurn,bodyMotion,swimWeight,
-  style:tailStyle,amount:tailEnergy,reactivity:tailReactivity,flow:tailFlow});
+  style:tailStyle,amount:tailEnergy,reactivity:tailReactivity,flow:tailFlow,performance:performanceImpact});
  for(const [name,angles] of Object.entries(tail))
   bones[name]=angles.map(angle=>e===0?0:angle*e);
  return bones;
@@ -179,11 +161,11 @@ export function createMotionV8(root,THREE){
   },
   prepare,reset,
   update(dt,{mode='float',expression='neutral',pointer={x:0,y:0},energy=.7,
-              clipActive=false,smoothness=.75,tailEnergy=1.1,tailReactivity=1.5,tailStyle='organic',tailFlow=.73,bodyMotion={},swimWeight=0}={}){
+              clipActive=false,smoothness=.75,tailEnergy=1.1,tailReactivity=1.5,tailStyle='organic',tailFlow=.73,performanceImpact=1.12,bodyMotion={},swimWeight=0}={}){
    dt=Math.max(0,Math.min(.075,dt));time+=dt;
    if(mode!==priorMode){modeAge=0;priorMode=mode;}else modeAge+=dt;
    if(expression!==priorEmotion){emotionAge=0;priorEmotion=expression;}else emotionAge+=dt;
-   const poses=motionPose({time,modeAge,emotionAge,mode,expression,pointer,energy,tailEnergy,tailReactivity,tailStyle,tailFlow,bodyMotion,swimWeight});
+   const poses=motionPose({time,modeAge,emotionAge,mode,expression,pointer,energy,tailEnergy,tailReactivity,tailStyle,tailFlow,performanceImpact,bodyMotion,swimWeight});
    const baseFrequency=transitionFrequency(smoothness);
    lastTailBend=0;
    for(const [name,bone] of bones){
