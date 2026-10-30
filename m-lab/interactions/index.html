@@ -217,7 +217,13 @@ function applyAnimation(mode){
  const clip=pickClip(mode==='swim'?'swim':'float');
  if(!clip){
    mixer.stopAllAction();mixer.update(0);action=null;activeClip=null;
-   loaded.gltf.scene.traverse(o=>{if(o.isSkinnedMesh)o.skeleton.pose()});
+   loaded.gltf.scene.traverse(o=>{
+     if(o.isSkinnedMesh)o.skeleton.pose();
+     // Leaving Swim: remove residual shoulder motion, but never erase face slots.
+     if(o.morphTargetDictionary&&o.morphTargetInfluences)
+      for(const [name,index] of Object.entries(o.morphTargetDictionary))
+       if(name.startsWith('Shoulder_'))o.morphTargetInfluences[index]=0;
+    });
    $('clip').textContent='Clip: pose neutra + movimento global';
    return;
  }
