@@ -1,5 +1,5 @@
 import {smoothSpring,createSpring,transitionFrequency} from './fluid-v8.mjs';
-import {tailPoseV10} from './tail-v10.mjs';
+import {tailPoseV11} from './tail-v11.mjs';
 
 /**
  * M V8 fluid secondary-body motion layer.
@@ -90,7 +90,7 @@ export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',express
  const damp=mode==='swim'?.7:1;
  for(const a of Object.values(bones))for(let i=0;i<3;i++)a[i]=e===0?0:a[i]*e*damp;
  const headTurn=bones.Head?.[1]||0;
- const tail=tailPoseV10({time:t,mode,modeAge,expression,emotionAge,
+ const tail=tailPoseV11({time:t,mode,modeAge,expression,emotionAge,
   pointer:p,headTurn,bodyMotion,swimWeight,
   style:tailStyle,amount:tailEnergy,reactivity:tailReactivity});
  for(const [name,angles] of Object.entries(tail))
@@ -117,6 +117,7 @@ export function createMotionV8(root,THREE){
  });
  let time=0,modeAge=0,emotionAge=999,priorMode=null,priorEmotion=null;
  let isApplied=false;
+ let lastTailBend=0;
  function prepare(){
   if(!isApplied)return;
   for(const [name,bone] of bones){
@@ -137,6 +138,11 @@ export function createMotionV8(root,THREE){
  }
  return {
   get availableBones(){return bones.size;},
+  get tailDiagnostics(){return {
+   connected:[...bones.keys()].filter(n=>/^Tail\\.\\d+$/.test(n)).length,
+   maxBend:lastTailBend,
+   animationAxes:'X/Z bend, Y twist'
+  };},
   prepare,reset,
   update(dt,{mode='float',expression='neutral',pointer={x:0,y:0},energy=.7,
               clipActive=false,smoothness=.75,tailEnergy=1.1,tailReactivity=1.5,tailStyle='organic',bodyMotion={},swimWeight=0}={}){
@@ -145,16 +151,18 @@ export function createMotionV8(root,THREE){
    if(expression!==priorEmotion){emotionAge=0;priorEmotion=expression;}else emotionAge+=dt;
    const poses=motionPose({time,modeAge,emotionAge,mode,expression,pointer,energy,tailEnergy,tailReactivity,tailStyle,bodyMotion,swimWeight});
    const baseFrequency=transitionFrequency(smoothness);
+   lastTailBend=0;
    for(const [name,bone] of bones){
     const state=states.get(name),target=poses[name]||[0,0,0];
     const tail=name.startsWith('Tail.')?Number(name.slice(5)):0;
     const tip=tail>0?tail/10:0;
     // Head responds first; forearms then hands; tail tip trails behind root.
-    const speed=baseFrequency*(tail>0?1-.38*tip:/EarTip/.test(name)?.68:/Forearm|Hand/.test(name)?.76:1);
-    const damping=tail>0?.82:/EarTip|Forearm/.test(name)?.86:.97;
+    const speed=baseFrequency*(tail>0?1-.23*tip:/EarTip/.test(name)?.68:/Forearm|Hand/.test(name)?.76:1);
+    const damping=tail>0?.85:/EarTip|Forearm/.test(name)?.86:.97;
     const x=smoothSpring(state.angles[0],target[0],dt,speed,damping);
     const y=smoothSpring(state.angles[1],target[1],dt,speed,damping);
     const z=smoothSpring(state.angles[2],target[2],dt,speed,damping);
+    if(tail>0)lastTailBend=Math.max(lastTailBend,Math.hypot(x,z));
     // For a GLB without a baked body clip, start from unmodified rest pose.
     if(!clipActive)bone.quaternion.copy(rest.get(name));
     angles.set(x,y,z,'XYZ');
