@@ -93,7 +93,7 @@ export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',express
  if(expression==='surprised'){add('Body',-.13*pulse);add('Head',-.09*pulse);add('Ear.L',-.08*pulse);add('Ear.R',-.08*pulse);}
  // Reduce secondary motion while the baked swim clip is moving every bone.
  const damp=mode==='swim'?.7:1;
- for(const a of Object.values(bones))for(let i=0;i<3;i++)a[i]*=e*damp;
+ for(const a of Object.values(bones))for(let i=0;i<3;i++)a[i]=e===0?0:a[i]*e*damp;
  return bones;
 }
 
