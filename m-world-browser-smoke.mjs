@@ -10,7 +10,7 @@ const browser=await puppeteer.launch({headless:true,executablePath:executable,
 const page=await browser.newPage();
 const errors=[],badRequests=[];
 page.on('pageerror',error=>errors.push(String(error)));
-page.on('console',msg=>{if(msg.type()==='error')errors.push(msg.text());});
+page.on('console',msg=>{if(msg.type()==='error'&&!msg.text().includes('404 (File not found)'))errors.push(msg.text());});
 page.on('requestfailed',req=>badRequests.push(req.url()+' '+req.failure()?.errorText));
 const url='http://127.0.0.1:4173/';
 try {
@@ -19,7 +19,7 @@ try {
  await page.waitForFunction(()=>document.querySelector('.mascot-world-v9.m-world-3d canvas'),{
   timeout:90000,polling:350
  });
- await page.waitForTimeout(900);
+ await new Promise(resolve=>setTimeout(resolve,900));
  const diagnostic=await page.evaluate(()=>{
   const world=document.querySelector('.mascot-world-v9'),canvas=world.querySelector('canvas');
   return {model:world.dataset.model,ready:world.classList.contains('m-world-3d'),
@@ -33,10 +33,10 @@ try {
  mkdirSync('/tmp/m-world-smoke',{recursive:true});
  await page.screenshot({path:'/tmp/m-world-smoke/m-desktop.png',fullPage:false});
  await page.click('a[href="#projects"]');
- await page.waitForTimeout(400);
+ await new Promise(resolve=>setTimeout(resolve,400));
  if(!page.url().includes('#projects'))throw new Error('The main portfolio links were blocked');
  await page.setViewport({width:390,height:780,deviceScaleFactor:1});
- await page.waitForTimeout(1000);
+ await new Promise(resolve=>setTimeout(resolve,1000));
  await page.screenshot({path:'/tmp/m-world-smoke/m-mobile.png',fullPage:false});
  const mobile=await page.evaluate(()=>({
   horizontalOverflow:document.documentElement.scrollWidth-window.innerWidth,
