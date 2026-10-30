@@ -1,4 +1,4 @@
-import {sectionElements,visibleTargets,chooseTarget,placeAround,exclusionPolygon,interactiveTarget,insideMascot,bound,cardPerformance,activeOccluder} from './m-world-spatial.mjs';
+import {sectionElements,visibleTargets,chooseTarget,placeAround,exclusionPolygon,interactiveTarget,insideMascot,bound,cardPerformance,activeOccluder} from './m-world-spatial.mjs?v=20';
 (()=>{"use strict";
 const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
 const layer=document.createElement("div");layer.className="mascot-world-v9";layer.setAttribute("aria-hidden","true");
@@ -16,20 +16,24 @@ async function loadRealMascot(){
  m3dLoading=true;
  layer.classList.add('m-world-loading');
  try{
-  const {mountMWorld3D}=await import('./m-world-3d.mjs?v=18');
+  const {mountMWorld3D}=await import('./m-world-3d.mjs?v=20');
   const avatar=await mountMWorld3D(layer.querySelector('.mascot-creature'),{
    onProgress(percent){
     layer.dataset.loadProgress=String(percent);
     if(active)toggle.textContent='M 3D · '+percent+'%';
    },
-   onReady(info){console.info('[M World V18] Real Blender V6 ready',info);}
+   onReady(info){
+    layer.dataset.detailMaps=String(info.detailMaps||0);
+    layer.dataset.renderPixels=(info.renderPixels||[]).join('x');
+    console.info('[M World V20] Blender V6 high-quality ready',info);
+   }
   });
   if(avatar.diagnostics.bones!==10)throw new Error('Faltam ossos da cauda 3D');
   m3d=avatar;
   toggle.textContent=active?'M 3D · Pausar':'M 3D · Ativar';
   layer.classList.add('m-world-3d');
   layer.classList.remove('m-world-loading');
-  layer.dataset.model='V6 GLB';
+  layer.dataset.model='V6 GLB HQ';
  }catch(error){
   layer.classList.remove('m-world-loading');
   layer.classList.add('m-world-fallback');
@@ -118,6 +122,8 @@ function updateOcclusion(){
  }
  layer.style.clipPath=occluder?exclusionPolygon(occluder,innerWidth,innerHeight,1):'';
  layer.dataset.depth=occluder?'behind':'front';
+ layer.dataset.worldAction=mode;
+ layer.dataset.worldTarget=travelTarget?.className?.toString().slice(0,120)||'corridor';
 }
 
 function animateTail(dt,px,py){
