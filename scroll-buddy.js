@@ -113,13 +113,20 @@ function animate(now){
 
  if(!document.hidden){
   if(!reduce){
-   if(mode==="peek"&&travelTarget&&!peekRevealed){
+   if(travelTarget&&!travelTarget.isConnected){travelTarget=null;next=0;front=true;}
+   if(travelTarget&&(mode==="peek"&&!peekRevealed||mode==="perch"||mode==="orbit")){
     const r=travelTarget.getBoundingClientRect();
-    if(r.bottom<40||r.top>innerHeight-40){travelTarget=null;next=0;}
+    if(r.bottom<42||r.top>innerHeight-25){travelTarget=null;next=now+100;front=true;}
     else {
-      const edge=travelSide<0?r.left-30:r.right-110;
-      tx=clamp(edge,4,Math.max(4,innerWidth-120));
-      ty=clamp(r.top+Math.min(110,r.height*.4)-55,55,Math.max(55,innerHeight-125));
+     let pos=placeAround(r,innerWidth,innerHeight,mode,travelSide);
+     if(mode==="orbit"){
+      // Fly a curved, measured circuit along the external edges of the card.
+      const phase=(now%4400)/4400*Math.PI*2;
+      pos.x=clamp(pos.x+Math.sin(phase)*Math.min(30,r.width*.08),4,Math.max(4,innerWidth-124));
+      pos.y=clamp(pos.y+Math.cos(phase)*Math.min(45,r.height*.16),55,Math.max(55,innerHeight-124));
+      if(now>poseUntil-700){front=true;layer.classList.add("in-front");}
+     }
+     tx=pos.x;ty=pos.y;
     }
    }
    if(mode==="peek"&&peekAt&&now>peekAt&&Math.hypot(tx-x,ty-y)<70){
@@ -139,10 +146,15 @@ function animate(now){
    if(now>next&&now>playUntil&&now>scrollUntil+1250)choose(now);
    if(mode==="peek"&&travelTarget&&!travelTarget.isConnected){travelTarget=null;peekAt=0;next=0;}
    if(now>emotionUntil&&emotion!=="calm")mood("calm",now,3500);
-   if(now-idle>11000&&now-knocked>35000&&now>playUntil&&mode!=="peek"){knocked=now;idle=now;tap.hidden=false;mascot.classList.add("knocking");setTimeout(()=>{tap.hidden=true;mascot.classList.remove("knocking");},1300);}
+   if(now-idle>16000&&now-knocked>29000&&now>playUntil&&mode!=="peek"){
+    knocked=now;idle=now;mascot.classList.add("knocking");
+    setTimeout(()=>mascot.classList.remove("knocking"),800);
+   }
    // Critically damped steering: speed tapers as M approaches a destination.
    const dx=tx-x,dy=ty-y,distance=Math.hypot(dx,dy);
-   const maxSpeed=mode==="rest"?45:mode==="dash"?340:mode==="spin"?80:mode==="play"?270:mode==="surf"?380:mode==="peek"?95:145;
+   const maxSpeed=mode==="perch"?72:mode==="peek"?115:mode==="orbit"?125:
+     mode==="rest"?45:mode==="dash"?340:mode==="spin"?80:
+     mode==="play"?245:mode==="surf"?340:145;
    const desiredSpeed=Math.min(maxSpeed,distance*(mode==="play"?2.7:mode==="dash"?3.1:1.55));
    // A gentle curved approach makes exploration look like swimming, not a straight line.
    const curve=mode==="swim"&&distance>85?Math.sin(clock*.65)*Math.min(22,distance*.07):0;
@@ -157,7 +169,8 @@ function animate(now){
   }else{x=clamp(innerWidth-115,0,innerWidth);y=clamp(innerHeight-145,50,innerHeight);}
   // Body inertia is a damped spring, so the head and torso follow turns smoothly.
   const targetTilt=reduce?0:clamp(vx*.065+vy*.035+Math.sin(clock*.7)*1.4,-18,18);
-  const targetBob=reduce?0:Math.sin(clock*(mode==="surf"?3.1:mode==="dash"?3.6:1.6))*(mode==="surf"?9:mode==="dash"?6:pose==="curl"?2:4);
+  const targetBob=reduce?0:Math.sin(clock*(mode==="surf"?3.1:mode==="dash"?3.6:1.6))*
+    (mode==="surf"?9:mode==="dash"?6:mode==="perch"?1.6:pose==="curl"?2:4);
   const step=Math.max(.001,Math.min(.035,dt));
   bodyTiltVelocity+=(targetTilt-bodyTilt)*42*step;
   bodyTiltVelocity*=Math.exp(-12*step);
@@ -175,7 +188,8 @@ function animate(now){
   mascot.style.transform=`translate3d(${x.toFixed(1)}px,${(y+bob).toFixed(1)}px,0) rotate(${rotation.toFixed(1)}deg) scale(${stretch.toFixed(3)})`;
   updateOcclusion();
   animateTail(dt,x,y+bob);
-  const energy=mode==="surf"?5:mode==="dash"?5.8:mode==="play"?4:pose==="curl"?.8:2;
+  const energy=mode==="surf"?5:mode==="dash"?5.8:mode==="play"?4:
+    mode==="perch"?.85:pose==="curl"?.8:2;
   const t=clock*energy,swim=Math.sin(t),kick=Math.sin(t+Math.PI*.8);
   const wave=pose==="wave"&&mode!=="surf";
   const curl=pose==="curl"&&mode!=="surf";
@@ -202,10 +216,27 @@ function play(px,py){
  ty=clamp(y+rand(-140,140),50,Math.max(50,innerHeight-125));
  front=true;layer.classList.add("in-front");
 }
-mascot.addEventListener("click",()=>play(x+100,y+90));
-window.addEventListener("pointermove",e=>{const now=performance.now(),d=Math.hypot(e.clientX-(x+55),e.clientY-(y+55));if(d<85&&now>playUntil)play(e.clientX,e.clientY);else if(d<205&&now>playUntil&&mode!=="peek"&&now>next-900&&now>curiosityCooldown){curiosityCooldown=now+2100;lastInteraction=now;mode="curious";travelTarget=null;peekAt=0;tx=clamp(e.clientX-80,8,innerWidth-125);ty=clamp(e.clientY-105,55,innerHeight-125);next=now+1750;mood("curious",now,1500);}},{passive:true});
+// M is non-blocking: only clicks on unused page space near her silhouette
+// count as interactions. Links, project cards and navigation always win.
+window.addEventListener('pointerup',event=>{
+ if(!active||reduce||interactiveTarget(event.target)||!insideMascot(event.clientX,event.clientY,x,y))return;
+ if(travelTarget&&!front&&travelTarget.contains(event.target))return;
+ play(event.clientX,event.clientY);
+},{passive:true});
+window.addEventListener("pointermove",e=>{
+ if(!active||reduce||interactiveTarget(e.target)||e.pointerType==="touch")return;
+ const now=performance.now(),d=Math.hypot(e.clientX-(x+55),e.clientY-(y+55));
+ if(d<65&&now>playUntil&&mode!=="peek"&&front)play(e.clientX,e.clientY);
+ else if(d<180&&now>playUntil&&mode!=="peek"&&now>next-800&&now>curiosityCooldown){
+  curiosityCooldown=now+2200;lastInteraction=now;mode="curious";
+  travelTarget=null;peekAt=0;front=true;layer.classList.add("in-front");
+  tx=clamp(e.clientX-80,8,Math.max(8,innerWidth-125));
+  ty=clamp(e.clientY-105,55,Math.max(55,innerHeight-125));
+  next=now+1900;mood("curious",now,1500);
+ }
+},{passive:true});
 window.addEventListener("scroll",()=>{lastInteraction=performance.now();idle=lastInteraction;},{passive:true});
-window.addEventListener("resize",()=>{next=0;travelTarget=null;peekAt=0;});
+window.addEventListener("resize",()=>{next=0;travelTarget=null;peekAt=0;layer.style.clipPath='';});
 document.addEventListener("visibilitychange",()=>{last=performance.now();prevX=x;prevY=y;});
-choose(performance.now());requestAnimationFrame(animate);
+if(active){choose(performance.now());requestAnimationFrame(animate);}
 })();
