@@ -67,6 +67,7 @@ export function tailPose({time=0,mode='float',modeAge=999,expression='neutral',
   const swimGain=mode==='swim'?.86:1;
   const multiplier=intensity*gain*swimGain;
   const bound=.21;
+  if(intensity===0){poses['Tail.'+String(i).padStart(2,'0')]=[0,0,0];continue;}
   poses['Tail.'+String(i).padStart(2,'0')]=[
    limit(x*multiplier,-bound,bound),
    limit(y*multiplier,-bound,bound),
