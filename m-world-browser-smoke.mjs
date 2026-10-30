@@ -22,7 +22,8 @@ try {
  await new Promise(resolve=>setTimeout(resolve,900));
  const diagnostic=await page.evaluate(()=>{
   const world=document.querySelector('.mascot-world-v9'),canvas=world.querySelector('canvas');
-  return {model:world.dataset.model,ready:world.classList.contains('m-world-3d'),\n   detailMaps:Number(world.dataset.detailMaps||0),depth:world.dataset.depth,
+  return {model:world.dataset.model,ready:world.classList.contains('m-world-3d'),
+   detailMaps:Number(world.dataset.detailMaps||0),depth:world.dataset.depth,
    width:canvas.width,height:canvas.height,display:getComputedStyle(canvas).display,
    svgHidden:getComputedStyle(world.querySelector('svg')).display==='none',
    toggleVisible:Boolean(document.querySelector('.m-world-toggle'))};
