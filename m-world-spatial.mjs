@@ -8,17 +8,20 @@ export const center=r=>({x:r.left+r.width/2,y:r.top+r.height/2});
 export function intersectsViewport(r,w,h,pad=0){
  return r.width>30&&r.height>30&&r.right>-pad&&r.left<w+pad&&r.bottom>-pad&&r.top<h+pad;
 }
-export function sectionElements(root=document){
+const styleOf=el=>typeof getComputedStyle==='function'
+ ? getComputedStyle(el):{visibility:'visible',display:'block',opacity:'1'};
+export function sectionElements(root=typeof document==='undefined'?null:document){
+ if(!root)return [];
  return [...root.querySelectorAll('.hero-visual,.about-tile,.about-statement,.role,.card,.case-teaser,.expertise article,.cert,.contact .container')]
   .filter(el=>!el.closest('[hidden],[aria-hidden="true"]')&&
-   getComputedStyle(el).visibility!=='hidden'&&
-   getComputedStyle(el).display!=='none');
+   styleOf(el).visibility!=='hidden'&&
+   styleOf(el).display!=='none');
 }
 /** Responsive candidates; excludes boxes close to sticky header. */
 export function visibleTargets(elements,w,h){
  return elements.map(el=>({el,rect:el.getBoundingClientRect()}))
   .filter(({rect,el})=>intersectsViewport(rect,w,h)&&rect.width>95&&rect.height>65&&rect.bottom>110&&
-   !el.closest('[hidden]')&&getComputedStyle(el).opacity!=='0');
+   !el.closest('[hidden]')&&styleOf(el).opacity!=='0');
 }
 export function chooseTarget(candidates,position,w,h,random=Math.random){
  if(!candidates.length)return null;
