@@ -1,5 +1,5 @@
 import {smoothSpring,createSpring,transitionFrequency} from './fluid-v8.mjs';
-import {tailPoseV11} from './tail-v11.mjs';
+import {tailPoseV14} from './tail-v14.mjs';
 
 /**
  * M V8 fluid secondary-body motion layer.
@@ -11,7 +11,7 @@ const wave=(t,speed,phase=0)=>Math.sin(t*speed+phase);
 const bump=(t,at,width)=>Math.exp(-Math.pow((t-at)/width,2));
 
 /** Pure pose evaluator: values are local additive Euler angles in radians. */
-export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',expression='neutral',pointer={x:0,y:0},energy=.7,tailEnergy=1.1,tailReactivity=1.5,tailStyle='organic',bodyMotion={},swimWeight=0}={}) {
+export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',expression='neutral',pointer={x:0,y:0},energy=.7,tailEnergy=1.1,tailReactivity=1.5,tailStyle='organic',tailFlow=.73,bodyMotion={},swimWeight=0}={}) {
  const e=clamp(energy,0,1.3),t=Math.max(0,time),p={x:clamp(pointer?.x,-1,1),y:clamp(pointer?.y,-1,1)};
  const bones={};
  const add=(name,x=0,y=0,z=0)=>{
@@ -90,9 +90,9 @@ export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',express
  const damp=mode==='swim'?.7:1;
  for(const a of Object.values(bones))for(let i=0;i<3;i++)a[i]=e===0?0:a[i]*e*damp;
  const headTurn=bones.Head?.[1]||0;
- const tail=tailPoseV11({time:t,mode,modeAge,expression,emotionAge,
+ const tail=tailPoseV14({time:t,mode,modeAge,expression,emotionAge,
   pointer:p,headTurn,bodyMotion,swimWeight,
-  style:tailStyle,amount:tailEnergy,reactivity:tailReactivity});
+  style:tailStyle,amount:tailEnergy,reactivity:tailReactivity,flow:tailFlow});
  for(const [name,angles] of Object.entries(tail))
   bones[name]=angles.map(angle=>e===0?0:angle*e);
  return bones;
@@ -179,20 +179,39 @@ export function createMotionV8(root,THREE){
   },
   prepare,reset,
   update(dt,{mode='float',expression='neutral',pointer={x:0,y:0},energy=.7,
-              clipActive=false,smoothness=.75,tailEnergy=1.1,tailReactivity=1.5,tailStyle='organic',bodyMotion={},swimWeight=0}={}){
+              clipActive=false,smoothness=.75,tailEnergy=1.1,tailReactivity=1.5,tailStyle='organic',tailFlow=.73,bodyMotion={},swimWeight=0}={}){
    dt=Math.max(0,Math.min(.075,dt));time+=dt;
    if(mode!==priorMode){modeAge=0;priorMode=mode;}else modeAge+=dt;
    if(expression!==priorEmotion){emotionAge=0;priorEmotion=expression;}else emotionAge+=dt;
-   const poses=motionPose({time,modeAge,emotionAge,mode,expression,pointer,energy,tailEnergy,tailReactivity,tailStyle,bodyMotion,swimWeight});
+   const poses=motionPose({time,modeAge,emotionAge,mode,expression,pointer,energy,tailEnergy,tailReactivity,tailStyle,tailFlow,bodyMotion,swimWeight});
    const baseFrequency=transitionFrequency(smoothness);
    lastTailBend=0;
    for(const [name,bone] of bones){
-    const state=states.get(name),target=poses[name]||[0,0,0];
+    const state=states.get(name),desired=poses[name]||[0,0,0];
     const tail=name.startsWith('Tail.')?Number(name.slice(5)):0;
-    const tip=tail>0?tail/10:0;
-    // Head responds first; forearms then hands; tail tip trails behind root.
-    const speed=baseFrequency*(tail>0?1-.23*tip:/EarTip/.test(name)?.68:/Forearm|Hand/.test(name)?.76:1);
-    const damping=tail>0?.85:/EarTip|Forearm/.test(name)?.86:.97;
+    const tip=tail>0?(tail-1)/9:0;
+    const fluid=clamp(tailFlow,0,1);
+    // Root reacts first (fast but controlled), while each successive
+    // joint settles more slowly and swings softly past the target.
+    const speed=tail>0?(10.8-4.4*tip*fluid):baseFrequency*
+      (/EarTip/.test(name)?.68:/Forearm|Hand/.test(name)?.76:1);
+    const damping=tail>0?(0.92-0.23*tip*fluid):
+      (/EarTip|Forearm/.test(name)?.86:.97);
+    let target=desired;
+    // Transfer a small amount of parent angular momentum to the next joint.
+    // This is additive over the mathematically delayed traveling-wave target.
+    // It is disabled whenever both tail amplitude controls are at zero.
+    if(tail>1&&energy>0&&(tailEnergy>0||tailReactivity>0)){
+      const parent=states.get('Tail.'+String(tail-1).padStart(2,'0'));
+      if(parent){
+        const follow=0.030*fluid;
+        target=[
+          desired[0]+clamp(parent.angles[0].velocity*follow,-.025,.025),
+          desired[1],
+          desired[2]+clamp(parent.angles[2].velocity*follow,-.025,.025)
+        ];
+      }
+    }
     const x=smoothSpring(state.angles[0],target[0],dt,speed,damping);
     const y=smoothSpring(state.angles[1],target[1],dt,speed,damping);
     const z=smoothSpring(state.angles[2],target[2],dt,speed,damping);
