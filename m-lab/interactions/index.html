@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0d1b">
 <meta name="description" content="Laboratório isolado para testar interações da mascote M antes da integração no portefólio.">
-<title>M • Interaction Lab</title>
+<title>M V6 • Interaction Lab</title>
 <style>
 :root{color-scheme:dark;--bg:#0b0d1b;--panel:#181b32;--card:#20233e;--stroke:#494267;--text:#f4edff;--muted:#b4afce;--accent:#b69aff;--active:#7053be}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -30,7 +30,7 @@ button.active{background:#7553bc;border-color:#c7b2fb}
 button:disabled{opacity:.4;cursor:not-allowed}
 .file{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 .toolbar,.modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.modes{grid-template-columns:repeat(3,minmax(0,1fr))}
+.modes{grid-template-columns:repeat(3,minmax(0,1fr))}.face-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}@media(min-width:690px){.face-modes{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .advanced{display:grid;gap:12px;margin-top:11px}.range-label{display:grid;gap:7px;color:#ded8ea;font-size:13px}
 input[type=range]{width:100%;accent-color:#b99aff}input[type=checkbox]{accent-color:#b99aff}
 select{width:100%;min-height:43px;background:#272841;color:var(--text);border:1px solid #595178;border-radius:10px;font:inherit;padding:7px}
@@ -46,9 +46,9 @@ small{font-size:11px;color:#a8a2bc}
 <body>
 <main>
 <header>
-<div class="eyebrow">M / INTERACTION LAB 01</div>
+<div class="eyebrow">M / INTERACTION LAB V6</div>
 <h1>Vamos dar personalidade à M</h1>
-<p>Experimenta reações a toques, cursor e scroll utilizando a personagem 3D real. As expressões faciais e os gestos complexos continuam em desenvolvimento no Blender.</p>
+<p>Testa a M V6 com natação, piscadelas independentes e três expressões faciais. Experimenta também as interações com toques, cursor e scroll.</p>
 <div class="chip">LAB ISOLADO · SEM ALTERAÇÕES AO PORTFÓLIO</div>
 </header>
 <section id="stage" class="viewport" aria-label="Visualizador 3D interativo da M">
@@ -66,7 +66,7 @@ small{font-size:11px;color:#a8a2bc}
 <button id="neutral" disabled>↺ Pose neutra</button>
 <button id="demo" disabled>▶ Demo automática</button>
 </div>
-<p class="note">Seleciona <b>M_Meshy71_Swim_V3.glb</b>, ou um GLB mais recente exportado pelo Codex. O ficheiro permanece no teu dispositivo. Não é enviado a nenhum servidor.</p>
+<p class="note">Seleciona <b>M_FacialExpressions_V6_Test.glb</b>. O ficheiro permanece no teu dispositivo, sem envio ao servidor. Outros GLB também são aceites, mas os controlos faciais dependem dos respetivos morphs e clips.</p>
 <label class="range-label" for="clipSelect">Animação corporal detetada <select id="clipSelect" disabled><option>Carrega um GLB primeiro</option></select></label>
 </section>
 <section class="panel">
@@ -86,17 +86,27 @@ small{font-size:11px;color:#a8a2bc}
 <label class="range-label" for="speed">Velocidade do clip <input id="speed" type="range" min="25" max="150" value="100" step="5"></label>
 <label class="check"><input id="reduce" type="checkbox"> Movimento reduzido</label>
 </div>
-<p class="note"><b>Importante:</b> Espiar, Nok nok, Esconder e Seguir dedo são protótipos de <b>movimento global da personagem</b>, não animações finais dos braços, olhos ou expressões. Os controlos de rosto serão ligados quando o Codex finalizar o rig facial.</p>
+<p class="note"><b>Importante:</b> Espiar, Nok nok, Esconder e Seguir dedo ainda são movimentos globais provisórios. A natação e as expressões reais são lidas do GLB.</p>
 </section>
 <section class="panel">
-<h2>3 · Expressões faciais (compatibilidade futura)</h2>
-<p class="note">Estes controlos ficam bloqueados até o GLB incluir morph targets de piscar. Não criam pálpebras artificiais nem alteram o rosto original.</p>
+<h2>3 · Expressões V6 e piscadelas independentes</h2>
+<p class="note">Feliz, Curiosa e Surpreendida usam morph targets separados; não alteram os corretivos dos ombros. O piscar de cada olho funciona em paralelo com a natação.</p>
+<div class="face-modes" role="group" aria-label="Expressões da M">
+<button data-face="neutral" disabled>◯ Neutra</button>
+<button data-face="happy" disabled>☺ Feliz</button>
+<button data-face="curious" disabled>◉ Curiosa</button>
+<button data-face="surprised" disabled>✧ Surpreendida</button>
+</div>
 <div class="advanced">
-<label class="range-label">Piscar esquerdo <input id="blinkL" type="range" min="0" max="100" value="0" disabled></label>
-<label class="range-label">Piscar direito <input id="blinkR" type="range" min="0" max="100" value="0" disabled></label>
+<label class="range-label" for="blinkL">Fechar olho esquerdo <input id="blinkL" type="range" min="0" max="100" value="0" disabled></label>
+<label class="range-label" for="blinkR">Fechar olho direito <input id="blinkR" type="range" min="0" max="100" value="0" disabled></label>
+<div class="toolbar">
+<button id="blinkLeft" disabled>◡ Piscar esquerdo</button>
+<button id="blinkRight" disabled>◡ Piscar direito</button>
 <button id="blinkBoth" disabled>◡ Piscar ambos</button>
 </div>
-<p class="note" id="faceInfo">Rig facial: ainda não detetado.</p>
+</div>
+<p class="note" id="faceInfo" aria-live="polite">Carrega o GLB para verificar as expressões disponíveis.</p>
 </section>
 <section class="panel">
 <h2>4 · Diagnóstico de interação</h2>
@@ -111,6 +121,7 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {readGLB} from '../swim-v3/threejs/glb-reader.js';
 import {preserveFullSkinning} from '../swim-v3/threejs/full-skinning.js';
 import {MInteractionDirector,M_MODES} from './behavior.mjs';
+import {createFacialV6,FACIAL_LABELS} from './facial-v6.mjs';
 
 const $=id=>document.getElementById(id);
 const stage=$('stage');
@@ -139,35 +150,38 @@ const director=new MInteractionDirector(mode=>{
  $('state').textContent='Estado: '+M_MODES[mode].label;
  for(const button of document.querySelectorAll('button[data-mode]'))button.classList.toggle('active',button.dataset.mode===mode);
  if(loaded)applyAnimation(mode);
+  if(mode==='curious'&&facial)setExpressionUI('curious');
  if(mode==='knock')pulse();
 });
 let loaded=null,mixer=null,clips=[],action=null,activeClip=null,paused=false,chosenClip=null;
-let faceTargets={left:null,right:null},blinkUntil=0;
-function discoverFaceTargets(root){
- const found={left:null,right:null},available=[];
- root.traverse(mesh=>{
-  if(!mesh.isMesh||!mesh.morphTargetDictionary)return;
-  for(const [name,index] of Object.entries(mesh.morphTargetDictionary)){
-   available.push(name);
-   const n=name.toLowerCase().replace(/[^a-z0-9]/g,'');
-   if(!n.includes('blink'))continue;
-   if(/(?:blinkl|blinkleft|leftblink|lblink)$/.test(n)||n.endsWith('blinkl'))found.left={mesh,index,name};
-   if(/(?:blinkr|blinkright|rightblink|rblink)$/.test(n)||n.endsWith('blinkr'))found.right={mesh,index,name};
-  }
- });
- faceTargets=found;
- $('blinkL').disabled=!found.left;$('blinkR').disabled=!found.right;
- $('blinkBoth').disabled=!(found.left&&found.right);
- $('blinkL').value='0';$('blinkR').value='0';
- $('faceInfo').textContent='Rig facial: '+(found.left?found.left.name:'olho esquerdo pendente')+' · '+(found.right?found.right.name:'olho direito pendente')+'. Morphs encontrados: '+(available.join(', ')||'nenhum')+'.';
+let facial=null;
+function setExpressionUI(key) {
+ if(!facial?.setExpression(key))return;
+ for(const el of document.querySelectorAll('button[data-face]'))
+  el.classList.toggle('active',el.dataset.face===key);
+ $('faceInfo').textContent='Expressão ativa: '+FACIAL_LABELS[key]+' · natação e ombros preservados';
 }
-function applyFacialTargets(now){
- let left=Number($('blinkL').value)/100,right=Number($('blinkR').value)/100;
- if(now<blinkUntil){const phase=(blinkUntil-now)/420;const blink=Math.sin(Math.PI*(1-phase));left=right=blink;}
- if(faceTargets.left)faceTargets.left.mesh.morphTargetInfluences[faceTargets.left.index]=left;
- if(faceTargets.right)faceTargets.right.mesh.morphTargetInfluences[faceTargets.right.index]=right;
+function configureFaceUI() {
+ const info=facial?.diagnostics();
+ for(const el of document.querySelectorAll('button[data-face]')) {
+  el.disabled=!facial?.hasExpression(el.dataset.face);
+  el.classList.toggle('active',el.dataset.face==='neutral');
+ }
+ const left=Boolean(facial?.hasBlink('left')),right=Boolean(facial?.hasBlink('right'));
+ $('blinkL').disabled=!left;$('blinkR').disabled=!right;
+ $('blinkLeft').disabled=!left;$('blinkRight').disabled=!right;$('blinkBoth').disabled=!(left&&right);
+ $('blinkL').value=0;$('blinkR').value=0;
+ $('faceInfo').textContent=info
+  ? 'Expressões: '+info.expressions.join(', ')+' · Clips: '+(info.leftBlinkClip||'sem esquerdo')+
+    ' / '+(info.rightBlinkClip||'sem direito')+' · Canais L '+info.leftBlinkTracks+' / R '+info.rightBlinkTracks
+  : 'Rig facial não detetado.';
 }
-$('blinkBoth').onclick=()=>blinkUntil=performance.now()+420;
+for(const el of document.querySelectorAll('button[data-face]'))el.onclick=()=>setExpressionUI(el.dataset.face);
+$('blinkL').oninput=e=>facial?.setBlink('left',Number(e.target.value)/100);
+$('blinkR').oninput=e=>facial?.setBlink('right',Number(e.target.value)/100);
+$('blinkLeft').onclick=()=>facial?.blink('left');
+$('blinkRight').onclick=()=>facial?.blink('right');
+$('blinkBoth').onclick=()=>{const now=performance.now();facial?.blink('left',now);facial?.blink('right',now)};
 let elapsed=performance.now(),fpsFrames=0,fpsAt=performance.now(),autoScroll=0,prevScroll=window.scrollY;
 function releaseOldModel(){
  if(!loaded)return;
@@ -186,7 +200,7 @@ function releaseOldModel(){
  }
  for(const geometry of geometries)geometry.dispose();
  for(const texture of textures)texture.dispose();
- loaded=null;
+ loaded=null;facial=null;configureFaceUI();
 }
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
 window.addEventListener('resize',resize);resize();
@@ -203,7 +217,7 @@ function applyAnimation(mode){
  const clip=pickClip(mode==='swim'?'swim':'float');
  if(!clip){
    mixer.stopAllAction();mixer.update(0);action=null;activeClip=null;
-   loaded.gltf.scene.traverse(o=>{if(o.isSkinnedMesh){o.skeleton.pose();if(o.morphTargetInfluences)o.morphTargetInfluences.fill(0)}});
+   loaded.gltf.scene.traverse(o=>{if(o.isSkinnedMesh)o.skeleton.pose()});
    $('clip').textContent='Clip: pose neutra + movimento global';
    return;
  }
@@ -232,21 +246,24 @@ async function openGLB(file){
   wrapper.scale.setScalar(2.85/Math.max(size.x,size.y,size.z));
   stageRig.add(wrapper);
   loaded={gltf,wrapper,skin,file:file.name};mixer=new THREE.AnimationMixer(gltf.scene);
-  discoverFaceTargets(gltf.scene);
   clips=gltf.animations;action=null;activeClip=null;chosenClip=null;
+  facial=createFacialV6(gltf.scene,clips);configureFaceUI();
   const select=$('clipSelect');select.replaceChildren();
   if(clips.length){
-    for(const clip of clips){const option=document.createElement('option');option.value=clip.name;option.textContent=clip.name+' · '+clip.duration.toFixed(1)+'s';select.appendChild(option)}
-    const selected=clips.find(c=>c.name.toLowerCase().includes('swim'))||clips[0];select.value=selected.name;chosenClip=selected.name;
+    for(const clip of clips.filter(c=>/swim|float|hover|idle/i.test(c.name))){const option=document.createElement('option');option.value=clip.name;option.textContent=clip.name+' · '+clip.duration.toFixed(1)+'s';select.appendChild(option)}
+   const selected=clips.find(c=>/swim/i.test(c.name))||clips.find(c=>/float|hover|idle/i.test(c.name));
+   if(selected){select.value=selected.name;chosenClip=selected.name;}
   }else{const option=document.createElement('option');option.textContent='Sem clips no GLB';select.appendChild(option)}
-  director.setDemo(false);director.setMode('float');buttonState(true);
+  director.setDemo(false);director.setMode('float');buttonState(true);configureFaceUI();$('clipSelect').disabled=!chosenClip;
   document.querySelector('button[data-mode="swim"]').disabled=!pickClip('swim');
   cameraHome();
   $('skin').textContent='Skin: '+skin.meshes.length+' malha(s), máx '+skin.maxUsed+' influências';
   debug(['Modelo: '+file.name,'Clips: '+(clips.map(c=>c.name).join(', ')||'nenhum'),
     'Ossos: '+skin.meshes[0].skeleton.bones.length,
     'Influências máximas: '+skin.maxUsed,'Vértices com pesos adicionais: '+skin.affectedVertices,
-    'Modos simulados: espiar, nok nok, esconder, seguir dedo.']);
+    'Modos simulados: espiar, nok nok, esconder, seguir dedo.',
+   'Morphs faciais: '+facial.diagnostics().bodyMorphs.join(', '),
+   'Canais de piscar: L '+facial.diagnostics().leftBlinkTracks+' / R '+facial.diagnostics().rightBlinkTracks]);
   status('✓ M carregada · escolhe uma reação ou inicia a demo');
  }catch(err){status('Erro ao carregar a M: '+(err?.message||String(err)),true);buttonState(Boolean(loaded))}
 }
@@ -258,6 +275,7 @@ $('demo').onclick=()=>{director.setDemo(true);status('▶ Demonstração automá
 $('stopDemo').onclick=()=>{director.setDemo(false);director.setMode('float');$('demo').classList.remove('active');status('Demonstração parada')};
 $('scroll').oninput=e=>director.setScroll(Number(e.target.value)/100);
 let clipSpeed=1;$('speed').oninput=e=>{clipSpeed=Number(e.target.value)/100};
+$('reduce').checked=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 $('reduce').onchange=()=>status($('reduce').checked?'Movimento reduzido ativo':'Movimento completo ativo');
 function pulse(){
  const ripple=$('ripple');ripple.classList.remove('active');void ripple.offsetWidth;ripple.classList.add('active');
@@ -293,7 +311,7 @@ function animate(now){
   const reduced=$('reduce').checked?0.35:1;
   const ms=director.mode;
   if(mixer&&action)mixer.update(dt*clipSpeed*(reduced===1?1:.65));
-  applyFacialTargets(now);
+  facial?.update(dt,now);
   orbit.enabled=ms!=='follow';
   stageRig.position.x=damping(stageRig.position.x,pose.x*reduced,dt);
   stageRig.position.y=damping(stageRig.position.y,(pose.y+autoScroll*.13)*reduced,dt);
