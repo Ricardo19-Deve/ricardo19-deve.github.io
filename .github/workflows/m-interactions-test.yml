@@ -1,0 +1,26 @@
+name: M Mascot Motion Regression Tests
+
+on:
+  push:
+    paths:
+      - 'm-lab/interactions/**'
+      - '.github/workflows/m-interactions-test.yml'
+  pull_request:
+    paths:
+      - 'm-lab/interactions/**'
+      - '.github/workflows/m-interactions-test.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  motion-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test M facial and motion modules
+        run: node --test m-lab/interactions/*.test.mjs
