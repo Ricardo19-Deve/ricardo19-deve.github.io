@@ -1,6 +1,20 @@
-# M Interaction Lab — V11 tail-axis fix, V6 facial controls (isolated prototype)
+# M Interaction Lab — V12 rig binding fix, V6 facial controls (isolated prototype)
 
 URL: https://ricardo19-deve.github.io/m-lab/interactions/
+
+## V12 — Root cause confirmed from user video: missing bone binding
+
+The new screen recording supplied on 30 October 2026 visibly showed **`Cauda: 0/10 ossos · flexão 0.0°`**, even though the Blender GLB itself has 10 correctly weighted tail joints and a built-in `M_Swim_V4` animation. This proves the prior procedural motion was **not bound to the real tail bones**. Repeated changes to angles and waveforms could not solve that.
+
+**Actual defect:** GLTFLoader sanitizes node names containing a dot (Blender `Tail.01` is exposed as `Tail_01`; `Arm.L` as `Arm_L`). The procedural motion generated targets under the Blender names, but looked up the imported node names literally. The result was 0/10 tail bones and also lost secondary motion on arms, ears and legs.
+
+**Actual fix:** `canonicalBoneName` in `motion-v8.mjs` maps imported `Tail_01..Tail_10`, `Arm_L`, `Ear_R`, etc. to their original procedural target keys **without renaming the Three.js nodes** (which would break existing GLB animations). The diagnostic now exposes both imported and canonical names, and V12 highlights a clear warning if the number of mapped tail bones is not exactly 10. V12 uses a versioned module URL to bypass old cached code.
+
+New regression tests `rig-binding.test.mjs` emulate sanitized GLTFLoader node names, assert ten actual bone object rotations change while emotions animate, check arm and ear bindings, and verify that additive rotations remain reversible without drift. All tests must pass via GitHub Actions.
+
+**Visual acceptance criteria:** after loading the same local `M_FacialExpressions_V6_Test.glb`, the status should read `Cauda: 10/10 ossos` and the reported flexion angle should change over time. The tail should react visibly to Happy, Curious, Surprised and Knock without distorting the body. Code tests are not a substitute for checking actual appearance in-browser.
+
+No modifications to the original GLB or production portfolio page were made.
 
 ## V11 — Correct tail axes, expressive bends (30 October 2026)
 
