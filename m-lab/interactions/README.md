@@ -2,6 +2,24 @@
 
 URL: https://ricardo19-deve.github.io/m-lab/interactions/
 
+## V7 expressive secondary motion — 30 October 2026
+
+Feedback from a screen recording: V6 facial morphs are subtle, and the small character view makes them hard to distinguish. The original GLB was inspected: `Expr_Happy` moves ~2.6% of 61,765 body vertices more than 0.001 unit; `Expr_Curious` ~1.0%; `Expr_Surprised` ~2.6%. This is a Blender model limitation, not proof of a renderer failure.
+
+The lab now adds `motion-v7.mjs`, a **non-destructive procedural secondary-motion layer** on the existing 31-bone rig. It evaluates after the original swim clip and adds smoothly blended local rotations for head, neck, chest, ears and ear tips, both arms/forearms, legs and the ten tail segments. Existing joints, baked swim and shoulder corrective morphs remain unchanged. A gesture begins relative to its interaction mode, not the global playback clock.
+
+New controls:
+- **Vida do corpo** slider (85% by default, adjustable down to zero)
+- **Intensidade da expressão** slider (185% by default, 100–250%; lower it if the shape deforms)
+- **Piscadelas automáticas naturais**, with separate left/right blink clips (turned off for reduced-motion)
+- **Ver rosto** camera zoom to evaluate eye design and subtle facial differences
+- Facial buttons now trigger emotion-specific head, ears and arms poses, with a small transient reaction
+- Demo automatically pairs body actions with suitable expressions
+
+**Validation caveat:** JS syntax and pure motion/face unit checks were run, but this version still needs real visual review on desktop and iPhone using the local V6 GLB. Stronger Blender facial shape keys remain the best way to make Happy/Curious/Surprised genuinely distinct, rather than indefinitely increasing morph weights. The production homepage is unchanged.
+
+Run regression tests with `node --test m-lab/interactions/*.test.mjs`.
+
 ## What changed on 30 October 2026
 
 The lab supports local loading of `M_FacialExpressions_V6_Test.glb` (30.9 MB) with the following animation tracks:
