@@ -8,7 +8,7 @@ const wave=(t,speed,phase=0)=>Math.sin(t*speed+phase);
 const bump=(t,at,width)=>Math.exp(-Math.pow((t-at)/width,2));
 
 /** Pure pose evaluator: values are local additive Euler angles in radians. */
-export function motionPose({time=0,mode='float',expression='neutral',pointer={x:0,y:0},energy=.7}={}) {
+export function motionPose({time=0,modeAge=0,mode='float',expression='neutral',pointer={x:0,y:0},energy=.7}={}) {
  const e=clamp(energy,0,1.3),t=Math.max(0,time),p={x:clamp(pointer?.x,-1,1),y:clamp(pointer?.y,-1,1)};
  const bones={};
  const add=(name,x=0,y=0,z=0)=>{
@@ -76,7 +76,7 @@ export function motionPose({time=0,mode='float',expression='neutral',pointer={x:
   for(let i=6;i<=10;i++)add('Tail.'+String(i).padStart(2,'0'),0,.075,0);
  }
  if(mode==='knock') {
-  const hit=bump(t%2.6,.75,.16)+bump(t%2.6,1.23,.16);
+  const hit=bump(modeAge,.75,.16)+bump(modeAge,1.23,.16);
   add('Arm.R',-.3*hit,0,-.2*hit);
   add('Forearm.R',.4*hit,0,.10*hit);
   add('Hand.R',.13*hit);
@@ -96,13 +96,14 @@ export function createMotionV7(root,THREE) {
   rest.set(o.name,o.quaternion.clone());
   current.set(o.name,[0,0,0]);
  });
- let elapsed=0;
+ let elapsed=0,modeElapsed=0,previousMode=null;
  return {
   get availableBones(){return bones.size;},
-  reset(){elapsed=0;for(const [name,bone] of bones){bone.quaternion.copy(rest.get(name));current.set(name,[0,0,0]);}},
+  reset(){elapsed=0;modeElapsed=0;previousMode=null;for(const [name,bone] of bones){bone.quaternion.copy(rest.get(name));current.set(name,[0,0,0]);}},
   update(dt,{mode='float',expression='neutral',pointer={x:0,y:0},energy=.7,clipActive=false}={}){
    dt=clamp(dt,0,.09);elapsed+=dt;
-   const poses=motionPose({time:elapsed,mode,expression,pointer,energy});
+   if(mode!==previousMode){modeElapsed=0;previousMode=mode;}else modeElapsed+=dt;
+   const poses=motionPose({time:elapsed,modeAge:modeElapsed,mode,expression,pointer,energy});
    const blend=1-Math.exp(-5.5*dt);
    for(const [name,bone] of bones){
     const previous=current.get(name),desired=poses[name]||[0,0,0];
