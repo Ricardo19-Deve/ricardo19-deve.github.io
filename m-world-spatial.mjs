@@ -87,7 +87,7 @@ export function cardPerformance(rect,w,h,kind,side=1,progress=0,character=120){
  const clipX=x=>bound(x,3,Math.max(3,w-size-3));
  const clipY=y=>bound(y,48,Math.max(48,h-size-8));
  const outside=(edge,visible)=>
-  direction<0?edge-size*(1-visible):edge-size*visible;
+  direction<0?edge-size*visible:edge-size*(1-visible);
  const edge=direction<0?rect.left:rect.right;
  const opposite=direction<0?rect.right:rect.left;
  const topY=clipY(rect.top-size*.90);
