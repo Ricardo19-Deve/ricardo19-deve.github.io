@@ -13,6 +13,7 @@ export function tailPoseV15(opts={}){
  const original=tailPoseV14(opts),out={};
  const t=Math.max(0,opts.time||0),expression=opts.expression||'neutral';
  const mode=opts.mode||'float',age=Math.max(0,opts.emotionAge??99);
+ if(impact===0)return original;
  const amount=clamp(opts.amount??.85,0,1.5),
        react=clamp(opts.reactivity??1.75,0,2),
        impact=clamp(opts.performance??1.12,0,1.6);
