@@ -108,6 +108,63 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    }
   }
  });
+ // The earlier lightweight GLB compressed several normal maps and the
+ // important face/body colour textures too aggressively. Restore source-
+ // quality maps as separate, cacheable assets while keeping the proven V6 rig.
+ const details=[
+  [0,'jpg',false],[1,'jpg',true],[2,'jpg',false],
+  [3,'webp',false],[4,'png',true],[6,'png',true],
+  [8,'webp',false],[9,'png',true],[11,'webp',false],[12,'png',true]
+ ];
+ const textures=new Map();
+ const loader=new THREE.TextureLoader();
+ const results=await Promise.allSettled(details.map(async([id,ext,srgb])=>{
+  const tex=await loader.loadAsync('./assets/m-v6-detail/m-original-'+id+'.'+ext);
+  tex.flipY=false;
+  tex.colorSpace=srgb?THREE.SRGBColorSpace:THREE.NoColorSpace;
+  tex.anisotropy=maxAnisotropy;
+  tex.magFilter=THREE.LinearFilter;
+  tex.minFilter=THREE.LinearMipmapLinearFilter;
+  tex.needsUpdate=true;
+  textures.set(id,tex);
+ }));
+ const replacements=[
+  [/^Material_0/,{map:1,normalMap:0,roughnessMap:2,metalnessMap:2}],
+  [/^M_L_UnifiedSkin_/,{map:4,normalMap:3}],
+  [/^M_L_OriginalEyeColor_/,{map:6}],
+  [/^M_L_lower_/,{map:9,normalMap:8}],
+  [/^M_L_upper_/,{map:12,normalMap:11}],
+  [/^M_R_UnifiedSkin_/,{normalMap:3}],
+  [/^M_R_lower_/,{normalMap:8}],
+  [/^M_R_upper_/,{normalMap:11}]
+ ];
+ let detailSlots=0;
+ source.traverse(object=>{
+  if(!object.isMesh)return;
+  const materials=Array.isArray(object.material)?object.material:[object.material];
+  for(const material of materials){
+   if(!material)continue;
+   const replacement=replacements.find(([regex])=>regex.test(material.name||''));
+   if(!replacement)continue;
+   for(const [slot,id] of Object.entries(replacement[1])){
+    const tex=textures.get(id);
+    if(!tex)continue;
+    const previous=material[slot];
+    if(previous){
+     tex.wrapS=previous.wrapS;tex.wrapT=previous.wrapT;
+     tex.offset.copy(previous.offset);tex.repeat.copy(previous.repeat);
+     tex.center.copy(previous.center);tex.rotation=previous.rotation;
+     tex.channel=previous.channel;
+    }
+    material[slot]=tex;
+    detailSlots++;
+   }
+   material.needsUpdate=true;
+  }
+ });
+ const detailMaps=textures.size;
+ if(detailMaps<details.length)console.warn('[M 3D] Some high-detail maps unavailable:',results.filter(x=>x.status==='rejected').length);
+ if(detailSlots<9)console.warn('[M 3D] Unexpected material map names: only',detailSlots,'slots restored');
  const clips=gltf.animations||[];
  const mixer=new THREE.AnimationMixer(source);
  const swim=clips.find(c=>c.name==='M_Swim_V4');
@@ -119,7 +176,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
  if(motion.tailDiagnostics.connected!==10)console.warn('[M 3D] Tail bones:',motion.tailDiagnostics);
  let clock=0;
  host.prepend(canvas);
- onReady({bones:motion.tailDiagnostics.connected,clips:clips.length,skinSets:skin.sets||0,
+ onReady({bones:motion.tailDiagnostics.connected,clips:clips.length,skinSets:skin.sets||0,detailMaps,detailSlots,
   renderPixels:[renderer.domElement.width,renderer.domElement.height],
   viewportSize,pixelRatio});
  let disposed=false;
@@ -153,6 +210,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
  const dispose=()=>{
   if(disposed)return;disposed=true;
   renderer.dispose();
+  for(const tex of textures.values())tex.dispose();
   scene.traverse(o=>{
    if(o.geometry?.dispose)o.geometry.dispose();
    for(const material of Array.isArray(o.material)?o.material:(o.material?[o.material]:[]))material.dispose();
@@ -160,5 +218,5 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   canvas.remove();
  };
  return {canvas,update,dispose,diagnostics:{bones:motion.tailDiagnostics.connected,
-  clips:clips.map(c=>c.name),skinSets:skin.sets||0,viewportSize,pixelRatio},ready:true};
+  clips:clips.map(c=>c.name),skinSets:skin.sets||0,detailMaps,detailSlots,viewportSize,pixelRatio},ready:true};
 }
