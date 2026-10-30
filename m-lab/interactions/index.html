@@ -457,6 +457,14 @@ window.addEventListener('keydown',e=>{
 function animate(now){
  requestAnimationFrame(animate);
  const dt=Math.max(0,Math.min(.06,(now-elapsed)/1000));elapsed=now;
+ if(loaded){
+  lifeState=life.step(dt,{mode:director.mode,demo:director.demo,
+   reducedMotion:$('reduce').checked,manualFace:faceManual});
+  if(lifeState.action){
+   director.setMode(lifeState.action.mode,{fromDemo:true});
+   if(!faceManual&&lifeState.action.expression)setExpressionUI(lifeState.action.expression);
+  }
+ }
  const pose=director.step(dt);
  if(loaded){
   const reduced=$('reduce').checked?.20:1;
@@ -482,7 +490,7 @@ function animate(now){
   facial?.update(dt,now);
   motion?.update(dt,{
    mode:ms,expression,
-   pointer:director.pointer,energy:motionEnergy*reduced,
+   pointer:director.pointer,attention:lifeState.gaze,energy:motionEnergy*reduced,
    smoothness,tailEnergy,tailReactivity,tailStyle,tailFlow,performanceImpact,clipActive:Boolean(action),
    swimWeight:swimSpring.value,
    bodyMotion:{
@@ -517,7 +525,13 @@ function animate(now){
   $('tailStatus').style.color=d.connected===10?'#c2f9df':'#ffb9c5';
  }
  fpsFrames++;
- if(now-fpsAt>1200){$('fps').textContent='FPS aproximados: '+Math.round(fpsFrames*1000/(now-fpsAt));fpsFrames=0;fpsAt=now}
+ if(now-fpsAt>1200){
+  $('fps').textContent='FPS aproximados: '+Math.round(fpsFrames*1000/(now-fpsAt));
+  $('lifeMood').textContent='Humor: '+lifeState.moodLabel;
+  $('lifeAttention').textContent='Atenção: '+(lifeState.attention==='pointer'?'cursor':'ambiente');
+  $('lifeMode').textContent='Comportamento: '+(!life.enabled?'em pausa':director.demo?'demo':$('reduce').checked?'reduzido':'autónomo local');
+  fpsFrames=0;fpsAt=now;
+ }
 }
 requestAnimationFrame(animate);
 status('✓ Laboratório pronto · Escolhe o GLB da M');
