@@ -195,7 +195,8 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   motion.prepare();
   mixer.update(dt);
   motion.update(dt,{
-   mode,expression,energy:.84,clipActive:Boolean(action),tailEnergy:.94,
+   mode,expression,attention:state.attention||{x:0,y:0},
+   energy:.84,clipActive:Boolean(action),tailEnergy:.94,
    tailReactivity:1.75,tailFlow:.83,performanceImpact:1.15,
    swimWeight:action?.getEffectiveWeight()||0,
    bodyMotion:{rotation:{y:num((state.vx||0)*.001,-.4,.4),
@@ -207,7 +208,8 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   const extra=performanceStagePoseV15({time:clock,mode,expression,impact:.48,
    reducedMotion:state.reducedMotion||false});
   stage.rotation.z=num(extra.rz,-.14,.14);
-  stage.rotation.y=num(extra.ry,-.2,.2)+num((state.vx||0)*.00035,-.11,.11);
+  stage.rotation.y=num(extra.ry,-.2,.2)+num((state.vx||0)*.00035,-.11,.11)+
+   (state.nearCard?num((state.attention?.x||0)*.09,-.08,.08):0);
   stage.rotation.x=num(extra.rx,-.15,.15);
   stage.position.y=extra.y*.35;
   stage.position.x=extra.x*.3;
