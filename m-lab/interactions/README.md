@@ -1,6 +1,21 @@
-# M Interaction Lab — V14 elastic tail motion (isolated prototype)
+# M Interaction Lab — V15 full-body character acting (isolated prototype)
 
 URL: https://ricardo19-deve.github.io/m-lab/interactions/
+
+## V15 — Bigger presence, emotion-specific full-body acting (30 October 2026)
+
+The user's 21-second mobile recording of V14 confirmed that the tail movement is functional, but the character remains visually small and its expressions/body reactions are too subtle. **V15 changes the acting and on-screen presentation**, not just the tail oscillation amplitudes.
+
+- `performance-v15.mjs`: explicit expressive poses on the existing head, ears, arms, forearms, chest and neck. Three emotions have different body silhouettes, with smoothly settling gesture accents. The body also contributes to Swim, Peek, Knock, Shy and Follow.
+- `tail-v15.mjs`: larger emotion-specific traveling tail sweeps (Happy), lifted/curved question-mark pose (Curious) and a delayed recoil (Surprised), while preserving V14's continuous breathing and 10-bone phase lag. Every value remains a reversible local rotation, applied through the existing spring solver and real GLTFLoader bone aliases.
+- `performanceStagePoseV15`: gentle whole-character acting, with vertical buoyancy, orientation changes, a small surprised pop and gentle happy motions. All gestures still respect reduced-motion and body-energy controls.
+- New `Expressividade da M` slider defaults to 120% (0–160%). At 0%, the old V14 tail pose is exactly returned and V15 acting disappears, allowing a direct A/B comparison on the same GLB.
+- New `Tamanho da M no palco` control defaults to 130% (100–150%). It scales the already-centred model visually without changing the imported GLB, skeleton or animation weights.
+- Selecting an interaction mode now automatically selects the accompanying facial emotion. Manually clicking a facial emotion pins it until **Pose neutra** or **Demo automática**.
+- The existing V6 GLB and main production portfolio remain untouched and are not publicly uploaded.
+
+`performance-v15.test.mjs` checks distinct expressive poses, A/B differences at 0% versus 120%, tail continuity at 30/60 FPS, reduced-motion settings and motion limits. The user's real browser rendering still needs visual validation, particularly whether enlarged character framing remains suitable on mobile and whether any specific mesh deformation needs adjustment.
+
 
 ## V14 — fluid tail follow-through and elastic wave (30 October 2026)
 
