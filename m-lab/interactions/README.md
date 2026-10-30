@@ -1,6 +1,27 @@
-# M Interaction Lab — V6 facial controls (isolated prototype)
+# M Interaction Lab — V9 organic tail and V6 facial controls (isolated prototype)
 
 URL: https://ricardo19-deve.github.io/m-lab/interactions/
+
+## V9 organic tail motion — 30 October 2026
+
+Following video feedback that M's tail still looked rigid, the V8 lab now uses `tail-v9.mjs` for the **existing ten tail bones**, not a new mesh or a destructive GLB edit. The source `M_FacialExpressions_V6_Test.glb` was inspected: the ten joints are named `Tail.01`–`Tail.10`, and its `M_Swim_V4` clip already contains translation, rotation and scale tracks for all ten joints.
+
+The independent tail layer adds:
+- A three-axis traveling S-wave. Every segment receives a different phase, so the base leads the tip.
+- Two slower overlapping frequencies for gentle side sweeps, lift and soft twist instead of rigid oscillation.
+- Different tail behavior when happy, curious, surprised, shy or reacting to a knock.
+- Three styles: **Ondulante / natural**, **Suave / tranquila**, **Brincalhona / expressiva**.
+- A 0–150% intensity slider (115% by default, independent of the body energy slider). At 0%, the extra tail movement is exactly zero, while the original GLB swim animation still works.
+- Inertial spring response, restrained amplitude per joint and continuous frame-to-frame motion.
+- A smooth **Ver cauda** camera preset for observing the whole silhouette from the side.
+
+The V9 layer remains additive over the original Swim V4. It never changes rig hierarchy, mesh geometry, skinning or shoulder corrective morphs. The lab intentionally does not publish the private 30.9 MB GLB.
+
+### Validation
+
+`node --test m-lab/interactions/*.test.mjs` is run by the `M Mascot Motion Regression Tests` GitHub Action. Tail-specific tests verify ten segments, differentiated styles, 30/60 FPS continuity, stable angular bounds, response to emotions and tail slider zero. Automated tests do not prove that the deformation looks right in Three.js; desktop and iPhone visual tests are still needed.
+
+The main portfolio remains unchanged.
 
 ## V7 expressive secondary motion — 30 October 2026
 
