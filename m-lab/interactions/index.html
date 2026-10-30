@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0d1b">
 <meta name="description" content="Laboratório isolado para testar interações da mascote M antes da integração no portefólio.">
-<title>M V15 • Expressive Character Performance</title>
+<title>M V16 • Vida e Personalidade</title>
 <style>
 :root{color-scheme:dark;--bg:#0b0d1b;--panel:#181b32;--card:#20233e;--stroke:#494267;--text:#f4edff;--muted:#b4afce;--accent:#b69aff;--active:#7053be}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -45,6 +45,12 @@ small{font-size:11px;color:#a8a2bc}
 .face-controls .face-settings{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .face-controls .face-settings label{display:grid;gap:6px}
 .face-modes button.active{box-shadow:0 0 0 1px #cbb5ff inset}
+.life-state{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;font-size:12px;color:var(--muted)}
+.life-state span{border:1px solid #4c416e;background:#211d39;border-radius:24px;padding:7px 11px}
+.life-panel-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media(max-width:480px){.life-panel-controls{grid-template-columns:1fr}}
+.life-panel-controls label{display:flex;align-items:center;gap:9px}
+.life-panel-controls .range-label{display:grid;gap:7px}
 @media(max-width:480px){.face-controls{grid-template-columns:1fr}.face-buttons{grid-template-columns:1fr 1fr 1fr}.face-controls .face-settings{grid-template-columns:1fr}}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.184.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.184.0/examples/jsm/"}}</script>
@@ -52,7 +58,7 @@ small{font-size:11px;color:#a8a2bc}
 <body>
 <main>
 <header>
-<div class="eyebrow">M / INTERACTION LAB V15 · CHARACTER ACTING</div>
+<div class="eyebrow">M / INTERACTION LAB V16 · VIDA AUTÓNOMA</div>
 <h1>Vamos dar personalidade à M</h1>
 <p>Testa a M V6 com natação, piscadelas independentes e três expressões faciais. Experimenta também as interações com toques, cursor e scroll.</p>
 <div class="chip">LAB ISOLADO · SEM ALTERAÇÕES AO PORTFÓLIO</div>
@@ -63,6 +69,10 @@ small{font-size:11px;color:#a8a2bc}
 <div class="status" id="status" role="status" aria-live="polite">A iniciar motor 3D…</div>
 </section>
 <div class="stats"><span id="state">Estado: —</span><span id="clip">Clip: —</span><span id="skin">Skin: —</span><span id="tailStatus">Cauda: —</span><span id="fps">FPS: —</span></div>
+<div class="life-state" aria-label="Estado do comportamento da M">
+<span id="lifeMood">Humor: em descanso</span><span id="lifeAttention">Atenção: ambiente</span>
+<span id="lifeMode">Comportamento: autónomo</span>
+</div>
 <section class="panel">
 <h2>1 · Carregar a M verdadeira</h2>
 <div class="toolbar">
@@ -78,7 +88,7 @@ small{font-size:11px;color:#a8a2bc}
 <label class="range-label" for="clipSelect">Animação corporal detetada <select id="clipSelect" disabled><option>Carrega um GLB primeiro</option></select></label>
 </section>
 <section class="panel">
-<h2>2 · Movimento expressivo V15</h2>
+<h2>2 · Movimento expressivo V16</h2>
 <div class="modes">
 <button data-mode="float" disabled>☁ Flutuar</button>
 <button data-mode="swim" disabled>〰 Nadar</button>
@@ -115,7 +125,22 @@ small{font-size:11px;color:#a8a2bc}
 <p class="note"><b>Novidade V15:</b> A M aparece maior e reage com cabeça, orelhas, braços, corpo e cauda. Os modos escolhem automaticamente uma emoção; ao clicar numa expressão, ela fica fixa até Pose neutra ou Demo. Compara Expressividade da M a 0% e a 120%. O GLB V6 permanece intacto.</p>
 </section>
 <section class="panel">
-<h2>3 · Expressões V6 + linguagem corporal</h2>
+<h2>3 · Personalidade e comportamento autónomo</h2>
+<p class="note">A M observa o cursor, reage aos toques e alterna entre curiosidade, brincadeira, natação e descanso. Tudo funciona no navegador, sem serviços externos nem recolha de dados.</p>
+<div class="life-panel-controls">
+<label class="check"><input id="autoLife" type="checkbox" checked> Vida autónoma ativada</label>
+<label class="range-label" for="lifePersonality">Temperamento
+<select id="lifePersonality">
+<option value="balanced" selected>Equilibrada · curiosa e carinhosa</option>
+<option value="calm">Tranquila · mais pausas</option>
+<option value="playful">Brincalhona · mais ativa</option>
+</select></label>
+<button id="lifeHello" disabled>♡ Chamar a atenção da M</button>
+</div>
+<p class="note">Mover o cursor faz a cabeça acompanhar-te. Um toque desperta curiosidade; vários toques rápidos provocam reações diferentes. Os controlos manuais têm prioridade e Movimento reduzido suspende a autonomia.</p>
+</section>
+<section class="panel">
+<h2>4 · Expressões V6 + linguagem corporal</h2>
 <p class="note">Feliz, Curiosa e Surpreendida usam morph targets separados; não alteram os corretivos dos ombros. O piscar de cada olho funciona em paralelo com a natação.</p>
 <div class="face-modes" role="group" aria-label="Expressões da M">
 <button data-face="neutral" disabled>◯ Neutra</button>
@@ -140,7 +165,7 @@ small{font-size:11px;color:#a8a2bc}
 <p class="note" id="faceInfo" aria-live="polite">Carrega o GLB para verificar as expressões disponíveis.</p>
 </section>
 <section class="panel">
-<h2>4 · Diagnóstico de interação</h2>
+<h2>5 · Diagnóstico de interação</h2>
 <div class="debug" id="debug">Ainda não existe modelo carregado.</div>
 <p class="note">O objetivo desta página é validar a arquitetura de interação sem prejudicar o Meshy 7.1. O desempenho no Safari e as deformações do novo GLB ainda requerem testes reais.</p>
 </section>
@@ -155,6 +180,7 @@ import {MInteractionDirector,M_MODES} from './behavior.mjs';
 import {createFacialV6,FACIAL_LABELS} from './facial-v6.mjs';
 import {createMotionV8} from './motion-v8.mjs?rig=v15';
 import {performanceStagePoseV15} from './performance-v15.mjs';
+import {MLifeV16} from './life-v16.mjs';
 import {smoothSpring,createSpring,transitionFrequency} from './fluid-v8.mjs';
 
 const $=id=>document.getElementById(id);
@@ -162,7 +188,7 @@ const stage=$('stage');
 function status(message,error=false){$('status').textContent=message;$('status').classList.toggle('error',error)}
 function debug(lines){$('debug').textContent=lines.join('\n')}
 function buttonState(enabled){
- for(const id of ['resetCamera','faceFocus','tailFocus','neutral','demo','stopDemo'])$(id).disabled=!enabled;
+ for(const id of ['resetCamera','faceFocus','tailFocus','neutral','demo','stopDemo','lifeHello'])$(id).disabled=!enabled;
  for(const el of document.querySelectorAll('button[data-mode]'))el.disabled=!enabled;
  $('clipSelect').disabled=!enabled;
 }
@@ -197,6 +223,7 @@ const director=new MInteractionDirector(mode=>{
 let loaded=null,mixer=null,clips=[],action=null,activeClip=null,paused=false,chosenClip=null;
 let facial=null,motion=null,motionEnergy=.85,tailEnergy=.85,tailReactivity=1.75,tailFlow=.73,tailStyle='organic',performanceImpact=1.20,stageSize=1.30,actingExpression='neutral',actingExpressionAge=100;
 let faceManual=false;
+let life=new MLifeV16(),lifeState=life.snapshot(null);
 function setExpressionUI(key) {
  if(!facial?.setExpression(key))return;
  for(const el of document.querySelectorAll('button[data-face]'))
@@ -221,7 +248,7 @@ function configureFaceUI() {
   : 'Rig facial não detetado.';
  if(facial){facial.setIntensity(Number($('faceIntensity').value)/100);facial.setAutoBlink($('autoBlink').checked&&!$('reduce').checked);}
 }
-for(const el of document.querySelectorAll('button[data-face]'))el.onclick=()=>{faceManual=true;setExpressionUI(el.dataset.face)};
+for(const el of document.querySelectorAll('button[data-face]'))el.onclick=()=>{faceManual=true;life.manual();setExpressionUI(el.dataset.face)};
 $('blinkL').oninput=e=>facial?.setBlink('left',Number(e.target.value)/100);
 $('blinkR').oninput=e=>facial?.setBlink('right',Number(e.target.value)/100);
 $('blinkLeft').onclick=()=>facial?.blink('left');
@@ -331,6 +358,7 @@ async function openGLB(file){
   loaded={gltf,wrapper,baseScale,skin,file:file.name};mixer=new THREE.AnimationMixer(gltf.scene);
   clips=gltf.animations;action=null;activeClip=null;chosenClip=null;
   facial=createFacialV6(gltf.scene,clips);motion=createMotionV8(gltf.scene,THREE);configureFaceUI();restoreStageSprings();actingExpression='neutral';actingExpressionAge=100;faceManual=false;
+   life=new MLifeV16({enabled:$('autoLife').checked,personality:$('lifePersonality').value});lifeState=life.snapshot(null);
   const select=$('clipSelect');select.replaceChildren();
   if(clips.length){
     for(const clip of clips.filter(c=>/swim|float|hover|idle/i.test(c.name))){const option=document.createElement('option');option.value=clip.name;option.textContent=clip.name+' · '+clip.duration.toFixed(1)+'s';select.appendChild(option)}
@@ -355,16 +383,25 @@ async function openGLB(file){
    $('tailStatus').textContent='Cauda: '+mappedCount+'/10 ossos ligados';
    $('tailStatus').style.color=mappedCount===10?'#c2f9df':'#ffb9c5';
    if(mappedCount!==10)status('⚠ '+mappedCount+'/10 ossos da cauda ligados. Consulta o diagnóstico.',true);
-   else status('✓ M V15: 10/10 ossos ligados · compara Expressividade da M: 0% e 120%');
+   else status('✓ M V16: 10/10 ossos ligados · vida autónoma disponível');
  }catch(err){status('Erro ao carregar a M: '+(err?.message||String(err)),true);buttonState(Boolean(loaded))}
 }
 $('file').addEventListener('change',event=>openGLB(event.target.files?.[0]));
 $('clipSelect').onchange=()=>{chosenClip=$('clipSelect').value;if(loaded)director.setMode('swim')};
-for(const button of document.querySelectorAll('button[data-mode]'))button.onclick=()=>{director.setMode(button.dataset.mode);status('A testar: '+M_MODES[button.dataset.mode].label)};
-$('neutral').onclick=()=>{faceManual=false;director.setMode('float');setExpressionUI('neutral');status('Pose neutra / idle')};
-$('demo').onclick=()=>{faceManual=false;director.setDemo(true);status('▶ Demonstração automática ativa');$('demo').classList.add('active')};
-$('stopDemo').onclick=()=>{faceManual=false;director.setDemo(false);director.setMode('float');$('demo').classList.remove('active');status('Demonstração parada')};
+for(const button of document.querySelectorAll('button[data-mode]'))button.onclick=()=>{life.manual();director.setMode(button.dataset.mode);status('A testar: '+M_MODES[button.dataset.mode].label)};
+$('neutral').onclick=()=>{life.manual();faceManual=false;director.setMode('float');setExpressionUI('neutral');status('Pose neutra / idle')};
+$('demo').onclick=()=>{life.manual();faceManual=false;director.setDemo(true);status('▶ Demonstração automática ativa');$('demo').classList.add('active')};
+$('stopDemo').onclick=()=>{life.manual();faceManual=false;director.setDemo(false);director.setMode('float');$('demo').classList.remove('active');status('Demonstração parada')};
 $('scroll').oninput=e=>director.setScroll(Number(e.target.value)/100);
+$('autoLife').onchange=e=>{
+ life.setEnabled(e.target.checked);
+ status(e.target.checked?'♡ Vida autónoma ativada':'Movimentos autónomos em pausa');
+};
+$('lifePersonality').onchange=e=>life.setPersonality(e.target.value);
+$('lifeHello').onclick=()=>{
+ director.setDemo(false);faceManual=false;life.signal('tap');
+ status('♡ A M reparou em ti');
+};
 let clipSpeed=1;$('speed').oninput=e=>{clipSpeed=Number(e.target.value)/100};
 $('smoothness').oninput=e=>{smoothness=Number(e.target.value)/100;$('smoothnessLabel').textContent=e.target.value+'%'};
 $('energy').oninput=e=>{motionEnergy=Number(e.target.value)/100;$('energyLabel').textContent=e.target.value+'%'};
@@ -388,23 +425,34 @@ let down=null;
 stage.addEventListener('pointerdown',event=>{cameraTweening=false;down={x:event.clientX,y:event.clientY,time:performance.now()}});
 stage.addEventListener('pointermove',event=>{
  const rect=stage.getBoundingClientRect();
- director.setPointer((event.clientX-rect.left)/rect.width*2-1,1-(event.clientY-rect.top)/rect.height*2);
+ const x=(event.clientX-rect.left)/rect.width*2-1;
+ const y=1-(event.clientY-rect.top)/rect.height*2;
+ director.setPointer(x,y);
+ if(loaded&&life.enabled)life.signal('pointer',{x,y});
 });
+stage.addEventListener('pointerleave',()=>life.signal('leave'));
 stage.addEventListener('pointerup',event=>{
  if(!down||!loaded)return;
  const distance=Math.hypot(event.clientX-down.x,event.clientY-down.y);
  down=null;if(distance>12)return;
- director.setMode('knock');
- status('M reagiu ao toque · gesto nok nok em protótipo')
+ if(life.enabled && !$('reduce').checked){
+  director.setDemo(false);faceManual=false;life.signal('tap');
+  status('♡ M reagiu ao toque');
+ }else{
+  director.setMode('knock');
+  status('M reagiu ao toque · gesto nok nok em protótipo');
+ }
+ if(event.pointerType==='touch')life.signal('leave');
 });
 window.addEventListener('scroll',()=>{
  const current=window.scrollY;
  autoScroll=Math.max(-1,Math.min(1,(current-prevScroll)/180));prevScroll=current;
+ if(loaded&&life.enabled)life.signal('scroll',{delta:autoScroll});
 },{passive:true});
 window.addEventListener('keydown',e=>{
  if(!loaded||['INPUT','SELECT'].includes(document.activeElement.tagName))return;
  const mode={'1':'float','2':'swim','3':'peek','4':'knock','5':'follow'}[e.key];
- if(mode)director.setMode(mode);
+ if(mode){life.manual();director.setMode(mode)};
 });
 function animate(now){
  requestAnimationFrame(animate);
