@@ -113,8 +113,8 @@ export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',express
  */
 export function canonicalBoneName(rawName){
  const name=String(rawName||'');
- const compact=name.replace(/[._\\s-]/g,'');
- if(/^Tail\\d{1,2}$/i.test(compact)){
+ const compact=name.replace(/[._\s-]/g,'');
+ if(/^Tail\d{1,2}$/i.test(compact)){
   const segment=Number(compact.slice(4));
   if(segment>=1&&segment<=10)
    return 'Tail.'+String(segment).padStart(2,'0');
