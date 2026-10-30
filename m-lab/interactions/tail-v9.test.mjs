@@ -39,7 +39,9 @@ test('animation remains continuous at 60 frames per second',()=>{
 test('tail motion can be paused without stopping the other body joints',()=>{
  const zero=tailPose({time:5,amount:0,expression:'happy'});
  for(const axes of Object.values(zero))for(const v of axes)assert.equal(v,0);
- const body=motionPose({time:5,energy:1,tailEnergy:0});
+ // V10 separates the base wave from emotional/body reactivity.
+ // Disabling both tail channels leaves head and body motion unaffected.
+ const body=motionPose({time:5,energy:1,tailEnergy:0,tailReactivity:0});
  assert.ok(body.Head.some(v=>Math.abs(v)>.001));
  for(let i=1;i<=10;i++){
   const key='Tail.'+String(i).padStart(2,'0');
