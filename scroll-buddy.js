@@ -238,7 +238,15 @@ function animate(now){
   const stretch=reduce?1:mode==="dash"?1.07:mode==="surf"?1.035:pose==="curl"?.94:1;
   mascot.style.transform=`translate3d(${x.toFixed(1)}px,${(y+bob).toFixed(1)}px,0) rotate(${rotation.toFixed(1)}deg) scale(${stretch.toFixed(3)})`;
   updateOcclusion();
-  if(m3d)m3d.update(dt,{mode,emotion,vx,vy,clock,reducedMotion:reduce});
+  if(m3d){
+   const focusRect=travelTarget?.isConnected?travelTarget.getBoundingClientRect():null;
+   const focus=focusRect?{
+    x:clamp((focusRect.left+focusRect.width*.5-(x+60))/300,-1,1),
+    y:clamp(((y+60)-(focusRect.top+Math.min(110,focusRect.height*.25)))/250,-1,1)
+   }:{x:clamp(vx/210,-1,1),y:clamp(-vy/230,-1,1)};
+   m3d.update(dt,{mode,emotion,vx,vy,clock,reducedMotion:reduce,
+    attention:focus,nearCard:Boolean(focusRect),behind:!front});
+  }
   else animateTail(dt,x,y+bob);
   const energy=mode==="surf"?5:mode==="dash"?5.8:mode==="play"?4:
     mode==="perch"?.85:pose==="curl"?.8:2;
