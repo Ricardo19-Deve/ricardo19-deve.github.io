@@ -17,13 +17,20 @@ const add=(bones,name,x=0,y=0,z=0)=>{
 /** Head/arms/ears/chest form character-readable body silhouettes. */
 export function performanceBodyPoseV15({
  time=0,mode='float',expression='neutral',emotionAge=99,modeAge=99,
- pointer={x:0,y:0},impact=1
+ pointer={x:0,y:0},attention={x:0,y:0},impact=1
 }={}){
  const t=Math.max(0,time),p=clamp(impact,0,1.6),bones={};
  const glance=Math.sin(t*.53+.7)*Math.sin(t*.21+.4);
  // A natural recurring curious head glance, rather than uniform rotation.
  add(bones,'Head',.021*Math.sin(t*.88),.049*glance,.015*Math.sin(t*.71));
  add(bones,'Neck',.018*Math.sin(t*.71),.015*glance);
+ // Local attention directs the head without moving the whole character.
+ // It stays deliberately subtle while a facial expression is active.
+ const lookX=clamp(attention?.x,-1,1),lookY=clamp(attention?.y,-1,1);
+ add(bones,'Head',-.092*lookY,.18*lookX,.035*lookX);
+ add(bones,'Neck',-.038*lookY,.073*lookX,.012*lookX);
+ add(bones,'Ear.L',.019*lookY,0,.018*lookX);
+ add(bones,'Ear.R',.019*lookY,0,-.018*lookX);
  add(bones,'Ear.L',.017*Math.sin(t*1.8),0,.026*Math.sin(t*.85));
  add(bones,'Ear.R',.021*Math.sin(t*1.68+.6),0,-.022*Math.sin(t*.91));
  const reaction=smoothPulse(emotionAge);
