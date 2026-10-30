@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0d1b">
 <meta name="description" content="Laboratório isolado para testar interações da mascote M antes da integração no portefólio.">
-<title>M V6 • Interaction Lab</title>
+<title>M V8 • Fluid Interaction Lab</title>
 <style>
 :root{color-scheme:dark;--bg:#0b0d1b;--panel:#181b32;--card:#20233e;--stroke:#494267;--text:#f4edff;--muted:#b4afce;--accent:#b69aff;--active:#7053be}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -52,7 +52,7 @@ small{font-size:11px;color:#a8a2bc}
 <body>
 <main>
 <header>
-<div class="eyebrow">M / INTERACTION LAB V6</div>
+<div class="eyebrow">M / INTERACTION LAB V8 · FLUID MOTION</div>
 <h1>Vamos dar personalidade à M</h1>
 <p>Testa a M V6 com natação, piscadelas independentes e três expressões faciais. Experimenta também as interações com toques, cursor e scroll.</p>
 <div class="chip">LAB ISOLADO · SEM ALTERAÇÕES AO PORTFÓLIO</div>
@@ -77,7 +77,7 @@ small{font-size:11px;color:#a8a2bc}
 <label class="range-label" for="clipSelect">Animação corporal detetada <select id="clipSelect" disabled><option>Carrega um GLB primeiro</option></select></label>
 </section>
 <section class="panel">
-<h2>2 · Movimento natural V7</h2>
+<h2>2 · Movimento orgânico V8</h2>
 <div class="modes">
 <button data-mode="float" disabled>☁ Flutuar</button>
 <button data-mode="swim" disabled>〰 Nadar</button>
@@ -92,9 +92,10 @@ small{font-size:11px;color:#a8a2bc}
 <label class="range-label" for="scroll">Simular scroll <input id="scroll" type="range" min="-100" max="100" value="0"></label>
 <label class="range-label" for="speed">Velocidade do clip <input id="speed" type="range" min="25" max="150" value="100" step="5"></label>
 <label class="range-label" for="energy">Vida do corpo · <span id="energyLabel">85%</span><input id="energy" type="range" min="0" max="100" value="85" step="5"></label>
+<label class="range-label" for="smoothness">Fluidez das transições · <span id="smoothnessLabel">78%</span><input id="smoothness" type="range" min="15" max="100" value="78" step="1"></label>
 <label class="check"><input id="reduce" type="checkbox"> Movimento reduzido</label>
 </div>
-<p class="note"><b>Novidade:</b> cabeça, orelhas, braços, pernas e os dez segmentos da cauda recebem movimento secundário independente e suavizado. Espiar, Nok nok e Esconder continuam protótipos, não clips esqueléticos finalizados.</p>
+<p class="note"><b>Novidade:</b> cabeça, orelhas, braços, pernas e os dez segmentos da cauda usam agora transições com inércia e atraso progressivo. A natação entra e sai suavemente, sem saltar para uma pose neutra. Espiar, Nok nok e Esconder continuam protótipos.</p>
 </section>
 <section class="panel">
 <h2>3 · Expressões V6 + linguagem corporal</h2>
@@ -135,7 +136,8 @@ import {readGLB} from '../swim-v3/threejs/glb-reader.js';
 import {preserveFullSkinning} from '../swim-v3/threejs/full-skinning.js';
 import {MInteractionDirector,M_MODES} from './behavior.mjs';
 import {createFacialV6,FACIAL_LABELS} from './facial-v6.mjs';
-import {createMotionV7} from './motion-v7.mjs';
+import {createMotionV8} from './motion-v8.mjs';
+import {smoothSpring,createSpring,transitionFrequency} from './fluid-v8.mjs';
 
 const $=id=>document.getElementById(id);
 const stage=$('stage');
@@ -160,6 +162,10 @@ const orbit=new OrbitControls(camera,renderer.domElement);
 orbit.enableDamping=true;orbit.enablePan=false;orbit.minDistance=3.5;orbit.maxDistance=12;
 orbit.target.set(0,0,0);orbit.update();
 const stageRig=new THREE.Group();scene.add(stageRig);
+const stageSprings={x:createSpring(),y:createSpring(),z:createSpring(),
+ rx:createSpring(),ry:createSpring(),rz:createSpring(),scale:createSpring(1)};
+const swimSpring=createSpring(0);
+let smoothness=.78;
 const director=new MInteractionDirector(mode=>{
  $('state').textContent='Estado: '+M_MODES[mode].label;
  for(const button of document.querySelectorAll('button[data-mode]'))button.classList.toggle('active',button.dataset.mode===mode);
@@ -241,26 +247,33 @@ function pickClip(kind){
 }
 function applyAnimation(mode){
  if(!mixer)return;
- const clip=pickClip(mode==='swim'?'swim':'float');
+ // Keep the real baked swim action alive in every state. Fading its weight
+ // to zero blends back to the original bind pose without snapping the rig.
+ const clip=pickClip('swim')||pickClip('float');
  if(!clip){
-   mixer.stopAllAction();mixer.update(0);action=null;activeClip=null;
-   loaded.gltf.scene.traverse(o=>{
-     if(o.isSkinnedMesh)o.skeleton.pose();
-     // Leaving Swim: remove residual shoulder motion, but never erase face slots.
-     if(o.morphTargetDictionary&&o.morphTargetInfluences)
-      for(const [name,index] of Object.entries(o.morphTargetDictionary))
-       if(name.startsWith('Shoulder_'))o.morphTargetInfluences[index]=0;
-    });
-   $('clip').textContent='Clip: pose neutra + movimento global';
-   return;
+  action=null;activeClip=null;
+  $('clip').textContent='Clip: pose neutra + movimento orgânico';
+  return;
  }
- if(activeClip===clip&&action){action.paused=false;return}
- const previous=action,next=mixer.clipAction(clip);
- next.reset().enabled=true;next.setLoop(THREE.LoopRepeat,Infinity);
- next.setEffectiveTimeScale(1);next.setEffectiveWeight(1);next.play();
- if(previous&&previous!==next)next.crossFadeFrom(previous,.65,false);
- action=next;activeClip=clip;
- $('clip').textContent='Clip: '+clip.name+' · '+clip.duration.toFixed(1)+'s';
+ if(activeClip!==clip||!action){
+  if(action)action.stop();
+  const next=mixer.clipAction(clip);
+  next.reset().enabled=true;
+  next.setLoop(THREE.LoopRepeat,Infinity);
+  next.setEffectiveTimeScale(1);
+  next.setEffectiveWeight(0);
+  next.play();
+  action=next;activeClip=clip;
+ }
+ $('clip').textContent='Clip: '+clip.name+' · transição suave ('+(mode==='swim'?'nadar':'regressar')+')';
+}
+function restoreStageSprings(){
+ stageRig.position.set(0,0,0);stageRig.rotation.set(0,0,0);stageRig.scale.setScalar(1);
+ for(const name of ['x','y','z','rx','ry','rz']){
+  stageSprings[name].value=0;stageSprings[name].velocity=0;
+ }
+ stageSprings.scale.value=1;stageSprings.scale.velocity=0;
+ swimSpring.value=0;swimSpring.velocity=0;
 }
 async function openGLB(file){
  if(!file)return;
@@ -280,7 +293,7 @@ async function openGLB(file){
   stageRig.add(wrapper);
   loaded={gltf,wrapper,skin,file:file.name};mixer=new THREE.AnimationMixer(gltf.scene);
   clips=gltf.animations;action=null;activeClip=null;chosenClip=null;
-  facial=createFacialV6(gltf.scene,clips);motion=createMotionV7(gltf.scene,THREE);configureFaceUI();
+  facial=createFacialV6(gltf.scene,clips);motion=createMotionV8(gltf.scene,THREE);configureFaceUI();restoreStageSprings();
   const select=$('clipSelect');select.replaceChildren();
   if(clips.length){
     for(const clip of clips.filter(c=>/swim|float|hover|idle/i.test(c.name))){const option=document.createElement('option');option.value=clip.name;option.textContent=clip.name+' · '+clip.duration.toFixed(1)+'s';select.appendChild(option)}
@@ -309,6 +322,7 @@ $('demo').onclick=()=>{director.setDemo(true);status('▶ Demonstração automá
 $('stopDemo').onclick=()=>{director.setDemo(false);director.setMode('float');$('demo').classList.remove('active');status('Demonstração parada')};
 $('scroll').oninput=e=>director.setScroll(Number(e.target.value)/100);
 let clipSpeed=1;$('speed').oninput=e=>{clipSpeed=Number(e.target.value)/100};
+$('smoothness').oninput=e=>{smoothness=Number(e.target.value)/100;$('smoothnessLabel').textContent=e.target.value+'%'};
 $('energy').oninput=e=>{motionEnergy=Number(e.target.value)/100;$('energyLabel').textContent=e.target.value+'%'};
 $('reduce').checked=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 $('reduce').onchange=()=>{facial?.setAutoBlink($('autoBlink').checked&&!$('reduce').checked);status($('reduce').checked?'Movimento reduzido ativo':'Movimento completo ativo')};
@@ -338,25 +352,40 @@ window.addEventListener('keydown',e=>{
  const mode={'1':'float','2':'swim','3':'peek','4':'knock','5':'follow'}[e.key];
  if(mode)director.setMode(mode);
 });
-function damping(current,target,dt,k=6){return current+(target-current)*(1-Math.exp(-k*dt))}
 function animate(now){
- requestAnimationFrame(animate);const dt=Math.min(.06,(now-elapsed)/1000);elapsed=now;
+ requestAnimationFrame(animate);
+ const dt=Math.max(0,Math.min(.06,(now-elapsed)/1000));elapsed=now;
  const pose=director.step(dt);
  if(loaded){
-  const reduced=$('reduce').checked?0.20:1;
+  const reduced=$('reduce').checked?.20:1;
   const ms=director.mode;
-  if(mixer&&action)mixer.update(dt*clipSpeed*(reduced===1?1:.65));
+  const omega=transitionFrequency(smoothness);
+  // Remove the previous procedural quaternion delta before the baked GLB
+  // animation evaluates again. This prevents accumulated drift or twitching.
+  motion?.prepare();
+  if(mixer&&action){
+   const goal=ms==='swim'?($('reduce').checked?.35:1):0;
+   const weight=Math.max(0,Math.min(1,smoothSpring(swimSpring,goal,dt,omega*1.25,1.0)));
+   action.setEffectiveWeight(weight);
+   mixer.update(dt*clipSpeed*(reduced===1?1:.65));
+  }
   facial?.update(dt,now);
-  motion?.update(dt,{mode:ms,expression:facial?.expression||'neutral',
-   pointer:director.pointer,energy:motionEnergy*reduced,clipActive:Boolean(action)});
+  motion?.update(dt,{
+   mode:ms,expression:facial?.expression||'neutral',
+   pointer:director.pointer,energy:motionEnergy*reduced,
+   smoothness,clipActive:Boolean(action)
+  });
   orbit.enabled=ms!=='follow';
-  stageRig.position.x=damping(stageRig.position.x,pose.x*reduced*(1+.35*motionEnergy),dt);
-  stageRig.position.y=damping(stageRig.position.y,(pose.y+autoScroll*.13)*reduced*(1+.25*motionEnergy),dt);
-  stageRig.position.z=damping(stageRig.position.z,pose.z*reduced,dt);
-  stageRig.rotation.x=damping(stageRig.rotation.x,pose.rx*reduced,dt);
-  stageRig.rotation.y=damping(stageRig.rotation.y,pose.ry*reduced,dt);
-  stageRig.rotation.z=damping(stageRig.rotation.z,pose.rz*reduced,dt);
-  const scale=damping(stageRig.scale.x,1+(pose.scale-1)*reduced,dt);stageRig.scale.setScalar(scale);
+  const updateAxis=(axis,target,frequency=omega,damping=.93)=>
+    smoothSpring(stageSprings[axis],target,dt,frequency,damping);
+  stageRig.position.x=updateAxis('x',pose.x*reduced*(1+.35*motionEnergy));
+  stageRig.position.y=updateAxis('y',(pose.y+autoScroll*.13)*reduced*(1+.25*motionEnergy));
+  stageRig.position.z=updateAxis('z',pose.z*reduced);
+  stageRig.rotation.x=updateAxis('rx',pose.rx*reduced,omega*.83);
+  stageRig.rotation.y=updateAxis('ry',pose.ry*reduced,omega*.83);
+  stageRig.rotation.z=updateAxis('rz',pose.rz*reduced,omega*.83);
+  const scale=updateAxis('scale',1+(pose.scale-1)*reduced,omega*.8);
+  stageRig.scale.setScalar(scale);
   autoScroll*=Math.exp(-dt*3);
  }
  orbit.update();renderer.render(scene,camera);
