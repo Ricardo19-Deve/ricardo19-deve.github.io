@@ -27,3 +27,6 @@
  .mascot-world-v9 .mascot-creature{animation:none!important;transition:none!important}
 }
 /* Links and navigation never sit inside the creature's hit target. */
+
+/* Sticky navigation is always a foreground world object, including on mobile. */
+body > header.top.glass-nav{z-index:92!important}
