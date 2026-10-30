@@ -57,11 +57,13 @@ export function createFacialV6(root,clips=[]) {
  const eyes={left:makeBlink(root,clips,'left'),right:makeBlink(root,clips,'right')};
  const availableExpressions=Object.fromEntries(Object.entries(EXPRESSIONS).map(([key,morph])=>
   [key,key==='neutral'||body.some(t=>t.morph===morph)]));
- let expression='neutral',blend={happy:0,curious:0,surprised:0};
+ let expression='neutral',blend={happy:0,curious:0,surprised:0},intensity=1.65,autoBlink=true,nextAutoBlink=0;
  function setExpression(key) {
   if(!Object.hasOwn(availableExpressions,key)||!availableExpressions[key])return false;
   expression=key;return true;
  }
+ function setIntensity(value){intensity=clamp(Number(value)||1,1,2.5);return intensity;}
+ function setAutoBlink(enabled){autoBlink=Boolean(enabled);nextAutoBlink=0;}
  function setBlink(side,amount) {
   if(!eyes[side]?.channels.length)return false;
   eyes[side].manual=clamp(Number(amount)||0);return true;
@@ -88,13 +90,17 @@ export function createFacialV6(root,clips=[]) {
   }
  }
  function update(dt,now) {
-  const k=1-Math.exp(-8*Math.max(0,dt));
+  const k=1-Math.exp(-6*Math.max(0,dt));
+  if(autoBlink && eyes.left.channels.length && eyes.right.channels.length) {
+   if(!nextAutoBlink)nextAutoBlink=now+2400;
+   if(now>=nextAutoBlink){blink('left',now);blink('right',now+45);nextAutoBlink=now+3400+700*(.5+.5*Math.sin(now*.0013));}
+  }
   for(const key of ['happy','curious','surprised'])
    blend[key]+=(Number(expression===key)-blend[key])*k;
   // Body mixer may animate shoulder corrective morphs. Never overwrite those.
   for(const {mesh,index,morph} of body) {
    const key=morph.slice(5).toLowerCase();
-   mesh.morphTargetInfluences[index]=blend[key];
+   mesh.morphTargetInfluences[index]=blend[key]*intensity;
   }
   applyEye(eyes.left,now);applyEye(eyes.right,now);
  }
@@ -106,8 +112,8 @@ export function createFacialV6(root,clips=[]) {
    bodyMorphs:[...new Set(body.map(t=>t.morph))]
   };
  }
- return {setExpression,setBlink,blink,update,diagnostics,
+ return {setExpression,setBlink,setIntensity,setAutoBlink,blink,update,diagnostics,
   hasBlink:side=>Boolean(eyes[side]?.channels.length),
   hasExpression:key=>Boolean(availableExpressions[key]),
-  get expression(){return expression;}};
+  get expression(){return expression;},get intensity(){return intensity;}};
 }
