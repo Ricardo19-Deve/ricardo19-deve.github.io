@@ -1,4 +1,5 @@
 import {smoothSpring,createSpring,transitionFrequency} from './fluid-v8.mjs';
+import {tailPose} from './tail-v9.mjs';
 
 /**
  * M V8 fluid secondary-body motion layer.
@@ -10,7 +11,7 @@ const wave=(t,speed,phase=0)=>Math.sin(t*speed+phase);
 const bump=(t,at,width)=>Math.exp(-Math.pow((t-at)/width,2));
 
 /** Pure pose evaluator: values are local additive Euler angles in radians. */
-export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',expression='neutral',pointer={x:0,y:0},energy=.7}={}) {
+export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',expression='neutral',pointer={x:0,y:0},energy=.7,tailEnergy=1.15,tailStyle='organic'}={}) {
  const e=clamp(energy,0,1.3),t=Math.max(0,time),p={x:clamp(pointer?.x,-1,1),y:clamp(pointer?.y,-1,1)};
  const bones={};
  const add=(name,x=0,y=0,z=0)=>{
@@ -33,14 +34,11 @@ export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',express
  add('Forearm.R',.075*wave(t,1.73,1.8),0,-.03*wave(t,.95));
  add('Leg.L',.045*wave(t,1.25),0,.025*wave(t,1.4));
  add('Leg.R',.055*wave(t,1.2,1.3),0,-.025*wave(t,1.35,.6));
- // Distributed tail wave travels down the actual ten-bone chain.
- for(let i=1;i<=10;i++){
-  const k=i/10,phase=-i*.44,swim=mode==='swim'?1.10:1;
-  add('Tail.'+String(i).padStart(2,'0'),
-   .022*k*wave(t,2.1*swim,phase),
-   (.031+.041*k)*wave(t,1.65*swim,phase),
-   (.023+.027*k)*wave(t,1.9*swim,phase-.4));
- }
+ // Ten-bone flowing S-wave with an independent delayed phase per segment.
+ // All components remain additive to the original baked GLB swim animation.
+ const tail=tailPose({time:t,mode,modeAge,expression,emotionAge,
+  style:tailStyle,amount:tailEnergy});
+ for(const [bone,rotation] of Object.entries(tail))add(bone,...rotation);
  // Emotion is expressed using the body, rather than the tiny facial morph alone.
  if(expression==='happy') {
   add('Head',-.055*wave(t,2.8),0,.12*wave(t,2.15));
@@ -138,19 +136,19 @@ export function createMotionV8(root,THREE){
   get availableBones(){return bones.size;},
   prepare,reset,
   update(dt,{mode='float',expression='neutral',pointer={x:0,y:0},energy=.7,
-              clipActive=false,smoothness=.75}={}){
+              clipActive=false,smoothness=.75,tailEnergy=1.15,tailStyle='organic'}={}){
    dt=Math.max(0,Math.min(.075,dt));time+=dt;
    if(mode!==priorMode){modeAge=0;priorMode=mode;}else modeAge+=dt;
    if(expression!==priorEmotion){emotionAge=0;priorEmotion=expression;}else emotionAge+=dt;
-   const poses=motionPose({time,modeAge,emotionAge,mode,expression,pointer,energy});
+   const poses=motionPose({time,modeAge,emotionAge,mode,expression,pointer,energy,tailEnergy,tailStyle});
    const baseFrequency=transitionFrequency(smoothness);
    for(const [name,bone] of bones){
     const state=states.get(name),target=poses[name]||[0,0,0];
     const tail=name.startsWith('Tail.')?Number(name.slice(5)):0;
     const tip=tail>0?tail/10:0;
     // Head responds first; forearms then hands; tail tip trails behind root.
-    const speed=baseFrequency*(tail>0?1-.50*tip:/EarTip/.test(name)?.68:/Forearm|Hand/.test(name)?.76:1);
-    const damping=tail>0?.79:/EarTip|Forearm/.test(name)?.86:.97;
+    const speed=baseFrequency*(tail>0?1-.38*tip:/EarTip/.test(name)?.68:/Forearm|Hand/.test(name)?.76:1);
+    const damping=tail>0?.82:/EarTip|Forearm/.test(name)?.86:.97;
     const x=smoothSpring(state.angles[0],target[0],dt,speed,damping);
     const y=smoothSpring(state.angles[1],target[1],dt,speed,damping);
     const z=smoothSpring(state.angles[2],target[2],dt,speed,damping);
