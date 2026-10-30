@@ -139,7 +139,7 @@ export function createMotionV8(root,THREE){
  return {
   get availableBones(){return bones.size;},
   get tailDiagnostics(){return {
-   connected:[...bones.keys()].filter(n=>/^Tail\\.\\d+$/.test(n)).length,
+   connected:[...bones.keys()].filter(n=>n.startsWith('Tail.')&&Number.isInteger(Number(n.slice(5)))).length,
    maxBend:lastTailBend,
    animationAxes:'X/Z bend, Y twist'
   };},
