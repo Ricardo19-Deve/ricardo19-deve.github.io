@@ -1,17 +1,25 @@
-/* M World V17: an unobtrusive character in the portfolio's space. */
+/* M World: one original 3D actor, with depth-buffer counterparts of the DOM. */
+html{overflow-x:clip}
 .mascot-world-v9,.mascot-world-v9.in-front{
  position:fixed;inset:0;z-index:65;pointer-events:none;overflow:hidden;
  isolation:isolate;contain:layout style;
 }
 .mascot-world-v9[hidden]{display:none!important}
 .mascot-world-v9 .mascot-creature{
- pointer-events:none!important;cursor:default;border:0;background:transparent;
- filter:drop-shadow(0 8px 14px rgba(189,151,255,.36));
+ position:absolute;left:0;top:0;width:272px;height:272px;
+ pointer-events:none!important;cursor:default;border:0;padding:0;background:transparent;
+ filter:none!important;scale:1!important;transform-origin:0 0;overflow:visible;
+ animation:none!important;transition:none!important;will-change:transform;
+}
+.mascot-world-v9 .m-world-canvas{
+ display:block;position:absolute;left:0;top:0;width:100%;height:100%;
+ max-width:none;pointer-events:none;background:transparent;filter:none;
+ image-rendering:auto;backface-visibility:hidden;
 }
 .m-world-toggle{
  position:fixed;right:18px;bottom:max(18px,env(safe-area-inset-bottom));
  z-index:100;display:inline-flex;align-items:center;justify-content:center;
- min-height:36px;min-width:96px;padding:7px 12px;
+ min-height:44px;min-width:96px;padding:7px 12px;
  border:1px solid rgba(179,151,255,.42);border-radius:999px;
  background:rgba(17,22,39,.92);color:#e7dbff;font:600 12px/1.2 'DM Sans',sans-serif;
  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
@@ -19,35 +27,11 @@
 }
 .m-world-toggle:hover{border-color:#c3a9ff;background:#27213f}
 .m-world-toggle:focus-visible{outline:3px solid #94dcff;outline-offset:3px}
+body>header.top.glass-nav{z-index:92!important}
 @media(max-width:720px){
- .mascot-world-v9 .mascot-creature{scale:.76}
- .m-world-toggle{right:12px;bottom:max(12px,env(safe-area-inset-bottom));padding:6px 10px;min-height:34px;min-width:86px}
+ .mascot-world-v9 .mascot-creature{width:208px;height:208px}
+ .m-world-toggle{right:12px;bottom:max(12px,env(safe-area-inset-bottom));padding:6px 10px}
 }
 @media(prefers-reduced-motion:reduce){
  .mascot-world-v9 .mascot-creature{animation:none!important;transition:none!important}
-}
-/* Links and navigation never sit inside the creature's hit target. */
-
-/* Sticky navigation is always a foreground world object, including on mobile. */
-body > header.top.glass-nav{z-index:92!important}
-
-/* Actual Blender V6 WebGL character replaces the old SVG once ready. */
-.mascot-world-v9.m-world-loading .mascot-creature svg,
-.mascot-world-v9.m-world-loading .mascot-tap,
-.mascot-world-v9.m-world-3d .mascot-creature svg,
-.mascot-world-v9.m-world-3d .mascot-tap{display:none!important}
-.mascot-world-v9 .m-world-canvas{
- display:block;position:absolute;left:-76px;top:-76px;
- width:272px;height:272px;max-width:none;pointer-events:none;
- background:transparent;
- /* Keep the 3D render crisp: avoid an extra CSS filter / offscreen blur pass. */
- filter:none;image-rendering:auto;
- backface-visibility:hidden;
-}
-.mascot-world-v9.m-world-3d .mascot-creature{
- filter:none!important;overflow:visible;
-}
-.mascot-world-v9.m-world-fallback .mascot-creature svg{display:block}
-@media(max-width:720px){
- .mascot-world-v9 .m-world-canvas{width:232px;height:232px;left:-56px;top:-56px}
 }

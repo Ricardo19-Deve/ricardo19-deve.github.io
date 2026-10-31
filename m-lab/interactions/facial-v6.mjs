@@ -24,7 +24,7 @@ function blinkChannels(root,clip) {
   if(!track.values.length||track.values.length%track.times.length!==0)return null;
   const width=track.values.length/track.times.length;
   if(width!==mesh.morphTargetInfluences.length)return null;
-  return {mesh,interpolant,width};
+  return {mesh,interpolant,width,times:track.times};
  }).filter(Boolean);
 }
 function peakTime(channels,clip) {
@@ -41,9 +41,42 @@ function peakTime(channels,clip) {
  }
  return Math.max(.05,bestTime);
 }
+
+const BLINK_KNOTS=Object.freeze({Pre_Close:.02,Close_10:.1,Close_20:.2,Close_30:.3,Close_40:.4,Half_Closed:.5,Closed:1});
+function closingControlPath(channels,clip){
+ const channel=channels.find(c=>Object.keys(BLINK_KNOTS).every(name=>c.mesh.morphTargetDictionary?.[name]!==undefined));
+ if(!channel||!clip)return null;
+ const times=[...new Set([0,...channel.times])].filter(t=>Number.isFinite(t)&&t>=0&&t<=clip.duration).sort((a,b)=>a-b);
+ const closed=channel.mesh.morphTargetDictionary.Closed;
+ let peak=-Infinity,peakAt=-1;
+ for(let i=0;i<times.length;i++){const value=channel.interpolant.evaluate(times[i])[closed];if(value>peak+1e-7){peak=value;peakAt=i;}}
+ if(peak<.99||peakAt<1)return null;
+ const path=[];
+ for(let i=0;i<=peakAt;i++){
+  const values=channel.interpolant.evaluate(times[i]);
+  if([...values].some(v=>!Number.isFinite(v)||v< -1e-6||v>1.000001)||[...values].reduce((a,b)=>a+b,0)>1.00002)return null;
+  let control=0;
+  for(const [name,knot]of Object.entries(BLINK_KNOTS))control+=values[channel.mesh.morphTargetDictionary[name]]*knot;
+  if(control< -1e-6||control>1.00002||(path.length&&control<path.at(-1).control-1e-6))return null;
+  path.push({time:times[i],control:clamp(control)});
+ }
+ if(path[0].control>1e-6||path.at(-1).control<.99)return null;
+ return path;
+}
+function timeForClosure(eye,amount){
+ const value=clamp(amount);
+ if(!eye.path)return eye.peak*value; // Preserve compatibility with generic/non-HAT clips.
+ if(value===0)return 0;
+ for(let i=1;i<eye.path.length;i++){
+  const a=eye.path[i-1],b=eye.path[i];
+  if(b.control>=value&&b.control>a.control)return a.time+(b.time-a.time)*(value-a.control)/(b.control-a.control);
+ }
+ return eye.path.at(-1).time;
+}
+
 function makeBlink(root,clips,side) {
  const clip=findBlinkClip(clips,side),channels=blinkChannels(root,clip);
- return {clip,channels,peak:peakTime(channels,clip),started:-1,duration:900,manual:0};
+ return {clip,channels,path:closingControlPath(channels,clip),peak:peakTime(channels,clip),started:-1,duration:Math.max(.001,clip?.duration??.9)*1000,manual:0};
 }
 export function createFacialV6(root,clips=[]) {
  const body=[];
@@ -74,14 +107,13 @@ export function createFacialV6(root,clips=[]) {
  }
  function applyEye(eye,now) {
   if(!eye.channels.length)return;
-  let t=eye.peak*eye.manual;
+  let t=timeForClosure(eye,eye.manual);
   if(eye.started>=0){
    const elapsed=now-eye.started;
    if(elapsed>=eye.duration){eye.started=-1;}
    else {
-    // Blink clip is 2 seconds long, but its visible close/open phase is
-    // in the first second. Sample full visible motion once, never loop.
-    t=(elapsed/eye.duration)*Math.min(eye.clip.duration,1.05);
+    // Source seconds remain source seconds: no artificial 900 ms compression.
+    t=Math.max(0,elapsed)/1000;
    }
   }
   for(const {mesh,interpolant,width} of eye.channels) {
@@ -109,7 +141,10 @@ export function createFacialV6(root,clips=[]) {
    expressions:Object.keys(availableExpressions).filter(k=>availableExpressions[k]),
    leftBlinkTracks:eyes.left.channels.length,rightBlinkTracks:eyes.right.channels.length,
    leftBlinkClip:eyes.left.clip?.name||null,rightBlinkClip:eyes.right.clip?.name||null,
-   bodyMorphs:[...new Set(body.map(t=>t.morph))]
+   bodyMorphs:[...new Set(body.map(t=>t.morph))],
+   intensity,extrapolatingExpressions:intensity>1,
+   leftBlinkControl:eyes.left.path?'seven-key-hat':'generic',rightBlinkControl:eyes.right.path?'seven-key-hat':'generic',
+   leftBlinkDurationMs:eyes.left.duration,rightBlinkDurationMs:eyes.right.duration
   };
  }
  return {setExpression,setBlink,setIntensity,setAutoBlink,blink,update,diagnostics,
