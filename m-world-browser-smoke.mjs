@@ -21,7 +21,8 @@ function chromeExecutable(){
 }
 const base=process.env.BASE_URL||'http://127.0.0.1:4173/';
 const artifactDir=process.env.M_WORLD_ARTIFACT_DIR||process.env.ARTIFACT_DIR||path.join(tmpdir(),'m-world-smoke');
-const report={startedAt:new Date().toISOString(),url:base,passed:false,
+const softwareClock=process.env.M_WORLD_SOFTWARE_CLOCK==='1';
+const report={softwareClock,motionObservationScope:softwareClock?'Fixed RAF clock; intermediate draw suppression only during controller observations; actual GPU checkpoints and pixel tests.':'Native RAF with every animation frame drawn.',startedAt:new Date().toISOString(),url:base,passed:false,
  scope:'Real Chrome desktop and emulated mobile/touch smoke; no physical-phone or artistic approval.',
  contexts:[],artifacts:[],checks:[]};
 const check=(name,passed,details={})=>report.checks.push({name,passed:Boolean(passed),...details});
@@ -109,6 +110,24 @@ async function pixelEvidence(page,label,selector,artifactPaths){
   behind:{state:behindState.state,actor:behindState.actor,occlusion:behindState.renderer.occlusion}};
 }
 
+// Software CI advances the same production RAF/controller clock without
+// rasterizing every intermediate frame. Actual GPU loading, warm cadence and
+// all screenshot/pixel checks still run with drawing enabled.
+async function observeClock(page,limitMs,evaluator,arg){
+ if(!softwareClock)return page.evaluate(evaluator,arg);
+ await page.evaluate(()=>{window.__mSmokeSkipDraw=true;});
+ await page.clock.pauseAt(new Date(await page.evaluate(()=>Date.now())+50));
+ let settled=false,result,error;
+ const pending=page.evaluate(evaluator,arg).then(value=>{settled=true;result=value;},reason=>{settled=true;error=reason;});
+ try{
+  for(let elapsed=0;!settled&&elapsed<=limitMs+500;elapsed+=100)await page.clock.runFor(100);
+  await pending;if(error)throw error;return result;
+ }finally{
+  await page.evaluate(()=>{window.__mSmokeSkipDraw=false;});
+  await page.clock.runFor(34);
+  await page.clock.resume();
+ }
+}
 async function exerciseLivePerch(page){
  const url=new URL(base);url.searchParams.set('m-debug','1');
  await page.goto(url.href,{waitUntil:'domcontentloaded'});
@@ -117,7 +136,7 @@ async function exerciseLivePerch(page){
  await scrollElementTo(page,'.about-tile',350);
  const start=await page.evaluate(()=>window.MWorld.playAction({selector:'.about-tile',index:0,kind:'perch'}));
  if(!start.plan?.available||start.plan.kind!=='perch')return {available:false,start,scope:'No replacement of an unavailable production perch with a debug pose.'};
- const observation=await page.evaluate(()=>new Promise(resolve=>{
+ const observation=await observeClock(page,22500,()=>new Promise(resolve=>{
   const start=performance.now(),samples=[];let atContact=null,scrollAt=null,lastSample=0,done=false;
   function tick(now){const s=window.MWorld.snapshot(),target=s.surfaces.find(r=>r.id===s.state.targetId),gap=target?s.actor.contact.y-target.top:null,t=(now-start)/1000;
    const touching=s.acting?.attached&&s.state.mode==='perch'&&s.state.phase==='hold'&&s.state.depth>.9&&gap!==null&&Math.abs(gap)<3;
@@ -134,10 +153,11 @@ async function exerciseLivePerch(page){
 }
 
 async function observeAutonomous(page,name){
+ if(softwareClock)await page.clock.install();
  const debugURL=new URL(base);debugURL.searchParams.set('m-debug','1');
  await page.goto(debugURL.href,{waitUntil:'domcontentloaded'});
  await page.waitForFunction(()=>window.MWorld?.snapshot().ready,undefined,{timeout:90000});
- return page.evaluate(name=>new Promise(resolve=>{
+ return observeClock(page,18500,name=>new Promise(resolve=>{
   const start=performance.now(),samples=[],events=[];let lastSample=0,lastFrame=null,maxFrameStep=0,entryScroll=false,routeScroll=false,perchScroll=false;
   function tick(now){
    const s=window.MWorld.snapshot(),elapsed=now-start;
@@ -190,7 +210,7 @@ try{
     const gl=original.call(this,type,...args);
     if(gl&&/^webgl/.test(type)&&!seen.has(gl)){
      seen.add(gl);const row={canvas:this,gl,draws:0,clears:0,triangles:0};window.__mSmokeGL.push(row);
-     for(const name of['drawElements','drawArrays']){const method=gl[name].bind(gl);gl[name]=(...a)=>{row.draws++;if(a[0]===gl.TRIANGLES)row.triangles+=(name==='drawArrays'?a[2]:a[1])/3;return method(...a);};}
+     for(const name of['drawElements','drawArrays']){const method=gl[name].bind(gl);gl[name]=(...a)=>{if(window.__mSmokeSkipDraw)return;row.draws++;if(a[0]===gl.TRIANGLES)row.triangles+=(name==='drawArrays'?a[2]:a[1])/3;return method(...a);};}
      const clear=gl.clear.bind(gl);gl.clear=(...a)=>{row.clears++;return clear(...a);};
     }
     return gl;
@@ -236,7 +256,9 @@ try{
     await page.waitForFunction(()=>document.querySelector('.mobile-menu-toggle').getAttribute('aria-expanded')==='false'&&document.activeElement===document.querySelector('.mobile-menu-toggle'));
     check('Mobile navigation supports keyboard focus and Escape',true);
     await menu.tap();await page.waitForFunction(()=>document.querySelector('.mobile-menu-toggle').getAttribute('aria-expanded')==='true');await page.locator('#primary-nav a[href="#projects"]').first().tap();await page.waitForURL(url=>url.hash==='#projects');check('Mobile navigation accepts actual touch events',new URL(page.url()).hash==='#projects');}
-   await page.waitForTimeout(1100);result.projects=await snapshot();
+   await page.waitForFunction(()=>[...document.querySelectorAll('#projects .card')].some(el=>{const r=el.getBoundingClientRect();return r.top<innerHeight&&r.bottom>0;}),undefined,{polling:100,timeout:30000});
+   await settleScroll(page);
+   await page.waitForTimeout(750);result.projects=await snapshot();
    result.componentAlignment=await page.evaluate(()=>{
     const s=window.MWorld.snapshot(),rows=[];
     for(const element of document.querySelectorAll('#projects .card')){

@@ -62,3 +62,8 @@ The homepage fingerprint matches the original after normalizing only the four sc
 - Production deployment requires a separately approved merge; this work stays on its feature branch.
 
 The webpage is represented by flat depth surfaces for cards and reading areas. This is real GPU occlusion against those surfaces, not a full physical reconstruction of arbitrary DOM shapes. The heavy original asset remains a material mobile cost. Future texture compression/streaming should be judged on real-device evidence without reducing the original skinning or facial fidelity.
+## CI software renderer
+
+The hosted Ubuntu runner uses SwiftShader and measured about 1–2 native FPS with the full original asset. This is not a phone or hardware-GPU benchmark. CI measures native cadence first, then uses Playwright's fixed RAF clock for controller/arrival observations. Only intermediate draw calls in those logical stepping windows are suppressed; original model loading, shader compilation and screenshot/pixel comparisons still use actual WebGL drawing. Final checkpoints are drawn again. The normal website and the separate hardware-Chrome validation above use the native clock and render each frame.
+
+The runner also waits for real navigation/scroll settlement before comparing component positions, rather than assuming a fixed wall-clock delay.

@@ -25,6 +25,7 @@ jobs:
       BASE_URL: http://127.0.0.1:4173/
       M_WORLD_ARTIFACT_DIR: /tmp/m-world-smoke
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      M_WORLD_SOFTWARE_CLOCK: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
