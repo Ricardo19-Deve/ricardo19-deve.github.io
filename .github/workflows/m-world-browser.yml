@@ -1,15 +1,18 @@
-name: M V6 In-Browser 3D Smoke
+name: M World Chrome Spatial Validation
 on:
   push:
     paths:
-      - 'm-world-3d.mjs'
-      - 'm-world-browser-smoke.mjs'
+      - 'm-world-*.mjs'
       - 'scroll-buddy.js'
       - 'm-world.css'
       - 'index.html'
+      - 'interactions.js'
+      - 'styles.css'
       - 'assets/m-v6-web/**'
       - 'assets/m-v6-detail/**'
-      - 'm-world-spatial.mjs'
+      - 'm-lab/interactions/**'
+      - 'm-lab/swim-v3/threejs/**'
+      - 'm-lab/vendor/three/**'
       - '.github/workflows/m-world-browser.yml'
   workflow_dispatch:
 permissions:
@@ -18,23 +21,28 @@ jobs:
   real-3d-render:
     runs-on: ubuntu-latest
     timeout-minutes: 8
+    env:
+      BASE_URL: http://127.0.0.1:4173/
+      M_WORLD_ARTIFACT_DIR: /tmp/m-world-smoke
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      M_WORLD_SOFTWARE_CLOCK: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install browser driver
-        run: npm install --no-save --ignore-scripts puppeteer-core@24.23.0
+      - name: Install browser driver only
+        run: npm install --no-save --ignore-scripts --package-lock=false playwright-core@1.62.1
       - name: Start website
         run: |
-          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/m-world-http.log 2>&1 &
+          python3 -m http.server 4173 --bind 127.0.0.1 >"$M_WORLD_ARTIFACT_DIR-http.log" 2>&1 &
           sleep 2
       - name: Render actual V6 mascot in Chrome
         run: node m-world-browser-smoke.mjs
-      - name: Save screenshots for review
+      - name: Save screenshots and browser report for review
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: m-v6-chrome-smoke
-          path: /tmp/m-world-smoke/
+          path: ${{ env.M_WORLD_ARTIFACT_DIR }}/
           if-no-files-found: ignore

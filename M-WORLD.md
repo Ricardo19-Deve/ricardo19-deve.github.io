@@ -1,3 +1,49 @@
+# M World V21 — Original V6 with page depth and V16 behavior
+
+This feature branch refines the original Blender V6 actor in the portfolio. It does not deploy the website or replace the character. The previous version notes below are historical.
+
+## Changes
+
+- The original GLB chunks and ten restored detail maps are unchanged. All 320 numeric glTF accessors match the source V6: mesh, normals, UVs, skin weights, shoulder correctives, facial targets and six clips.
+- The 31-bone rig retains all four joint/weight sets (up to fourteen influences). Initialization fails rather than silently reducing the character to four influences.
+- The transparent canvas uses native 272px desktop / 208px mobile dimensions without a negative offset, CSS scale, blur, or an SVG substitute. DPR is capped at 2.5 / 2. Orthographic framing uses actually deformed points from bounded production poses, rather than rotating the corners of a combined bounding box.
+- AgX tone mapping and a moderate PMREM studio environment preserve skin volume and eye reflections. Colour maps remain sRGB; normal/roughness maps remain linear, with mipmaps and anisotropic filtering.
+- Rounded DOM counterparts write only to the WebGL depth buffer. Cards occlude the actor behind them; protected text and controls occlude the actor at every depth. Two reusable geometry batches bound the added draw calls.
+- Paths use the renderer's projected footprint and foot contact. Actual arrival, geometric clearance and settled depth gate transitions. Perches latch only after arrival, follow the component during scroll, and compensate for the animated foot position.
+- On narrow layouts an explicit external portal lets M leave the viewport, change depth only after clearing every card, and return behind a visible edge. Component resizes, content mutations, image/font loading and viewport changes invalidate cached layout. Scrolling projects cached document coordinates; finite CSS geometry transitions trigger temporary frame updates so the depth masks stay attached to moving cards.
+- The V16 director supplies local attention, spontaneous curiosity, expressions and tap/scroll reactions. Existing V8 motion and V15 staging remain; source swimming is blended by actual speed and settles on perches.
+- Facial controls use the real V6 morph knots: a manual half blink reaches Half_Closed rather than remaining on the clip's initial Open hold. Automatic playback preserves the source clip timing.
+- Mobile MENU now opens the existing navigation in normal document flow, closes on link selection or Escape, and preserves every original destination. This repairs a pre-existing missing handler discovered by real touch testing.
+- One RAF owner handles pause/resume and visibility. Reduced motion parks M. A stored disabled preference avoids downloading the character. Overlays cannot capture page clicks; load errors provide Retry.
+
+## Validation
+
+See [the measured results, screenshots and motion recording](docs/m-world-v21/VALIDATION.md).
+
+Run the regression suite:
+
+~~~powershell
+node --test m-lab/interactions/*.test.mjs m-world*.test.mjs
+~~~
+
+Run the actual-browser suite against a local static server:
+
+~~~powershell
+$env:BASE_URL = 'http://127.0.0.1:4183/'
+$env:M_WORLD_ARTIFACT_DIR = 'C:\path\to\validation'
+node m-world-browser-smoke.mjs
+~~~
+
+The browser runner uses the installed Chrome executable (override CHROME_BIN), a separate desktop context and a true mobile/touch emulation context. It writes screenshots and a JSON report. The query ?m-debug=1 exposes deterministic MWorld.stepTo, setDepth, playAction, snapshot, resume and setActive controls for reproducing card interactions; normal visitors do not get that API.
+
+The homepage fingerprint ignores only cache versions for the mascot and navigation script/style files. It guards all portfolio content, links, navigation and markup. A second fingerprint guards the unchanged V6 asset.
+
+## Practical limits
+
+DOM cards are represented by flat depth surfaces in a local 3D overlay, not a physically reconstructed webpage. The depth buffer provides real pixel occlusion against those surfaces; there is no claim of general mesh collision with arbitrary DOM shapes. A warm desktop-GPU measurement in mobile emulation is not a physical-phone performance result. Safari/iOS, thermal behavior, slow networks and an actual touch device still need separate checks. Web PBR presentation is not pixel-identical to Blender's renderer.
+
+---
+
 # M World V20 — High-definition 3D M in the real portfolio
 
 ## Quality improvements (30 October 2026)

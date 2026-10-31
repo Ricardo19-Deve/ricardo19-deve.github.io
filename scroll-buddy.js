@@ -1,346 +1,342 @@
-import {sectionElements,visibleTargets,chooseTarget,placeAround,exclusionPolygon,interactiveTarget,insideMascot,bound,cardPerformance,activeOccluder} from './m-world-spatial.mjs?v=20';
-(()=>{"use strict";
-const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
-const layer=document.createElement("div");layer.className="mascot-world-v9";layer.setAttribute("aria-hidden","true");
-layer.innerHTML=`<div class="mascot-creature" title="M está a explorar o portefólio"><svg viewBox="0 0 170 160" aria-hidden="true"><defs><radialGradient id="v9skin" cx=".29" cy=".19" r=".86"><stop stop-color="#fff4ff"/><stop offset=".43" stop-color="#edc6ff"/><stop offset="1" stop-color="#a69be9"/></radialGradient><linearGradient id="v9tail" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#dfb5f7"/><stop offset="1" stop-color="#9e8de0"/></linearGradient></defs><g class="tail"><path class="tail-stroke" d="M109 105 C123 108 149 118 151 137" fill="none" stroke="url(#v9tail)" stroke-width="11" stroke-linecap="round"/><ellipse class="tail-tip" cx="151" cy="137" rx="7" ry="8" fill="#b5a0e9"/></g><g class="ear-left"><path d="M54 50 Q35 20 46 16 Q67 14 72 42 Z" fill="url(#v9skin)" stroke="#eed4ff" stroke-width="1.5"/></g><g class="ear-right"><path d="M101 44 Q111 13 124 18 Q133 29 114 54 Z" fill="url(#v9skin)" stroke="#eed4ff" stroke-width="1.5"/></g><g class="leg-left"><path d="M67 106 Q56 116 60 122 Q69 129 80 118 L82 110" fill="url(#v9skin)" stroke="#e8c7ff" stroke-width="1.4"/></g><g class="leg-right"><path d="M94 107 Q107 116 105 122 Q98 130 87 118 L83 110" fill="url(#v9skin)" stroke="#e8c7ff" stroke-width="1.4"/></g><g class="arm-left"><path d="M59 86 Q40 90 42 106 Q46 119 58 109 L69 99" fill="url(#v9skin)" stroke="#eed1ff" stroke-width="1.3"/></g><g class="arm-right"><path d="M105 86 Q124 92 123 106 Q119 119 107 109 L98 99" fill="url(#v9skin)" stroke="#eed1ff" stroke-width="1.3"/></g><g class="body"><path d="M65 89 Q50 103 58 120 Q68 139 86 132 Q112 135 117 114 Q119 96 103 86 Z" fill="url(#v9skin)" stroke="#f1d6ff" stroke-width="1.5"/><ellipse cx="86" cy="113" rx="18" ry="14" fill="#fff3ff" opacity=".24"/><ellipse cx="84" cy="70" rx="47" ry="43" fill="url(#v9skin)" stroke="#f4dbff" stroke-width="1.8"/><ellipse cx="68" cy="85" rx="8" ry="5" fill="#ff9ac9" opacity=".55"/><ellipse cx="103" cy="85" rx="8" ry="5" fill="#ff9ac9" opacity=".55"/><g class="eyes"><ellipse cx="69" cy="70" rx="6.5" ry="10" fill="#39467f"/><ellipse cx="100" cy="70" rx="6.5" ry="10" fill="#39467f"/><circle cx="71" cy="66" r="2.3" fill="white"/><circle cx="102" cy="66" r="2.3" fill="white"/></g><path d="M81 83 Q85 90 90 83" stroke="#745b99" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="85" cy="78" r="2" fill="#745b99"/></g></svg><span class="mascot-tap" hidden>knock knock ✦</span></div>`;
-document.body.appendChild(layer);
-const toggle=document.createElement('button');
-toggle.type='button';toggle.className='m-world-toggle';
-toggle.setAttribute('aria-label','Pausar a mascote M');
-toggle.textContent='M · Pausar';
-toggle.title='Pausar ou reativar a M';
-document.body.appendChild(toggle);
-let m3d=null,m3dLoading=false;
-async function loadRealMascot(){
- if(m3dLoading||m3d)return;
- m3dLoading=true;
- layer.classList.add('m-world-loading');
- try{
-  const {mountMWorld3D}=await import('./m-world-3d.mjs?v=20');
-  const avatar=await mountMWorld3D(layer.querySelector('.mascot-creature'),{
-   onProgress(percent){
-    layer.dataset.loadProgress=String(percent);
-    if(active)toggle.textContent='M 3D · '+percent+'%';
-   },
-   onReady(info){
-    layer.dataset.detailMaps=String(info.detailMaps||0);
-    layer.dataset.renderPixels=(info.renderPixels||[]).join('x');
-    console.info('[M World V20] Blender V6 high-quality ready',info);
-   }
-  });
-  if(avatar.diagnostics.bones!==10)throw new Error('Faltam ossos da cauda 3D');
-  m3d=avatar;
-  toggle.textContent=active?'M 3D · Pausar':'M 3D · Ativar';
-  layer.classList.add('m-world-3d');
-  layer.classList.remove('m-world-loading');
-  layer.dataset.model='V6 GLB HQ';
- }catch(error){
-  layer.classList.remove('m-world-loading');
-  layer.classList.add('m-world-fallback');
-  toggle.textContent=active?'M 2D · Pausar':'M 2D · Ativar';
-  console.error('[M World V18] Falha ao iniciar a M 3D:',error);
-  layer.dataset.model='Fallback SVG';
- }
-}
-const mascot=layer.querySelector(".mascot-creature"),svg=mascot.querySelector("svg"),tail=mascot.querySelector(".tail-stroke"),tip=mascot.querySelector(".tail-tip"),tap=layer.querySelector(".mascot-tap");
-const parts=Object.fromEntries(["arm-left","arm-right","leg-left","leg-right","ear-left","ear-right","eyes"].map(k=>[k,svg.querySelector("."+k)]));
-const clamp=bound,rand=(a,b)=>a+Math.random()*(b-a);
-let x=innerWidth*.65,y=innerHeight*.4,vx=0,vy=0,tx=x,ty=y,clock=0,last=0,next=0,mode="swim",modeUntil=0,playUntil=0,idle=performance.now(),knocked=0,tailX=43,tailY=33,tailVX=0,tailVY=0,prevX=x,prevY=y,front=false,active=true,emotion="curious",emotionUntil=0,lastScroll=scrollY,peekAt=0,lastInteraction=performance.now(),curiosityCooldown=0,scrollUntil=0,scrollImpulse=0,scrollVelocity=0,scrollTarget=0,scrollLast=scrollY,scrollDirection=0,pose="float",poseUntil=0,spinStart=0,spinUntil=0,spinDirection=1,travelTarget=null,travelSide=1,peekRevealed=false,bodyTilt=0,bodyTiltVelocity=0,bodyBob=0,bodyBobVelocity=0,blinkNext=performance.now()+rand(2400,5700),blinkUntil=0;
-let lastTarget=null,perchSide=1,nextWorldScan=0,scrollWorldTarget=null,actionStart=0,actionDuration=0;
-const worldElements=sectionElements(document);
-function candidates(){return visibleTargets(worldElements,innerWidth,innerHeight).filter(x=>!x.el.closest('[aria-hidden="true"]'))}
-function cards(){return candidates().map(item=>item.el);}
-function setActive(enabled,persist=true){
- active=Boolean(enabled);
- layer.hidden=!active;
- toggle.textContent=active?'M · Pausar':'M · Ativar';
- toggle.setAttribute('aria-label',active?'Pausar a mascote M':'Reativar a mascote M');
- toggle.setAttribute('aria-pressed',String(active));
- if(persist){try{localStorage.setItem('m-world-enabled',active?'yes':'no')}catch{}}
- if(active){
-  last=performance.now();prevX=x;prevY=y;requestAnimationFrame(animate);
-  if(!m3d&&!m3dLoading)loadRealMascot();
- }
-}
-toggle.addEventListener('click',()=>setActive(!active));
-try{if(localStorage.getItem('m-world-enabled')==='no')setActive(false,false)}catch{}
+import {sectionElements,chooseTarget,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint} from './m-world-spatial.mjs?v=21';
+import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
 
-function mood(name,now,duration=1600){emotion=name;emotionUntil=now+duration;mascot.dataset.mood=name;}
-function choose(now){
- // Explore actual visible components instead of arbitrary viewport points.
- // Avoid choosing the same card immediately after leaving it.
- const all=candidates();
- const pool=all.length>1?all.filter(item=>item.el!==lastTarget):all;
- const selected=chooseTarget(pool.length?pool:all,{x:x+55,y:y+55},innerWidth,innerHeight,Math.random);
- travelTarget=selected?.el||null;
- lastTarget=travelTarget;
- peekAt=0;peekRevealed=false;spinUntil=0;
- perchSide=Math.random()<.5?-1:1;travelSide=perchSide;
- const roll=Math.random();
- const compact=innerWidth<720;
- const behavior=!travelTarget?'glide':compact?
-  (roll<.58?'perch':roll<.89?'orbit':'peek'):
-  (roll<.39?'peek':roll<.74?'perch':roll<.94?'orbit':'glide');
- mode=behavior;pose=behavior==='perch'?'curl':behavior==='peek'?'wave':
-  behavior==='orbit'?'glide':'float';
- actionStart=now;
- actionDuration=behavior==='peek'?rand(3600,4900):
-  behavior==='perch'?rand(4600,6000):
-  behavior==='orbit'?rand(4500,5700):rand(2500,3600);
- poseUntil=now+actionDuration;next=poseUntil;
- front=behavior!=='peek';
- if(travelTarget&&behavior!=='glide'){
-  const r=travelTarget.getBoundingClientRect();
-  const point=cardPerformance(r,innerWidth,innerHeight,behavior,perchSide,0);
-  tx=point.x;ty=point.y;front=!point.behind;
- }else{
-  tx=clamp(x+rand(-250,250),5,Math.max(5,innerWidth-125));
-  ty=clamp(y+rand(-145,145),55,Math.max(55,innerHeight-125));
+(() => {
+ 'use strict';
+ const motionPreference=matchMedia('(prefers-reduced-motion: reduce)');
+ const debugEnabled=new URLSearchParams(location.search).get('m-debug')==='1';
+ const layer=document.createElement('div');
+ layer.className='mascot-world-v9 m-world-loading';
+ layer.dataset.mOverlay='true';layer.setAttribute('aria-hidden','true');
+ const host=document.createElement('div');host.className='mascot-creature';layer.append(host);
+ const toggle=document.createElement('button');
+ toggle.type='button';toggle.className='m-world-toggle';toggle.dataset.mOverlay='true';
+ toggle.textContent='M · Loading';toggle.setAttribute('aria-label','Pause M');toggle.setAttribute('aria-pressed','true');
+ document.body.append(layer,toggle);
+ const life=new MLifeV16({seed:18421,personality:'balanced'});
+ const state={x:0,y:100,vx:0,vy:0,depth:1,depthTarget:1,mode:'float',phase:'hold',emotion:'neutral',emotionUntil:0,clock:0,targetId:null};
+ let avatar=null,loading=null,active=true,frameId=null,lastFrame=0,route=null,nextChoice=0,frozen=false,disposed=false;
+ let reducedMotion=motionPreference.matches,lastLife=null,renderFrame=null;
+ let metrics={size:innerWidth<720?208:272,footprint:{left:24,top:16,right:248,bottom:256,width:224,height:240},contact:{x:136,y:244}};
+ const stats={frames:0,layoutReads:0,layoutRefreshes:0,lastFrameMs:0,maxFrameMs:0,depthTransitions:0};
+ const cache={dirty:true,documents:[],texts:[],lastRead:0,version:0};
+ const geometryTransitions=new Map();
+ const ids=new WeakMap(),observedSurfaces=new Set();let nextId=0;
+ const idOf=element=>{if(!ids.has(element))ids.set(element,'surface-'+(++nextId));return ids.get(element);};
+ const overlap=(a,b,p=0)=>a.left<b.right+p&&a.right>b.left-p&&a.top<b.bottom+p&&a.bottom>b.top-p;
+ const rect=(r,p=0)=>({left:r.left-p,top:r.top-p,right:r.right+p,bottom:r.bottom+p,width:r.width+2*p,height:r.height+2*p,radius:Math.max(0,r.radius||0)});
+ const viewport=()=>({width:innerWidth,height:innerHeight,headerBottom:Math.max(0,document.querySelector('header.top')?.getBoundingClientRect().bottom||0)});
+ const ownNode=node=>Boolean(node?.closest?.('[data-m-overlay]'));
+ function mergeTextRects(rects){
+  const merged=[];
+  for(const item of rects.sort((a,b)=>a.top-b.top||a.left-b.left)){
+   const match=merged.find(r=>overlap(r,item,1)&&Math.min(r.right,item.right)-Math.max(r.left,item.left)>Math.min(r.width,item.width)*.45);
+   if(match){const l=Math.min(match.left,item.left),t=Math.min(match.top,item.top),r=Math.max(match.right,item.right),b=Math.max(match.bottom,item.bottom);Object.assign(match,{left:l,top:t,right:r,bottom:b,width:r-l,height:b-t});}
+   else merged.push({...item,radius:2});
+  }
+  return merged;
  }
- layer.classList.toggle('in-front',front);
- layer.style.clipPath='';
- layer.dataset.worldAction=mode;
- layer.dataset.worldTarget=travelTarget?.className?.toString().slice(0,120)||'corridor';
- mood(behavior==='peek'?'curious':behavior==='perch'?'sleepy':
-   behavior==='orbit'?'happy':'curious',now,actionDuration);
-}
-
-// Cut a real rectangular opening in the mascot layer while M is behind a card.
-// This avoids relying on the page's many independent stacking contexts.
-function updateOcclusion(){
- let occluder=null;
- const actor={x:x-12,y:y-14,size:142};
- if(travelTarget?.isConnected){
-  const rect=travelTarget.getBoundingClientRect();
-  if(activeOccluder(rect,actor,!front,3))occluder=rect;
- }
- // Protect readable content even when an unexpected resize or velocity
- // pushes a foreground gesture deep into a different card.
- if(!occluder&&mode!=='play'){
-  const middleX=x+60,middleY=y+60;
-  const overlap=candidates().find(({rect})=>
-   middleX>rect.left+25&&middleX<rect.right-25&&
-   middleY>rect.top+25&&middleY<rect.bottom-25);
-  if(overlap)occluder=overlap.rect;
- }
- layer.style.clipPath=occluder?exclusionPolygon(occluder,innerWidth,innerHeight,1):'';
- layer.dataset.depth=occluder?'behind':'front';
- layer.dataset.worldAction=mode;
- layer.dataset.worldTarget=travelTarget?.className?.toString().slice(0,120)||'corridor';
-}
-
-function animateTail(dt,px,py){
- const h=clamp(dt,.008,.033),dx=px-prevX,dy=py-prevY;prevX=px;prevY=py;
- // Tail follows actual body velocity with bounded lag; never stretches.
- const wantedX=clamp(38-dx*4.3+Math.sin(clock*1.2)*8,-22,60);
- const wantedY=clamp(32-dy*4.3+Math.cos(clock*1.1)*6,12,62);
- tailVX+=(wantedX-tailX)*26*h;tailVY+=(wantedY-tailY)*26*h;
- tailVX*=Math.exp(-10*h);tailVY*=Math.exp(-10*h);
- tailX=clamp(tailX+tailVX*h,-38,64);tailY=clamp(tailY+tailVY*h,9,68);
- const ex=109+tailX,ey=105+tailY,bend=Math.sin(clock*1.4-.7)*11;
- tail.setAttribute("d",`M 109 105 C ${(109+Math.max(4,tailX*.34)).toFixed(1)} ${(105+Math.max(0,tailY*.04)).toFixed(1)} ${(ex+bend).toFixed(1)} ${(ey-Math.max(7,Math.abs(tailY)*.5)).toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`);
- tip.setAttribute("cx",ex.toFixed(1));tip.setAttribute("cy",ey.toFixed(1));
-}
-function animate(now){
- if(!active)return;
- const dt=Math.min(.04,(now-(last||now))/1000);last=now;clock+=dt;
- // Continuous scroll-follow: measure the actual page offset on every frame.
- const currentScroll=window.scrollY,scrollDelta=currentScroll-scrollLast;
- scrollLast=currentScroll;
- if(!reduce&&Math.abs(scrollDelta)>.1){
-   scrollVelocity+=(clamp(scrollDelta/Math.max(dt,.008),-1800,1800)-scrollVelocity)*.35;
-   scrollDirection=Math.sign(scrollVelocity)||scrollDirection;
-   scrollUntil=now+900;
-   travelTarget=null;peekAt=0;peekRevealed=false;
-   mode="surf";front=false;spinUntil=0;next=now+2300;
-   layer.classList.remove("in-front");layer.style.clipPath="";
- }
- if(!reduce&&now<scrollUntil+1250){
-   const moving=now<scrollUntil;
-   const speed=clamp(Math.abs(scrollVelocity)/650,0,1);
-   mode="surf";spinUntil=0;front=!scrollWorldTarget;
-   layer.classList.toggle("in-front",front);
-   // Follow the actual components in the section passing through
-   // the viewport, rather than flying to an unrelated fixed coordinate.
-   const glide=clamp((scrollUntil+1250-now)/1250,0,1);
-   if(now>nextWorldScan){
-    nextWorldScan=now+520;
-    const r=scrollWorldTarget?.isConnected?scrollWorldTarget.getBoundingClientRect():null;
-    const stillVisible=r&&r.bottom>90&&r.top<innerHeight-85;
-    if(!stillVisible){
-     scrollWorldTarget=chooseTarget(candidates(),{x:x+55,y:y+55},innerWidth,innerHeight,Math.random)?.el||null;
+ function refreshLayout(now=performance.now()){
+  if(!cache.dirty||now-cache.lastRead<70)return;
+  cache.dirty=false;cache.lastRead=now;cache.version++;stats.layoutRefreshes++;
+  const sx=scrollX,sy=scrollY;
+  cache.documents=sectionElements(document).map(element=>{
+   const b=element.getBoundingClientRect();stats.layoutReads++;
+   const style=getComputedStyle(element);
+   return {id:idOf(element),element,left:b.left+sx,top:b.top+sy,right:b.right+sx,bottom:b.bottom+sy,width:b.width,height:b.height,radius:parseFloat(style.borderTopLeftRadius)||0,visible:style.display!=='none'&&style.visibility!=='hidden'&&Number(style.opacity)!==0};
+  }).filter(r=>r.width>40&&r.height>35&&r.visible);
+  for(const element of observedSurfaces)if(!cache.documents.some(r=>r.element===element)){resizeObserver.unobserve(element);observedSurfaces.delete(element);}
+  for(const {element}of cache.documents)if(!observedSurfaces.has(element)){resizeObserver.observe(element);observedSurfaces.add(element);}
+  const texts=[];
+  for(const root of [document.querySelector('main'),document.querySelector('footer')].filter(Boolean)){
+   const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+   let node;
+   while((node=walker.nextNode())){
+    const parent=node.parentElement;
+    if(!node.textContent.trim()||!parent||parent.closest('script,style,[hidden],[aria-hidden="true"]'))continue;
+    const range=document.createRange();range.selectNodeContents(node);
+    for(const b of range.getClientRects()){
+     stats.layoutReads++;
+     if(b.width<1||b.height<2)continue;
+     texts.push({left:b.left+sx-3,top:b.top+sy-3,right:b.right+sx+3,bottom:b.bottom+sy+3,width:b.width+6,height:b.height+6});
     }
    }
-   if(scrollWorldTarget?.isConnected){
-    travelTarget=scrollWorldTarget;
-    front=false;layer.classList.remove("in-front");
-    const r=scrollWorldTarget.getBoundingClientRect();
-    const compact=innerWidth<720;
-    const point=compact?
-     cardPerformance(r,innerWidth,innerHeight,'perch',scrollDirection>0?1:-1,.9):
-     placeAround(r,innerWidth,innerHeight,'orbit',scrollDirection>0?1:-1);
-    front=compact;layer.classList.toggle('in-front',front);
-    tx=clamp(point.x+Math.sin(clock*1.2)*(compact?8:25),8,Math.max(8,innerWidth-125));
-    ty=clamp(point.y-scrollDirection*(compact?12:38)*glide+
-     Math.sin(clock*2.6)*(compact?5:14),55,Math.max(55,innerHeight-125));
-   }else{
-    tx=clamp(innerWidth*.65,8,Math.max(8,innerWidth-125));
-    ty=clamp(innerHeight*(.43-scrollDirection*.20*glide),55,Math.max(55,innerHeight-125));
-   }
-   scrollVelocity*=Math.exp(-2.3*dt);
-   next=Math.max(next,scrollUntil+1300);
- }
-
- if(!document.hidden){
-  if(!reduce){
-   if(travelTarget&&!travelTarget.isConnected){travelTarget=null;next=0;front=true;}
-   if(travelTarget&&(mode==="peek"||mode==="perch"||mode==="orbit")){
-    const r=travelTarget.getBoundingClientRect();
-    if(r.bottom<44||r.top>innerHeight-30){
-     travelTarget=null;next=now+150;front=true;
-    }else{
-     const progress=clamp((now-actionStart)/Math.max(1,actionDuration),0,1);
-     const waypoint=cardPerformance(r,innerWidth,innerHeight,mode,travelSide,progress);
-     tx=waypoint.x;ty=waypoint.y;
-     // Mobile cards fill the viewport, so a full behind-mask would make
-     // M disappear. Keep perching/orbiting in the open space above them.
-     front=innerWidth<720&&mode!=='peek'?true:
-      innerWidth<720&&progress>.40?true:!waypoint.behind;
-     layer.classList.toggle("in-front",front);
-     // The character's movement is glued to the panel as it scrolls
-     // through the viewport. No center-of-card text traversal.
-    }
-   }
-   if(now>next&&now>playUntil&&now>scrollUntil+1250)choose(now);
-   if(mode==="peek"&&travelTarget&&!travelTarget.isConnected){travelTarget=null;peekAt=0;next=0;}
-   if(now>emotionUntil&&emotion!=="calm")mood("calm",now,3500);
-   if(now-idle>16000&&now-knocked>29000&&now>playUntil&&mode!=="peek"){
-    knocked=now;idle=now;mascot.classList.add("knocking");
-    setTimeout(()=>mascot.classList.remove("knocking"),800);
-   }
-   // Critically damped steering: speed tapers as M approaches a destination.
-   const dx=tx-x,dy=ty-y,distance=Math.hypot(dx,dy);
-   const maxSpeed=mode==="perch"?72:mode==="peek"?115:mode==="orbit"?125:
-     mode==="rest"?45:mode==="dash"?340:mode==="spin"?80:
-     mode==="play"?245:mode==="surf"?340:145;
-   const desiredSpeed=Math.min(maxSpeed,distance*(mode==="play"?2.7:mode==="dash"?3.1:1.55));
-   // A gentle curved approach makes exploration look like swimming, not a straight line.
-   const curve=mode==="swim"&&distance>85?Math.sin(clock*.65)*Math.min(22,distance*.07):0;
-   const desiredVX=distance>1?dx/distance*desiredSpeed+(-dy/distance)*curve:0;
-   const desiredVY=distance>1?dy/distance*desiredSpeed+(dx/distance)*curve:0;
-   const responsiveness=1-Math.exp(-(mode==="play"?4.8:mode==="surf"?6:mode==="rest"?1.5:2.8)*dt);
-   vx+=(desiredVX-vx)*responsiveness;vy+=(desiredVY-vy)*responsiveness;
-   x=clamp(x+vx*dt,0,Math.max(0,innerWidth-120));
-   y=clamp(y+vy*dt,42,Math.max(42,innerHeight-125));
-   if((x===0&&vx<0)||(x===Math.max(0,innerWidth-120)&&vx>0))vx=0;
-   if((y===42&&vy<0)||(y===Math.max(42,innerHeight-125)&&vy>0))vy=0;
-  }else{x=clamp(14,0,innerWidth);y=clamp(innerHeight-145,50,innerHeight);}
-  // Body inertia is a damped spring, so the head and torso follow turns smoothly.
-  const targetTilt=reduce?0:clamp(vx*.065+vy*.035+Math.sin(clock*.7)*1.4,-18,18);
-  const targetBob=reduce?0:Math.sin(clock*(mode==="surf"?3.1:mode==="dash"?3.6:1.6))*
-    (mode==="surf"?9:mode==="dash"?6:mode==="perch"?1.6:pose==="curl"?2:4);
-  const step=Math.max(.001,Math.min(.035,dt));
-  bodyTiltVelocity+=(targetTilt-bodyTilt)*42*step;
-  bodyTiltVelocity*=Math.exp(-12*step);
-  bodyTilt+=bodyTiltVelocity*step;
-  bodyBobVelocity+=(targetBob-bodyBob)*35*step;
-  bodyBobVelocity*=Math.exp(-11*step);
-  bodyBob+=bodyBobVelocity*step;
-  scrollImpulse*=Math.exp(-3.8*step);
-  const bob=bodyBob,tilt=bodyTilt;
-  const spinning=!reduce&&now<spinUntil&&now>=spinStart;
-  const spinProgress=spinning?clamp((now-spinStart)/1500,0,1):0;
-  const spinEase=spinProgress*spinProgress*(3-2*spinProgress);
-  const rotation=tilt+(spinning?spinDirection*360*spinEase:0);
-  const stretch=reduce?1:mode==="dash"?1.07:mode==="surf"?1.035:pose==="curl"?.94:1;
-  mascot.style.transform=`translate3d(${x.toFixed(1)}px,${(y+bob).toFixed(1)}px,0) rotate(${rotation.toFixed(1)}deg) scale(${stretch.toFixed(3)})`;
-  updateOcclusion();
-  if(m3d){
-   const focusRect=travelTarget?.isConnected?travelTarget.getBoundingClientRect():null;
-   const focus=focusRect?{
-    x:clamp((focusRect.left+focusRect.width*.5-(x+60))/300,-1,1),
-    y:clamp(((y+60)-(focusRect.top+Math.min(110,focusRect.height*.25)))/250,-1,1)
-   }:{x:clamp(vx/210,-1,1),y:clamp(-vy/230,-1,1)};
-   m3d.update(dt,{mode,emotion,vx,vy,clock,reducedMotion:reduce,
-    attention:focus,nearCard:Boolean(focusRect),behind:!front});
   }
-  else animateTail(dt,x,y+bob);
-  const energy=mode==="surf"?5:mode==="dash"?5.8:mode==="play"?4:
-    mode==="perch"?.85:pose==="curl"?.8:2;
-  const t=clock*energy,swim=Math.sin(t),kick=Math.sin(t+Math.PI*.8);
-  const wave=pose==="wave"&&mode!=="surf";
-  const curl=pose==="curl"&&mode!=="surf";
-  const dash=mode==="dash"||mode==="surf";
-  const armL=curl?32:wave?-42+Math.sin(clock*5)*19:dash?-36+swim*12:-15+swim*13;
-  const armR=curl?-32:wave?13+Math.sin(clock*5+1.8)*12:dash?36-kick*12:15-kick*13;
-  const legL=curl?-35:dash?18+kick*18:7+kick*10;
-  const legR=curl?35:dash?-18-swim*18:-7-swim*10;
-  parts["arm-left"].style.transform=`rotate(${armL.toFixed(1)}deg)`;
-  parts["arm-right"].style.transform=`rotate(${armR.toFixed(1)}deg)`;
-  parts["leg-left"].style.transform=`rotate(${legL.toFixed(1)}deg)`;
-  parts["leg-right"].style.transform=`rotate(${legR.toFixed(1)}deg)`;
-  parts["ear-left"].style.transform=`rotate(${(Math.sin(clock*2.1)*5).toFixed(1)}deg)`;
-  parts["ear-right"].style.transform=`rotate(${(-Math.sin(clock*2.1+.8)*5).toFixed(1)}deg)`;
-  if(!reduce&&now>blinkNext){blinkUntil=now+130;blinkNext=now+rand(2300,6000);}
-  parts.eyes.style.transform=now<blinkUntil?"scaleY(.13)":"scaleY(1)";
- }
- requestAnimationFrame(animate);
-}
-function play(px,py){
- if(reduce)return;
- idle=performance.now();lastInteraction=idle;travelTarget=null;peekAt=0;playUntil=idle+1800;mode="play";spinUntil=0;next=playUntil;mood("excited",idle,1900);
- tx=clamp(x+(x-px>0?1:-1)*rand(90,200),5,Math.max(5,innerWidth-125));
- ty=clamp(y+rand(-140,140),50,Math.max(50,innerHeight-125));
- front=true;layer.classList.add("in-front");
-}
-// M is non-blocking: only clicks on unused page space near her silhouette
-// count as interactions. Links, project cards and navigation always win.
-window.addEventListener('pointerup',event=>{
- if(!active||reduce||interactiveTarget(event.target)||!insideMascot(event.clientX,event.clientY,x,y))return;
- if(travelTarget&&!front&&travelTarget.contains(event.target))return;
- play(event.clientX,event.clientY);
-},{passive:true});
-window.addEventListener("pointermove",e=>{
- if(!active||reduce||interactiveTarget(e.target)||e.pointerType==="touch")return;
- const now=performance.now(),d=Math.hypot(e.clientX-(x+55),e.clientY-(y+55));
- if(d<65&&now>playUntil&&mode!=="peek"&&front)play(e.clientX,e.clientY);
- else if(d<180&&now>playUntil&&mode!=="peek"&&now>next-800&&now>curiosityCooldown){
-  curiosityCooldown=now+2200;lastInteraction=now;mode="curious";
-  travelTarget=null;peekAt=0;front=true;layer.classList.add("in-front");
-  tx=clamp(e.clientX-80,8,Math.max(8,innerWidth-125));
-  ty=clamp(e.clientY-105,55,Math.max(55,innerHeight-125));
-  next=now+1900;mood("curious",now,1500);
- }
-},{passive:true});
-window.addEventListener("scroll",()=>{lastInteraction=performance.now();idle=lastInteraction;},{passive:true});
-window.addEventListener("resize",()=>{
- next=0;travelTarget=null;scrollWorldTarget=null;peekAt=0;
- layer.style.clipPath='';
- if(innerWidth<720){
-  // A viewport switch must never teleport M into a reading card.
-  x=8;y=Math.min(Math.max(68,innerHeight*.19),Math.max(68,innerHeight-130));
-  vx=0;vy=0;tx=x;ty=y;prevX=x;prevY=y;
-  front=false;layer.classList.remove('in-front');
- }
-});
-document.addEventListener("visibilitychange",()=>{last=performance.now();prevX=x;prevY=y;});
-if(active){
- const now=performance.now();
- if(innerWidth>=960&&!reduce){
-  // A welcoming first appearance in the hero's open corridor, before
-  // she begins exploring the real panels and depth layers.
-  x=innerWidth*.545;y=innerHeight*.46;prevX=x;prevY=y;
-  tx=x+10;ty=y-8;mode='swim';pose='float';front=true;
-  layer.classList.add('in-front');travelTarget=null;next=now+2600;
-  mood('curious',now,2600);
- }else{
-  if(innerWidth<720){
-   x=8;y=Math.min(Math.max(68,innerHeight*.19),Math.max(68,innerHeight-130));
-   prevX=x;prevY=y;tx=x;ty=y;
+  const controls=[];
+  for(const element of document.querySelectorAll('main input,main textarea,main select,main button,main a.btn,main [role="button"]')){
+   const b=element.getBoundingClientRect();stats.layoutReads++;
+   if(b.width>0)controls.push({...rect(b,4),left:b.left+sx-4,top:b.top+sy-4,right:b.right+sx+4,bottom:b.bottom+sy+4,radius:Math.min(b.height/2+4,(parseFloat(getComputedStyle(element).borderRadius)||0)+4)});
   }
-  choose(now);
+  cache.texts=[...mergeTextRects(texts),...controls];
  }
- requestAnimationFrame(animate);
-}
-if(active)loadRealMascot();
+ const onScreen=(r,v,p=0)=>r.right>-p&&r.left<v.width+p&&r.bottom>v.headerBottom-p&&r.top<v.height+p;
+ function worldSnapshot(now=performance.now()){
+  for(const element of geometryTransitions.keys())if(!element.isConnected)geometryTransitions.delete(element);
+  if(geometryTransitions.size){cache.dirty=true;cache.lastRead=0;}
+  refreshLayout(now);
+  const v=viewport(),sx=scrollX,sy=scrollY;
+  const project=r=>({...r,left:r.left-sx,right:r.right-sx,top:r.top-sy,bottom:r.bottom-sy});
+  const surfaces=cache.documents.map(project).filter(r=>onScreen(r,v,metrics.size));
+  const protectedRects=cache.texts.map(project).filter(r=>onScreen(r,v,metrics.size));
+  for(const element of [document.querySelector('header.top'),toggle].filter(Boolean)){
+   const b=element.getBoundingClientRect();stats.layoutReads++;
+   if(b.width)protectedRects.push({...rect(b,4),radius:Math.min(16,b.height/2)});
+  }
+  return {viewport:v,surfaces,protectedRects,version:cache.version};
+ }
+ function clampActor(position,v,allowExit=false){
+  const f=metrics.footprint;
+  if(allowExit)return position;
+  return {x:bound(position.x,8-f.left,Math.max(8-f.left,v.width-f.right-8)),y:bound(position.y,8-f.top,Math.max(8-f.top,v.height-f.bottom-8))};
+ }
+ function initialPosition(world,preferred){
+  const f=metrics.neutralFootprint||metrics.footprint,g=metrics.footprint,v=world.viewport;
+  const limits={left:Math.max(8-f.left,8-g.left),right:Math.min(v.width-f.right-8,v.width-g.right-8),top:Math.max(v.headerBottom+5-f.top,8-g.top),bottom:Math.min(v.height-f.bottom-8,v.height-g.bottom-8)};
+  limits.right=Math.max(limits.left,limits.right);limits.bottom=Math.max(limits.top,limits.bottom);
+  const clamp=p=>({x:bound(p.x,limits.left,limits.right),y:bound(p.y,limits.top,limits.bottom)});
+  const origin=clamp(preferred);let best=origin,bestScore=Infinity;
+  const consider=p=>{
+   const a={left:p.x+f.left,right:p.x+f.right,top:p.y+f.top,bottom:p.y+f.bottom};
+   let area=0;
+   for(const r of world.protectedRects)area+=Math.max(0,Math.min(a.right,r.right)-Math.max(a.left,r.left))*Math.max(0,Math.min(a.bottom,r.bottom)-Math.max(a.top,r.top));
+   const score=area+Math.hypot(p.x-origin.x,p.y-origin.y)*.002;
+   if(score<bestScore){best=p;bestScore=score;}
+  };
+  consider(origin);
+  for(let y=limits.top;y<=limits.bottom;y+=8)
+   for(let x=limits.left;x<=limits.right;x+=12)consider({x,y});
+  return best;
+ }
+ function startRoute(now,world,preferred=null,requestedElement=null){
+  const visible=world.surfaces.filter(s=>onScreen(s,world.viewport)&&s.height>65&&s.width>95);
+  const remaining=visible.filter(s=>s.id!==state.targetId);
+  let selected=requestedElement?visible.find(s=>s.element===requestedElement):null;
+  const candidates=(remaining.length?remaining:visible).map(s=>({el:s.element,rect:s}));
+  const choice=selected?{el:selected.element,rect:selected}:chooseTarget(candidates,{x:state.x+metrics.size/2,y:state.y+metrics.size/2},world.viewport.width,world.viewport.height,()=>life.random());
+  selected=choice?.rect;
+  const kinds=preferred?[preferred]:[life.random()<.45?'peek':'perch','orbit','perch','peek'];
+  route=null;
+  for(const candidate of selected?[selected,...visible.filter(s=>s.id!==selected.id)]:[]){
+   selected=candidate;
+   for(const kind of [...new Set(kinds)]){
+    const side=life.random()<.5?-1:1;
+    const plan=planCardAction({allowExternalPortal:true,rect:selected,viewport:world.viewport,metrics,kind,side,start:{x:state.x,y:state.y,depth:state.depthTarget},depth:state.depthTarget,surfaces:world.surfaces,protectedRects:world.protectedRects});
+    if(plan.available){route={plan,side,elapsed:0,element:selected.element,version:world.version,documentRect:{left:selected.left+scrollX,top:selected.top+scrollY,width:selected.width,height:selected.height}};state.mode=plan.kind;state.targetId=selected.id;break;}
+   }
+   if(route)break;
+  }
+  if(!route){
+   const f=metrics.footprint;
+   const points=[{x:8-f.left,y:world.viewport.headerBottom+20-f.top},{x:world.viewport.width-f.right-10,y:world.viewport.height-f.bottom-68},{x:world.viewport.width*.55-metrics.size/2,y:world.viewport.height*.45-metrics.size/2}];
+   const score=p=>{
+    const a=actorRect(p,metrics);let hidden=0;
+    for(let y=0;y<5;y++)for(let x=0;x<5;x++)if(!visibleAtPoint({x:a.left+(x+.5)*a.width/5,y:a.top+(y+.5)*a.height/5},a,state.depthTarget,world.surfaces,world.protectedRects))hidden++;
+    return hidden;
+   };
+   points.sort((a,b)=>score(a)-score(b));
+   const target=clampActor(points[0],world.viewport),escape=state.depthTarget<0;
+   const left=Math.min(0,...world.surfaces.map(r=>r.left))-f.right-16,right=Math.max(world.viewport.width,...world.surfaces.map(r=>r.right))-f.left+16;
+   const egress={x:Math.abs(state.x-left)<Math.abs(state.x-right)?left:right,y:state.y};
+   route={free:true,escape,reentry:escape,egress,start:{x:state.x,y:state.y},target,elapsed:0,duration:3200};
+   state.mode='float';state.targetId=null;nextChoice=now+4200;
+  }
+ }
+ function advanceRoute(dt,now,world){
+  if(!route&&now<nextChoice)return {x:state.x,y:state.y,depth:state.depthTarget,phase:'hold'};
+  if(!route||(route.free&&!route.escape&&now>=nextChoice))startRoute(now,world);
+  if(route?.free){
+   if(route.escape){
+    const clear=!world.surfaces.some(r=>overlap(actorRect(state,metrics),r,6));
+    if(clear&&Math.abs(state.depth-1)<.08&&Math.hypot(state.x-route.egress.x,state.y-route.egress.y)<6){
+     route.escape=false;route.start={x:state.x,y:state.y};route.elapsed=0;nextChoice=now+4200;
+    }else return {...route.egress,depth:1,phase:'recovery',portal:null,allowViewportExit:true};
+   }
+   route.elapsed+=dt*1000;const u=bound(route.elapsed/route.duration,0,1),e=u*u*(3-2*u);
+   return {x:route.start.x+(route.target.x-route.start.x)*e,y:route.start.y+(route.target.y-route.start.y)*e,depth:1,phase:u<1?'approach':'hold',portal:null,allowViewportExit:route.reentry};
+  }
+  const live=world.surfaces.find(s=>s.element===route?.element);
+  if(!live||!onScreen(live,world.viewport)||!route.element.isConnected){route=null;nextChoice=now+150;return {x:state.x,y:state.y,depth:state.depthTarget,phase:'hold'};}
+  if(world.version!==route.version){
+   const current={left:live.left+scrollX,top:live.top+scrollY,width:live.width,height:live.height};
+   const reflow=Object.keys(current).some(key=>Math.abs(current[key]-route.documentRect[key])>.5);
+   if(reflow){
+    const plan=planCardAction({allowExternalPortal:true,rect:live,viewport:world.viewport,metrics,kind:route.plan.requestedKind||route.plan.kind,side:route.side||1,start:{x:state.x,y:state.y,depth:state.depthTarget},depth:state.depthTarget,surfaces:world.surfaces,protectedRects:world.protectedRects});
+    if(!plan.available){route=null;nextChoice=now+150;return {x:state.x,y:state.y,depth:state.depthTarget,phase:'hold'};}
+    route.plan=plan;route.elapsed=0;route.documentRect=current;state.mode=plan.kind;
+   }
+   route.version=world.version;
+  }
+  // Scroll translates the cached document rectangle continuously; refresh plan
+  // geometry without restarting the acting clock or sampling layout each frame.
+  const delta={x:live.left-route.plan.rect.left,y:live.top-route.plan.rect.top};
+  const sample=sampleCardAction(route.plan,bound(route.elapsed/Math.max(1,route.plan.duration),0,1));
+  sample.x+=delta.x;sample.y+=delta.y;
+  const reachable=clampActor(sample,world.viewport);
+  if(!sample.allowViewportExit&&Math.hypot(reachable.x-sample.x,reachable.y-sample.y)>2){route=null;nextChoice=now;return {x:state.x,y:state.y,depth:state.depthTarget,phase:'hold'};}
+  if(state.mode==='perch'&&sample.phase==='hold'&&!sample.portalHold){sample.x+=route.plan.metrics.contact.x-metrics.contact.x;sample.y+=route.plan.metrics.contact.y-metrics.contact.y;}
+  if(sample.portal?.rect)sample.portal={...sample.portal,rect:{...sample.portal.rect,left:sample.portal.rect.left+delta.x,right:sample.portal.rect.right+delta.x,top:sample.portal.rect.top+delta.y,bottom:sample.portal.rect.bottom+delta.y}};
+  const actual=actorRect(state,metrics),resolved=resolveDepth(actual,sample.depth,world.surfaces,state.depthTarget,sample.portal);
+  const distance=Math.hypot(sample.x-state.x,sample.y-state.y);
+  const arrivedInside=actual.left>=0&&actual.right<=world.viewport.width&&actual.top>=0&&actual.bottom<=world.viewport.height;
+  const waiting=(sample.portalHold&&(!resolved.portalClear||Math.abs(state.depth-resolved.depth)>.03||distance>7))||(sample.waitForArrival&&(distance>4||!arrivedInside));
+  if(!waiting)route.elapsed+=dt*1000;
+  if(route.elapsed>=route.plan.duration&&Math.hypot(sample.x-state.x,sample.y-state.y)<6&&Math.abs(state.depth-sample.depth)<.08){route=null;nextChoice=now+600;}
+  return sample;
+ }
+ function updateLife(dt,world){
+  lastLife=life.step(dt,{mode:state.mode==='float'?'float':'swim',reducedMotion,manualFace:performance.now()<state.emotionUntil});
+  if(lastLife.action){
+   state.emotion=lastLife.action.expression||'neutral';state.emotionUntil=performance.now()+1900;
+   if(!route||(route.free&&!route.escape&&state.phase==='hold'))startRoute(performance.now(),world,lastLife.action.mode==='peek'?'peek':lastLife.action.mode==='swim'?'orbit':null);
+  }
+  if(performance.now()>state.emotionUntil)state.emotion=state.mode==='peek'?'curious':state.mode==='perch'?'neutral':'neutral';
+ }
+ function renderCurrent(world,dt=0){
+  const f=metrics.footprint,ratio=devicePixelRatio||1;
+  host.style.width=metrics.size+'px';host.style.height=metrics.size+'px';
+  const drawX=Math.round(state.x*ratio)/ratio,drawY=Math.round(state.y*ratio)/ratio;
+  host.style.transform='translate3d('+drawX+'px,'+drawY+'px,0)';
+  const actor={left:drawX,top:drawY,width:metrics.size,height:metrics.size};
+  const bounds=actorRect({x:drawX,y:drawY},metrics);
+  const spatial={actor,surfaces:world.surfaces.map(({element,...r})=>r),protectedRects:world.protectedRects,depth:state.depth};
+  renderFrame={...spatial,bounds};
+  avatar.setSpatialFrame(spatial);
+  const target=world.surfaces.find(s=>s.id===state.targetId);
+  const gaze=lastLife?.attention==='pointer'?lastLife.gaze:target?{x:bound((target.left+target.width*.5-(state.x+(f.left+f.right)/2))/260,-1,1),y:bound(((state.y+(f.top+f.bottom)*.4)-(target.top+Math.min(100,target.height*.3)))/220,-1,1)}:lastLife?.gaze||{x:0,y:0};
+  if(frozen)avatar.render();
+  else avatar.update(dt,{mode:state.mode,activity:state.mode==='perch'&&state.phase==='hold'?'perch':state.mode,emotion:reducedMotion?'neutral':state.emotion,vx:state.vx,vy:state.vy,clock:state.clock,reducedMotion,attention:gaze,nearCard:Boolean(target),depth:state.depth});
+  layer.dataset.depth=state.depth<0?'behind':'front';layer.dataset.worldAction=state.mode;layer.dataset.phase=state.phase;
+  layer.dataset.worldTarget=state.targetId||'corridor';layer.dataset.occluders=String(world.surfaces.filter(r=>overlap(bounds,r)).length);
+  layer.dataset.lifeMood=lastLife?.mood||'resting';
+ }
+ function tick(now){
+  frameId=null;if(disposed||!active||!avatar||document.hidden||frozen)return;
+  const started=performance.now(),dt=bound((now-(lastFrame||now))/1000,0,.05);lastFrame=now;
+  metrics=avatar.getMetrics();state.clock+=dt;
+  const world=worldSnapshot(now);updateLife(dt,world);
+  if(reducedMotion){Object.assign(state,clampActor({x:world.viewport.width-metrics.footprint.right-12,y:world.viewport.height-metrics.footprint.bottom-66},world.viewport),{vx:0,vy:0,mode:'rest',phase:'hold'});}
+  else{
+   const point=advanceRoute(dt,now,world),dx=point.x-state.x,dy=point.y-state.y;
+   const perchHold=state.mode==='perch'&&point.phase==='hold'&&!point.portalHold;
+   const attached=perchHold&&(route?.attached||Math.hypot(point.x-state.x,point.y-state.y)<3);
+   if(route)route.attached=Boolean(attached);
+   const maxSpeed=state.mode==='peek'?110:state.mode==='perch'?120:150;
+   if(attached){state.vx=(point.x-state.x)/Math.max(.008,dt);state.vy=(point.y-state.y)/Math.max(.008,dt);state.x=point.x;state.y=point.y;}
+   else{
+    const distance=Math.hypot(dx,dy),speed=Math.min(maxSpeed,distance*2.5),response=1-Math.exp(-4.8*dt);
+    state.vx+=((distance>1?dx/distance*speed:0)-state.vx)*response;state.vy+=((distance>1?dy/distance*speed:0)-state.vy)*response;
+    Object.assign(state,clampActor({x:state.x+state.vx*dt,y:state.y+state.vy*dt},world.viewport,point.allowViewportExit));
+   }
+   state.phase=point.phase;
+   const previous=state.depthTarget,resolved=resolveDepth(actorRect(state,metrics),point.depth,world.surfaces,previous,point.portal);
+   state.depthTarget=resolved.depth;if(previous!==resolved.depth)stats.depthTransitions++;
+  }
+  state.depth+=(state.depthTarget-state.depth)*(1-Math.exp(-9*dt));
+  renderCurrent(world,dt);stats.frames++;stats.lastFrameMs=performance.now()-started;stats.maxFrameMs=Math.max(stats.maxFrameMs,stats.lastFrameMs);
+  if(!reducedMotion)schedule();
+ }
+ function schedule(){if(frameId===null&&active&&avatar&&!document.hidden&&!frozen)frameId=requestAnimationFrame(tick);}
+ function invalidate(){cache.dirty=true;if(reducedMotion)schedule();}
+ function setActive(enabled,persist=true){
+  active=Boolean(enabled);layer.hidden=!active;
+  toggle.textContent=active?(avatar?'M · Pause':'M · Loading'):'M · Resume';
+  toggle.setAttribute('aria-label',active?'Pause M':'Resume M');toggle.setAttribute('aria-pressed',String(active));
+  if(persist)try{localStorage.setItem('m-world-enabled',active?'yes':'no');}catch{}
+  if(!active){if(frameId!==null)cancelAnimationFrame(frameId);frameId=null;life.setEnabled(false);}
+  else{life.setEnabled(!reducedMotion);lastFrame=0;if(!avatar)load();else if(frozen)renderCurrent(worldSnapshot());else schedule();}
+ }
+ async function load(){
+  if(loading||avatar)return loading;
+  loading=(async()=>{
+   try{
+    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=21');
+    avatar=await mountMWorld3D(host,{onProgress(percent){layer.dataset.loadProgress=String(percent);if(active)toggle.textContent='M · '+percent+'%';}});
+    metrics=avatar.getMetrics();cache.dirty=true;cache.lastRead=0;
+    const world=worldSnapshot();
+    const hero=world.surfaces.find(s=>s.element.matches('.hero-visual'));
+    const initial=hero?{x:hero.left-metrics.contact.x*.85,y:hero.top+hero.height*.45-metrics.size*.5}:{x:world.viewport.width-metrics.size,y:world.viewport.height-metrics.size-80};
+    Object.assign(state,initialPosition(world,initial));state.depth=state.depthTarget=1;
+    layer.classList.remove('m-world-loading');layer.classList.add('m-world-3d');layer.dataset.model='V6 GLB HQ';
+    const diag=avatar.getDiagnostics();layer.dataset.detailMaps=String(diag.detailMaps);layer.dataset.renderPixels=(diag.renderPixels||[]).join('x');
+    layer.dataset.rigBones=String(diag.rigBones||diag.bones||diag.boneCount||0);layer.dataset.skinSets=String(diag.skinSets||0);
+    setActive(active,false);renderCurrent(world,0);nextChoice=performance.now()+2600;
+   }catch(error){
+    layer.dataset.model='Unavailable';layer.dataset.error=String(error.message||error);layer.classList.remove('m-world-loading');layer.hidden=true;
+    toggle.textContent='M · Retry';toggle.setAttribute('aria-label','Retry loading M');
+    console.error('[M World] Original 3D mascot could not be initialized',error);
+   }finally{loading=null;}
+  })();
+  return loading;
+ }
+ toggle.addEventListener('click',()=>{if(layer.dataset.error&&!avatar){delete layer.dataset.error;active=true;layer.hidden=false;load();}else setActive(!active);});
+ window.addEventListener('scroll',()=>{life.signal('scroll',{delta:bound((scrollY-(cache.lastScroll??scrollY))/160,-1,1)});cache.lastScroll=scrollY;if(reducedMotion)schedule();},{passive:true});
+ window.addEventListener('resize',()=>{invalidate();route=null;nextChoice=0;},{passive:true});
+ window.visualViewport?.addEventListener('resize',invalidate,{passive:true});
+ document.addEventListener('load',event=>{if(event.target?.tagName==='IMG')invalidate();},true);
+ document.fonts?.ready.then(invalidate);
+ function geometryTransition(event){
+  const element=event.target;
+  if(ownNode(element)||!element.closest?.('main,footer,header')||!['transform','translate','rotate','scale'].includes(event.propertyName))return;
+  const properties=geometryTransitions.get(element)||new Set();
+  if(event.type==='transitionrun')properties.add(event.propertyName);else properties.delete(event.propertyName);
+  if(properties.size)geometryTransitions.set(element,properties);else geometryTransitions.delete(element);
+  cache.lastRead=0;invalidate();
+ }
+ for(const type of ['transitionrun','transitionend','transitioncancel'])document.addEventListener(type,geometryTransition,true);
+ const resizeObserver=new ResizeObserver(invalidate);if(document.querySelector('main'))resizeObserver.observe(document.querySelector('main'));
+ const mutationObserver=new MutationObserver(records=>{if(records.some(r=>!ownNode(r.target instanceof Element?r.target:r.target.parentElement)))invalidate();});
+ mutationObserver.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','style']});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){if(frameId!==null)cancelAnimationFrame(frameId);frameId=null;}else{lastFrame=0;schedule();}});
+ motionPreference.addEventListener('change',event=>{reducedMotion=event.matches;life.setEnabled(active&&!reducedMotion);route=null;nextChoice=0;invalidate();schedule();});
+ window.addEventListener('pointermove',event=>{
+  if(!active||!avatar||reducedMotion||event.pointerType==='touch')return;
+  const a=actorRect(state,metrics),dx=event.clientX-(a.left+a.width*.5),dy=event.clientY-(a.top+a.height*.4);
+  if(Math.hypot(dx,dy)<360)life.signal('pointer',{x:dx/220,y:-dy/220});else life.signal('leave');
+ },{passive:true});
+ window.addEventListener('pointerleave',()=>life.signal('leave'),{passive:true});
+ window.addEventListener('pointerup',event=>{
+  if(!active||!avatar||reducedMotion||interactiveTarget(event.target))return;
+  const world=worldSnapshot(),a=actorRect(state,metrics);
+  if(!visibleAtPoint({x:event.clientX,y:event.clientY},a,state.depth,world.surfaces,world.protectedRects))return;
+  life.signal('tap');state.emotionUntil=0;schedule();
+ },{passive:true});
+ function snapshot(){
+  if(avatar)metrics=avatar.getMetrics();
+  const world=worldSnapshot();
+  return {ready:Boolean(avatar),active,error:layer.dataset.error||null,state:{...state},acting:{attached:Boolean(route?.attached),externalPortal:Boolean(route?.plan?.externalPortal)},metrics,actor:actorRect(renderFrame?{x:renderFrame.actor.left,y:renderFrame.actor.top}:state,metrics),
+   surfaces:world.surfaces.map(({element,...r})=>r),protectedRects:world.protectedRects,renderer:avatar?.getDiagnostics(),life:lastLife,stats:{...stats},frozen};
+ }
+ if(debugEnabled)window.MWorld={
+  snapshot,
+  async stepTo({selector='.card',index=0,kind='peek',side=1,progress=.5,depth,instant=true}={}){
+   if(!avatar)await load();if(!avatar)throw new Error('Original M is not ready');
+   metrics=avatar.getMetrics();frozen=true;if(frameId!==null)cancelAnimationFrame(frameId);frameId=null;
+   cache.dirty=true;cache.lastRead=0;const world=worldSnapshot();
+   const element=document.querySelectorAll(selector)[index],surface=world.surfaces.find(s=>s.element===element);
+   if(!surface)throw new Error('The selected component is not visible');
+   const plan=planCardAction({allowExternalPortal:true,rect:surface,viewport:world.viewport,metrics,kind,side,start:{x:state.x,y:state.y,depth:state.depthTarget},depth:state.depthTarget,surfaces:world.surfaces,protectedRects:world.protectedRects});
+   if(!plan.available)return {...snapshot(),plan:{available:false,reason:plan.reason}};
+   const point=sampleCardAction(plan,progress);
+   if(instant){state.x=point.x;state.y=point.y;state.vx=state.vy=0;}
+   state.mode=plan.kind;state.phase=point.phase;state.targetId=surface.id;state.depth=state.depthTarget=depth===undefined?point.depth:depth;
+   setActive(true,false);renderCurrent(world,0);
+   return {...snapshot(),plan:{available:plan.available,kind:plan.kind,requestedKind:kind,duration:plan.duration,portal:plan.portal,phase:point.phase}};
+  },
+  async playAction({selector='.card',index=0,kind='peek'}={}){
+   if(!avatar)await load();if(!avatar)throw new Error('Original M is not ready');
+   metrics=avatar.getMetrics();frozen=false;cache.dirty=true;cache.lastRead=0;const world=worldSnapshot(),element=document.querySelectorAll(selector)[index];
+   if(!element)throw new Error('Unknown diagnostic component');
+   startRoute(performance.now(),world,kind,element);lastFrame=0;setActive(true,false);schedule();
+   return {...snapshot(),plan:{available:Boolean(route&&!route.free),kind:route?.plan?.kind||'float',requestedKind:kind,targetId:state.targetId}};
+  },
+  setDepth(value){
+   if(!avatar||!frozen)throw new Error('Freeze a real pose with stepTo before setting diagnostic depth');
+   metrics=avatar.getMetrics();state.depth=state.depthTarget=Number(value)<0?-1:1;renderCurrent(worldSnapshot(),0);return snapshot();
+  },
+  resume(){frozen=false;nextChoice=0;schedule();},
+  setActive,
+  dispose(){disposed=true;if(frameId!==null)cancelAnimationFrame(frameId);resizeObserver.disconnect();mutationObserver.disconnect();for(const type of ['transitionrun','transitionend','transitioncancel'])document.removeEventListener(type,geometryTransition,true);avatar?.dispose();layer.remove();toggle.remove();}
+ };
+ try{if(localStorage.getItem('m-world-enabled')==='no')active=false;}catch{}
+ life.setEnabled(active&&!reducedMotion);setActive(active,false);
 })();
