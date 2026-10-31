@@ -71,3 +71,60 @@ test('missing eye clips disable only their own controls',()=>{
  assert.equal(rig.blink('right',100),false);
  assert.equal(rig.setExpression('neutral'),true);
 });
+
+function hatFixture(){
+ const f=fixture(),dict=f.l.morphTargetDictionary,knots=[['Pre_Close',.02],['Close_10',.1],['Close_20',.2],['Close_30',.3],['Close_40',.4],['Half_Closed',.5],['Closed',1]];
+ const samples=[[0,0],[.4,0],[.42,.02],[.44,.1],[.46,.2],[.48,.3],[.5,.4],[.52,.5],[.56,1],[.62,1],[.86,0],[2,0]];
+ const weights=control=>{
+  const result=new Float32Array(7);let prior=0,priorName=null;
+  for(const [name,knot]of knots){
+   if(control<=knot){const alpha=(control-prior)/(knot-prior);if(priorName)result[dict[priorName]]=1-alpha;result[dict[name]]=alpha;return result;}
+   prior=knot;priorName=name;
+  }
+  result[dict.Closed]=1;return result;
+ };
+ for(const clip of f.clips){
+  const track=clip.tracks[0];track.times=samples.map(p=>p[0]);track.values=new Float32Array(track.times.length*7);
+  track.createInterpolant=()=>({evaluate(t){
+   if(t<=0)return weights(0);
+   for(let i=1;i<samples.length;i++){const [tb,b]=samples[i],[ta,a]=samples[i-1];if(t<=tb)return weights(a+(b-a)*(t-ta)/(tb-ta));}
+   return weights(0);
+  }});
+ }
+ return {...f,knots};
+}
+test('seven-key manual half closure maps to Half_Closed instead of the source open hold',()=>{
+ const f=hatFixture(),rig=createFacialV6(f.root,f.clips);rig.setAutoBlink(false);rig.setIntensity(1);
+ assert.equal(rig.diagnostics().leftBlinkControl,'seven-key-hat');
+ rig.setBlink('left',.5);rig.update(.1,100);
+ assert.ok(f.l.morphTargetInfluences[f.l.morphTargetDictionary.Half_Closed]>.99999);
+ assert.ok(f.l.morphTargetInfluences[f.l.morphTargetDictionary.Closed]<.00001);
+ assert.ok(f.r.morphTargetInfluences.every(v=>v===0));
+ assert.equal(f.body.morphTargetInfluences[0],.75);
+});
+test('manual closure reconstructs every actual HAT knot and reaches full closure',()=>{
+ const f=hatFixture(),rig=createFacialV6(f.root,f.clips);rig.setAutoBlink(false);
+ for(const amount of [0,.02,.1,.2,.3,.4,.5,.75,1]){
+  rig.setBlink('left',amount);rig.update(.01,100);
+  const actual=f.knots.reduce((sum,[name,knot])=>sum+f.l.morphTargetInfluences[f.l.morphTargetDictionary[name]]*knot,0);
+  assert.ok(Math.abs(actual-amount)<.00001,'control '+amount+' recovered '+actual);
+ }
+ assert.ok(f.l.morphTargetInfluences[f.l.morphTargetDictionary.Closed]>.99999);
+});
+test('automatic blink preserves source close, contact and reopen timing without compression',()=>{
+ const f=hatFixture(),rig=createFacialV6(f.root,f.clips);rig.setAutoBlink(false);
+ assert.equal(rig.diagnostics().leftBlinkDurationMs,2000);
+ rig.blink('left',1000);
+ rig.update(.1,1300);assert.ok(f.l.morphTargetInfluences.every(v=>v===0),'source open hold must remain open');
+ rig.update(.1,1560);assert.ok(f.l.morphTargetInfluences[f.l.morphTargetDictionary.Closed]>.99999);
+ rig.update(.1,1600);assert.ok(f.l.morphTargetInfluences[f.l.morphTargetDictionary.Closed]>.99999,'source contact interval must be retained');
+ rig.update(.1,1740);assert.ok(f.l.morphTargetInfluences[f.l.morphTargetDictionary.Half_Closed]>.99999,'source reopen half state');
+ rig.update(.1,1860);assert.ok(f.l.morphTargetInfluences.every(v=>Math.abs(v)<.00001));
+ rig.update(.1,3100);assert.ok(f.l.morphTargetInfluences.every(v=>v===0));
+});
+test('non-HAT synthetic clips retain generic control behavior',()=>{
+ const f=fixture(),rig=createFacialV6(f.root,f.clips);rig.setAutoBlink(false);
+ assert.equal(rig.diagnostics().leftBlinkControl,'generic');
+ rig.setBlink('left',.5);rig.update(.1,0);
+ assert.ok(f.l.morphTargetInfluences[1]>.45&&f.l.morphTargetInfluences[1]<.55);
+});
