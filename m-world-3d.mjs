@@ -7,6 +7,7 @@ import {preserveFullSkinning} from './m-lab/swim-v3/threejs/full-skinning.js';
 import {createFacialV6} from './m-lab/interactions/facial-v6.mjs?blink=v21';
 import {createMotionV8,motionPose,canonicalBoneName} from './m-lab/interactions/motion-v8.mjs?rig=v16';
 import {performanceStagePoseV15} from './m-lab/interactions/performance-v15.mjs?v16';
+import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v22';
 
 const PART_COUNT=19;
 const EXPECTED_SIZE=16899868;
@@ -247,6 +248,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   facial.setIntensity(1);facial.setAutoBlink(false);
   const bones=new Map();source.traverse(o=>{if(o.isBone)bones.set(canonicalBoneName(o.name),o);});
   const rest=new Map([...bones].map(([name,bone])=>[name,bone.quaternion.clone()]));
+  const gestureLayer=createGestureLayer(bones,THREE);let lastGesture=sampleGesture();
   function updateWorld(){scene.updateMatrixWorld(true);for(const mesh of skin.meshes)mesh.skeleton.update();}
   updateWorld();
   const restBox=new THREE.Box3().setFromObject(source),envelope=restBox.clone(),frameSamples=[],posePoints=[];
@@ -265,14 +267,16 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    }
    frameSamples.push({...tag,...boundsRecord(poseBox)});
   }
-  function sample(time,{mode='float',expression='neutral',swimWeight=0,energy=.35,tailEnergy=.25,emotionAge=9}={}){
+  function sample(time,{mode='float',expression='neutral',swimWeight=0,energy=.35,tailEnergy=.25,emotionAge=9,gesture=null}={}){
+   const acting=sampleGesture(gesture||{});if(acting.envelope>0)expression=acting.expression;
    mixer.stopAllAction();for(const [name,bone]of bones)bone.quaternion.copy(rest.get(name));
    action.reset().setEffectiveWeight(swimWeight).play();action.paused=true;action.time=time;mixer.update(0);
    if(energy>0){
     const poses=motionPose({time,modeAge:3,emotionAge,mode,expression,energy,tailEnergy,tailReactivity:1.5,tailFlow:.83,performanceImpact:1,swimWeight});
     for(const [name,angles]of Object.entries(poses)){const bone=bones.get(name);if(!bone)continue;sampleEuler.set(...angles,'XYZ');sampleRotation.setFromEuler(sampleEuler);bone.quaternion.multiply(sampleRotation);}
    }
-   facial.setExpression(expression);facial.update(2,0);includePose({time,mode,expression,swimWeight,energy});
+   for(const [name,angles]of Object.entries(acting.pose)){const bone=bones.get(name);if(!bone)continue;sampleEuler.set(...angles,'XYZ');sampleRotation.setFromEuler(sampleEuler);bone.quaternion.multiply(sampleRotation);}
+   facial.setExpression(expression);facial.update(2,0);includePose({time,mode,expression,swimWeight,energy,...(gesture?{gesture:gesture.name,gestureAge:gesture.age,gestureSide:gesture.side}:{})});
   }
   // Sample supported production states. Idle has no Swim clip, and a moving
   // character uses at most .8 Swim weight; unrelated poses are never stacked
@@ -282,6 +286,15 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   for(const [mode,expression,moving]of [['float','happy',false],['curious','curious',false],['peek','curious',true],['shy','neutral',false],['follow','happy',true]])
    for(const t of [.6,2.2,4.7])sample(t,{mode,expression,swimWeight:moving?.8:0,energy:moving?.84:.35,tailEnergy:moving?.94:.25});
   sample(2.2,{expression:'surprised',emotionAge:.25});
+  // Fit real gesture silhouettes over supported idle and decaying-travel
+  // bases. A shared pose point cloud retains correlation, rather than adding
+  // independent per-joint maxima that would needlessly shrink the actor.
+  const gestureTimes=[.08,.16,.25,.33,.42,.50,.59,.67,.76,.86,.94];
+  for(const name of M_GESTURES)for(const side of [-1,1])for(const progress of gestureTimes){
+   const gesture={name,side,age:progress*GESTURE_DURATIONS[name]};
+   sample(2.2,{gesture});
+   sample(2.2,{mode:'swim',swimWeight:.8,energy:.84,tailEnergy:.94,gesture});
+  }
   mixer.stopAllAction();motion.reset();facial.setExpression('neutral');facial.setBlink('left',0);facial.setBlink('right',0);facial.update(2,0);facial.setAutoBlink(true);updateWorld();
   const center=envelope.getCenter(new THREE.Vector3()),projectedBounds=projectedPoseBounds(posePoints,{center});
   const framed=new THREE.Box3(new THREE.Vector3(projectedBounds.min.x,projectedBounds.min.y,projectedBounds.min.z),new THREE.Vector3(projectedBounds.max.x,projectedBounds.max.y,projectedBounds.max.z));
@@ -350,7 +363,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     framing:{rest:boundsRecord(restBox),envelope:boundsRecord(envelope),framed:boundsRecord(framed),scale:frameFit.scale,samples:frameSamples},
     occlusion:{supported:depthSupported,depth,worldZ:depthRoot.position.z,surfaceZ:0,protectedZ:depthPlan.protectedZ,surfaceRects:surfaceBatch.rectCount,protectedRects:protectedBatch.rectCount,maskDrawCalls:Number(surfaceBatch.mesh.visible)+Number(protectedBatch.mesh.visible)},
     render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,points:renderer.info.render.points,lines:renderer.info.render.lines,programs:renderer.info.programs.length,textures:renderer.info.memory.textures,geometries:renderer.info.memory.geometries},
-    swimWeight,facialIntensity:facial.intensity,blink:facial.diagnostics(),shaderErrors:[...shaderErrors]};
+    swimWeight,gesture:{name:lastGesture.name,age:lastGesture.progress*lastGesture.duration,phase:lastGesture.phase,envelope:lastGesture.envelope},facialIntensity:facial.intensity,blink:facial.diagnostics(),shaderErrors:[...shaderErrors]};
   }
   function render(){
    if(disposed)return;renderer.render(scene,camera);updateContact();
@@ -363,12 +376,15 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    const calm=['perch','perched','rest','settle'].includes(activity)||['perch','rest'].includes(state.mode),reduced=Boolean(state.reducedMotion);
    const vx=Number(state.vx??state.velocity?.x)||0,vy=Number(state.vy??state.velocity?.y)||0,speed=Math.hypot(vx,vy),moving=THREE.MathUtils.smoothstep(speed,10,220);
    const target=reduced||calm?0:.8*moving;swimWeight+=(target-swimWeight)*(1-Math.exp(-6*dt));if(swimWeight<1e-5)swimWeight=0;
-   const mode=motionFor(state.mode||activity),expression=expressionFor(state.emotion??state.mood,state.mode||activity);
-   motion.prepare();action.setEffectiveWeight(swimWeight);mixer.update(dt);
+   const mode=motionFor(state.mode||activity);
+   lastGesture=sampleGesture({...state.gesture,reducedMotion:reduced});
+   const expression=lastGesture.envelope>0?lastGesture.expression:expressionFor(state.emotion??state.mood,state.mode||activity);
+   gestureLayer.prepare();motion.prepare();action.setEffectiveWeight(swimWeight);mixer.update(dt);
    const energy=reduced?0:calm?.12:.35+.49*moving;
    motion.update(dt,{mode,expression,attention:state.attention||state.gaze||{x:0,y:0},energy,clipActive:swimWeight>1e-4,
     tailEnergy:reduced?0:calm?.18:.25+.69*moving,tailReactivity:reduced?0:calm?.25:1.5,tailFlow:.83,performanceImpact:reduced?0:calm?.2:1,
     swimWeight,bodyMotion:{rotation:{y:num(vx*.001,-.4,.4),z:num(vy*.001,-.4,.4)},velocity:{x:num(vx*.002,-.5,.5),y:num(vy*.002,-.5,.5)}}});
+   gestureLayer.apply(lastGesture.pose);
    facial.setExpression(expression);if(autoBlink===reduced){autoBlink=!reduced;facial.setAutoBlink(autoBlink);}facial.update(dt,performance.now());
    const extra=performanceStagePoseV15({time:clock,mode,expression,impact:reduced?0:calm?.07:.4,reducedMotion:reduced});
    stage.rotation.x=num(extra.rx,-.12,.12);stage.rotation.y=num(extra.ry,-.17,.17)+num(vx*.0002,-.05,.05)+(state.nearCard?num((state.attention?.x||0)*.02,-.02,.02):0);stage.rotation.z=num(extra.rz,-.12,.12);

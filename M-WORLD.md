@@ -1,3 +1,13 @@
+# M World V22 — Acting and optional OpenAI companion
+
+The new feature branch adds four original-rig gestures, contextual choices, session memory and an optional explicit-send companion. The published V21 remains preserved until this version is approved.
+
+See [V22 changes, evidence and activation status](docs/m-world-v22/VALIDATION.md) and [Cloudflare/OpenAI setup](m-ai/README.md). The API endpoint is deliberately empty: no key belongs in the browser and no live API call is claimed.
+
+The notes below describe the previous version.
+
+---
+
 # M World V21 — Original V6 with page depth and V16 behavior
 
 This feature branch refines the original Blender V6 actor in the portfolio. It does not deploy the website or replace the character. The previous version notes below are historical.
