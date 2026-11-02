@@ -1,12 +1,30 @@
+# M World V24 — Intent scenes, contextual chat and optional play
+
+Prepared on feat/m-intent-scenes-v24; the published V23 remains intact.
+V24 connects a local scene sequencer, five blends of the existing facial morphs,
+component-aware chat, optional Find M / Follow a light play and bounded tab memory.
+One AI decision can lead to a whole local scene without additional AI calls.
+All paths remain subject to the existing depth and text-protection planner.
+
+The original V6 GLB, rig, weights, textures and materials are unchanged. Character
+memory stores public stable component IDs and motion statistics in this tab;
+its reset cannot clear chat or AI budgets. Optional play never captures page links.
+Voice is reserved for a following phase.
+
+See [V24 validation and preview](docs/m-world-v24/VALIDATION.md).
+This new version and contextual Worker still require explicit release approval.
+
+---
+
 # M World V23 — Living companion and bounded automatic AI play
 
-Prepared on the feature branch; V22 remains published. V23 adds acceleration/turn
+V23 was approved and published through PR #6 on 2 November 2026 (merge 595eb75). It adds acceleration/turn
 anticipation, original-morph Wink, Playful and Nod, semantic component observation
 and an automatic high-level OpenAI director with persistent request budgets.
 The model, textures, rig and portfolio content remain unchanged.
 
 See [V23 validation, previews, budgets and activation requirements](docs/m-world-v23/VALIDATION.md).
-Publishing the frontend and enabling the Worker require explicit owner approval.
+V23 and the enabled Worker passed real provider and public Chrome validation; the PR release record supersedes the earlier pre-publication validation snapshot.
 
 ---
 # M World V22 — Acting and optional OpenAI companion

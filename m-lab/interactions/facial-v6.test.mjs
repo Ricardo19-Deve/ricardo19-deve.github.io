@@ -174,3 +174,102 @@ test('closure diagnostics observe actual current mesh weights rather than the re
  const absent=createFacialV6(f.root,[]);
  assert.equal(absent.diagnostics().leftClosure,null);assert.equal(absent.diagnostics().rightClosure,null);
 });
+
+test('bounded expression blends preserve shoulder slots and legacy expression controls',()=>{
+ const f=hatFixture(),rig=createFacialV6(f.root,f.clips);rig.setAutoBlink(false);rig.setIntensity(2.5);
+ rig.setExpression('surprised');rig.update(2,0);
+ assert.ok(f.body.morphTargetInfluences[4]>2.4,'legacy intensity is deliberately preserved');
+ assert.equal(rig.setExpressionBlend({happy:.5,curious:.3,surprised:.1}),true);rig.update(2,100);
+ const actual=f.body.morphTargetInfluences.slice(2);
+ assert.ok(actual.reduce((a,b)=>a+b,0)<=1);
+ assert.ok(Math.abs(actual[0]-.5)<.00001);assert.ok(Math.abs(actual[1]-.3)<.00001);
+ assert.equal(rig.diagnostics().extrapolatingExpressions,false);
+ assert.deepEqual(f.body.morphTargetInfluences.slice(0,2),[.75,.25]);
+ for(const invalid of [{happy:NaN},{happy:2},{happy:.8,curious:.5},{Closed:1},[],false])
+  assert.equal(rig.setExpressionBlend(invalid),false);
+ rig.setExpressionBlend(null);rig.setExpression('happy');rig.update(2,200);
+ assert.ok(f.body.morphTargetInfluences[2]>2.4);
+ assert.equal(rig.diagnostics().expressionBlendActive,false);
+ assert.deepEqual(f.body.morphTargetInfluences.slice(0,2),[.75,.25]);
+});
+
+test('resting eyelids blend smoothly through original HATs and preserve source blink contact',()=>{
+ const f=hatFixture(),rig=createFacialV6(f.root,f.clips);rig.setAutoBlink(false);
+ assert.equal(rig.setRestBlink({left:.3,right:.2}),true);
+ rig.update(.016,0);
+ assert.ok(rig.diagnostics().leftClosure>0&&rig.diagnostics().leftClosure<.1,'rest must not snap on');
+ rig.update(2,100);
+ assert.ok(Math.abs(rig.diagnostics().leftClosure-.3)<1e-5);
+ assert.ok(Math.abs(rig.diagnostics().rightClosure-.2)<1e-5);
+ rig.blink('left',1000);rig.update(.016,1560);
+ assert.ok(rig.diagnostics().leftClosure>.99999,'original full contact overrides a quiet rest');
+ rig.update(.016,1600);assert.ok(rig.diagnostics().leftClosure>.99999);
+ rig.update(.016,1860);assert.ok(Math.abs(rig.diagnostics().leftClosure-.3)<1e-5,'reopening settles onto the original curved HAT rest');
+ rig.setRestBlink(null);rig.update(.016,1900);
+ assert.ok(rig.diagnostics().leftClosure>0&&rig.diagnostics().leftClosure<.3,'release must fade');
+ rig.update(3,5000);assert.ok(rig.diagnostics().leftClosure<1e-8);assert.ok(rig.diagnostics().rightClosure<1e-8);
+ for(const invalid of [{left:.8,right:0},{left:NaN,right:0},{left:.2},false,[]])
+  assert.equal(rig.setRestBlink(invalid),false);
+});
+
+test('explicit wink owns both eyes over rest and restores independent manual/rest controls',()=>{
+ const f=hatFixture(),rig=createFacialV6(f.root,f.clips);rig.setAutoBlink(false);
+ rig.setRestBlink({left:.2,right:.3});rig.setBlink('left',.5);rig.update(2,100);
+ assert.ok(Math.abs(rig.diagnostics().leftClosure-.5)<1e-5);
+ rig.setGestureBlink({left:0,right:1});rig.update(.016,120);
+ assert.equal(rig.diagnostics().leftClosure,0);assert.ok(rig.diagnostics().rightClosure>.99999);
+ rig.setGestureBlink(null);rig.update(.016,140);
+ assert.ok(Math.abs(rig.diagnostics().leftClosure-.5)<1e-5);
+ assert.ok(Math.abs(rig.diagnostics().rightClosure-.3)<1e-5);
+ rig.setRestBlink(null);rig.update(3,5000);
+ assert.ok(Math.abs(rig.diagnostics().leftClosure-.5)<1e-5);assert.equal(rig.diagnostics().rightClosure,0);
+ assert.deepEqual(f.body.morphTargetInfluences.slice(0,2),[.75,.25]);
+});
+
+test('new resting control fails locally on unavailable HATs without breaking generic blink playback',()=>{
+ const f=fixture(),rig=createFacialV6(f.root,f.clips);rig.setAutoBlink(false);
+ assert.equal(rig.setRestBlink({left:.2,right:0}),false);
+ rig.setBlink('left',.5);rig.update(.1,0);assert.ok(f.l.morphTargetInfluences[1]>.45);
+ const partial=hatFixture(),leftOnly=createFacialV6(partial.root,[partial.clips[0]]);
+ assert.equal(leftOnly.setRestBlink({left:.2,right:0}),true);
+ assert.equal(leftOnly.setRestBlink({left:0,right:.2}),false);
+});
+
+test('expression diagnostics read changed mesh influences instead of the requested target',()=>{
+ const f=hatFixture(),rig=createFacialV6(f.root,f.clips);rig.setAutoBlink(false);rig.setIntensity(1);
+ rig.setExpressionBlend({happy:.6,curious:.2});rig.update(1,0);
+ f.body.morphTargetInfluences[2]=.123;
+ assert.equal(rig.diagnostics().expressionWeights.happy,.123);
+ assert.equal(rig.diagnostics().expressionTarget.happy,.6);
+ f.body.morphTargetInfluences[3]=NaN;
+ assert.equal(rig.diagnostics().expressionWeights.curious,null);
+});
+test('repeated affect, original blink and shoulder animation cycles return to the original neutral face',async()=>{
+ const {M_AFFECTS,AFFECT_DURATIONS,sampleAffect}=await import('../../m-world-affect.mjs');
+ const f=hatFixture(),rig=createFacialV6(f.root,f.clips);rig.setIntensity(1);
+ let now=100;
+ for(let cycle=0;cycle<3;cycle++)for(const name of M_AFFECTS.filter(name=>name!=='neutral')){
+  const duration=AFFECT_DURATIONS[name];
+  for(let frame=0;frame<=180;frame++){
+   const pose=sampleAffect({name,age:duration*frame/180});
+   rig.setExpressionBlend(pose.envelope>0?pose.weights:null);rig.setRestBlink(pose.envelope>0?pose.eyelids:null);
+   const wink=frame>=70&&frame<=100?{left:(frame-70)/30,right:0}:null;rig.setGestureBlink(wink);
+   const correctives=[.5+.3*Math.sin(frame*.04),.4+.2*Math.cos(frame*.05)];
+   f.body.morphTargetInfluences[0]=correctives[0];f.body.morphTargetInfluences[1]=correctives[1];
+   rig.update(duration/180,now);now+=duration/180*1000;
+   assert.deepEqual(f.body.morphTargetInfluences.slice(0,2),correctives);
+   assert.ok(f.body.morphTargetInfluences.slice(2).reduce((a,b)=>a+b,0)<=1+1e-6);
+   for(const eye of [f.l,f.r]){
+    assert.ok(eye.morphTargetInfluences.every(value=>value>=-1e-6&&value<=1+1e-6));
+    assert.ok(eye.morphTargetInfluences.reduce((a,b)=>a+b,0)<=1+1e-6);
+   }
+   if(wink)assert.ok(rig.diagnostics().rightClosure<1e-8,'wink ownership opens the opposite eye despite affect rest');
+  }
+ }
+ rig.setGestureBlink(null);rig.setRestBlink(null);rig.setExpressionBlend(null);rig.setExpression('neutral');rig.setAutoBlink(false);
+ // Finish any original clip still playing, then observe the actual restored meshes.
+ rig.update(5,now+6000);rig.update(1,now+7000);
+ assert.ok(f.body.morphTargetInfluences.slice(2).every(value=>value<1e-8));
+ assert.ok(f.l.morphTargetInfluences.every(value=>Math.abs(value)<1e-8));
+ assert.ok(f.r.morphTargetInfluences.every(value=>Math.abs(value)<1e-8));
+});

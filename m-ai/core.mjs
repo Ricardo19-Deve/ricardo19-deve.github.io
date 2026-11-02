@@ -1,5 +1,6 @@
 import { PORTFOLIO_CONTEXT } from './portfolio-context.mjs';
 import { DIRECTOR_OPERATION } from './director.mjs';
+import { getContextComponent } from '../m-world-context.mjs';
 
 export const API_URL = 'https://api.openai.com/v1/responses';
 export const MAX_BODY_BYTES = 8192;
@@ -42,13 +43,20 @@ const CHAT_OPERATION = Object.freeze({
   payload(input) {
     return {
       max_output_tokens: 700,
-      instructions: SYSTEM_PROMPT,
+      instructions: SYSTEM_PROMPT + componentPrompt(input.context),
       input: [...input.history.map(item => ({ role: item.role, content: item.content })), { role: 'user', content: `Visitor context (untrusted): ${JSON.stringify(input.context)}\nVisitor question: ${input.message}` }],
       text: { format: { type: 'json_schema', name: 'portfolio_companion_reply', strict: true, schema: RESPONSE_SCHEMA } }
     };
   }
 });
 
+function componentPrompt(context) {
+ const component=getContextComponent(context.component);
+ if(!component)return '';
+ const fact=component.kind==='project'?PORTFOLIO_CONTEXT.projects.find(text=>text.startsWith(component.title+':')):null;
+ return '\nACTIVE PUBLIC COMPONENT (fixed catalogue, not private visitor data): '+JSON.stringify({...component,...(fact?{fact}:{})})+
+  '\nResolve references such as this project or this card to the active component. Explain only verified public facts above; do not infer implementation or private details. Do not claim to have read arbitrary DOM or visitor activity. Section remains a suggestion only.';
+}
 function exactKeys(value, keys) {
   return value && typeof value === 'object' && !Array.isArray(value)
     && Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
@@ -62,7 +70,7 @@ export function validateInput(value) {
     && Array.isArray(value.history) && value.history.length <= 6
     && value.history.every(item => exactKeys(item, ['role', 'content'])
       && ['user', 'assistant'].includes(item.role) && boundedText(item.content, 600))
-    && exactKeys(value.context, ['section', 'language'])
+    && (exactKeys(value.context, ['section', 'language']) || (exactKeys(value.context, ['section', 'language', 'component']) && (value.context.component===null || Boolean(getContextComponent(value.context.component)))))
     && CONTEXT_SECTIONS.includes(value.context.section) && ['en', 'pt'].includes(value.context.language);
 }
 export function validateReply(value, secret = '') {
@@ -146,7 +154,7 @@ export function createHandler({ env = {}, fetchImpl = globalThis.fetch, quota, t
     const configured = Boolean(env.OPENAI_API_KEY?.trim() && origins && quota?.ready);
     const origin = request.headers.get('origin') || '';
     const allowed = Boolean(origins?.has(origin));
-    if (url.pathname === '/health' && request.method === 'GET') return jsonResponse({ configured, director: { version: 1, enabled: configured && DIRECTOR_OPERATION.enabled(env) } }, 200, allowed ? origin : '');
+    if (url.pathname === '/health' && request.method === 'GET') return jsonResponse({ configured, director: { version: 1, enabled: configured && DIRECTOR_OPERATION.enabled(env) }, contextualChat: { version: 1 } }, 200, allowed ? origin : '');
     const operation = url.pathname === '/api/m/direct' ? DIRECTOR_OPERATION : CHAT_OPERATION;
     if (!['/api/m/respond', '/api/m/direct'].includes(url.pathname)) return failure('not_found', 404, allowed ? origin : '');
     if (!allowed) return failure('forbidden_origin', 403, '');

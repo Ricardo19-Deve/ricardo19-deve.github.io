@@ -75,3 +75,13 @@ body>header.top.glass-nav{z-index:92!important}
 .m-companion-director-status{font-size:10px;line-height:1.35}
 .m-companion .m-companion-director-toggle{position:absolute;right:8px;top:7px}
 @media(max-width:720px){.m-companion{gap:6px;padding:12px}.m-companion-director{padding:7px 118px 7px 9px}.m-companion-options{gap:4px 12px}.m-companion-options summary{font-size:10px}}
+/* V24 tools are optional disclosures; the original page remains untouched. */
+.m-companion-character-actions{display:flex;flex-wrap:wrap;gap:6px;padding-top:8px}
+.m-companion-context{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:#b8dce8}
+.m-companion-context span{min-width:0;overflow-wrap:anywhere}
+.m-companion .m-companion-context button{flex-shrink:0;max-width:122px;font-size:10px}
+.m-play-dock{position:fixed;left:12px;bottom:max(12px,env(safe-area-inset-bottom));z-index:101;max-width:min(240px,calc(100vw - 24px));padding:10px 12px;border:1px solid #607d95;border-radius:16px;background:#101a2bf5;color:#e9f0ff;font:500 12px/1.4 'DM Sans',sans-serif}
+.m-play-dock[hidden],.m-play-light[hidden]{display:none!important}
+.m-play-dock p{margin:0 0 7px}.m-play-dock button{min-height:36px;margin-right:6px;padding:6px 10px;border:1px solid #65748d;border-radius:10px;background:#202d43;color:#e9f0ff;cursor:pointer}
+.m-play-dock button:focus-visible{outline:3px solid #94dcff;outline-offset:2px}
+.m-play-light{position:fixed;left:0;top:0;z-index:66;width:18px;height:18px;margin:-9px;pointer-events:none;border-radius:50%;background:radial-gradient(circle,#fff 5%,#a6f2ff 30%,#70d8ff66 65%,transparent 73%);box-shadow:0 0 18px #87dfff88}

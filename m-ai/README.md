@@ -64,7 +64,7 @@ The initial deployment was explicitly approved. The procedure below is retained 
 
 ## HTTP contract
 
-`GET /health` returns `{ "configured": boolean, "director": { "version": 1, "enabled": boolean } }` and no key/model/account details. The director reports enabled only when the normal backend configuration is present and `AI_AUTOPLAY_ENABLED` is exactly the string `true`. An old deployed backend without this capability must leave automatic requests disabled.
+`GET /health` returns `{ "configured": boolean, "director": { "version": 1, "enabled": boolean }, "contextualChat": { "version": 1 } }` and no key/model/account details. The director reports enabled only when the normal backend configuration is present and `AI_AUTOPLAY_ENABLED` is exactly the string `true`. An old deployed backend without this capability must leave automatic requests disabled.
 
 `POST /api/m/respond`, with an allowlisted `Origin` and `Content-Type: application/json`:
 
@@ -98,9 +98,9 @@ The frontend must render the reply as text and independently validate the enum f
 
 Errors use `{ "error": { "code": "...", "message": "..." } }`. Statuses include 400 invalid input, 403 disallowed origin, 413 body limit, 415 media type, 429 quota/concurrency limit, 499 caller cancellation, 502 provider/output failure, 503 unavailable configuration/quota service and 504 timeout. No provider response body, prompts, API key or exception details are returned or logged. An explicit provider refusal produces a static neutral portfolio redirection. Provider failures do not pretend that an AI answer succeeded.
 
-## Optional automatic director (V23, prepared locally)
+## Optional automatic director (V23, published)
 
-`AI_AUTOPLAY_ENABLED=false` is saved in the example environment and Worker configuration. This work has not deployed the director, changed a secret or made an OpenAI call. Enabling it is a separate approved publication step. Reuse the existing server-side secret; do not create a browser key or change backend hostnames.
+`AI_AUTOPLAY_ENABLED=false` is saved in the example environment and Worker configuration. V23 was published with the explicitly approved true override on 2 November 2026; the existing secret was preserved and two real provider checks passed. The checked-in false value remains the maintenance-safe default. Reuse the existing server-side secret; do not create a browser key or change backend hostnames.
 
 `POST /api/m/direct` uses the same Origin allowlist, JSON media type, 8KB body cap, upstream URL, model default, no-tools policy, `store: false`, cancellation, timeout, cleanup, errors and concurrency pool as chat. The request has exactly one top-level key:
 
@@ -166,3 +166,28 @@ Explicit chat submissions and bounded in-memory chat history are sent to this ba
 Responses are grounded by a curated snapshot of already public portfolio facts, not private repositories or arbitrary website retrieval. The model has no tools. The upstream URL is fixed and HTTP redirects are handled manually then rejected, so the authorization header is never forwarded to a redirect destination. Prompt instructions and validation reduce accidental disclosure and invalid actions; they cannot prove factual accuracy of every natural-language sentence. Review representative answers about projects, employment, missing information and malicious instructions during the pending live evaluation.
 
 Official references: [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs), [OpenAI API authentication](https://developers.openai.com/api/reference/overview), [gpt-5-mini model](https://developers.openai.com/api/docs/models/gpt-5-mini), [Cloudflare Wrangler configuration](https://developers.cloudflare.com/workers/wrangler/configuration/), [SQLite Durable Object transactions](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/), [Cloudflare secrets](https://developers.cloudflare.com/workers/configuration/secrets/), [Cloudflare Request signals and redirect modes](https://developers.cloudflare.com/workers/runtime-apis/request/).
+
+
+## V24 contextual chat (prepared, not deployed)
+
+The public four-field chat response is unchanged. A new request may add the
+optional field context.component, containing a stable ID from the fixed public
+catalogue in ../m-world-context.mjs, or null. The old two-field context remains
+valid. Extra metadata, unknown IDs, arbitrary titles, HTML and form values are
+rejected before quota reservation.
+
+The frontend checks the free /health capability contextualChat.version===1
+before including the component. Older Workers receive the old request contract.
+An accepted contextual reaction owns its expression and gesture once; legacy
+callbacks do not cancel the new sequence. New typing interrupts the reaction;
+automatic focus on the empty chat field after a response does not.
+
+The active catalogue component and its existing verified portfolio facts anchor
+references such as 'this project'. The model receives no live DOM or private
+repository data. Missing facts remain unknown; project status remains a public
+snapshot. Component focus can orient M locally without clicking or navigating.
+
+V24 implementation tests mock the provider. The Worker has only been bundled
+with --dry-run in this phase. Deployment, one real contextual request and
+frontend publication remain separate approval steps. Keep the existing model,
+secret, Origin allowlist, SQLite singleton and request budgets.
