@@ -14,31 +14,40 @@ export function validateAssistantReply(value){
  if(typeof value.reply!=='string'||!value.reply.trim()||value.reply.length>700||!['neutral','happy','curious','surprised'].includes(value.expression)||!['none',...M_ASSISTANT_GESTURES].includes(value.gesture)||!SECTIONS.includes(value.section))return null;
  return {reply:value.reply.trim(),expression:value.expression,gesture:value.gesture,section:value.section};
 }
-export function createMCompanion({document=globalThis.document,endpoint='',fetchImpl=globalThis.fetch,onGesture=()=>false,onExpression=()=>{},onSection=()=>{},onEngagement=()=>{},getContext=()=>({section:'home',language:'en'})}={}){
+export function createMCompanion({document=globalThis.document,endpoint='',fetchImpl=globalThis.fetch,onGesture=()=>false,onExpression=()=>{},onSection=()=>{},onEngagement=()=>{},getMotionStatus=()=>({active:true,reducedMotion:false}),onEnableMotion=()=>false,getContext=()=>({section:'home',language:'en'})}={}){
  const target=assistantEndpoint(endpoint,document.location?.href),listeners=[];
  const make=(tag,cls,text)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(text)el.textContent=text;return el;};
  const button=(text,cls)=>{const el=make('button',cls,text);el.type='button';return el;};
  const toggle=button('Talk to M','m-companion-toggle');toggle.dataset.mOverlay='true';toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-controls','m-companion');
  const panel=make('section','m-companion');panel.id='m-companion';panel.dataset.mOverlay='true';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Talk to M');
- const header=make('div','m-companion-header'),title=make('h2','','Meet M'),close=button('Close','m-companion-close');header.append(title,close);
+ const header=make('div','m-companion-header'),title=make('h2','','Meet M'),close=button('Close','m-companion-close'),enableMotion=button('Enable M motion','m-companion-enable-motion');header.append(title,enableMotion,close);enableMotion.hidden=true;
  const intro=make('p','m-companion-intro',target?'A little curiosity, a little magic. Try a gesture or ask about this portfolio.':'A little curiosity, a little magic. Try one of M’s gestures.');
+ const motionNote=make('p','m-companion-intro','Reduced motion is on. M stays still until you enable motion.');motionNote.hidden=true;
  const status=make('p','m-companion-status',target?'AI chat is ready.':'Local gestures are ready. AI chat is not connected yet.');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
  const actions=make('div','m-companion-actions');
- for(const name of M_ASSISTANT_GESTURES){const el=button({wave:'Wave',curious:'Curious',surprised:'Surprised',shy:'Shy'}[name]);actions.append(el);el.addEventListener('click',()=>{const accepted=onGesture(name,{source:'visitor'});status.textContent=accepted?'Gesture selected. M responds from a safe resting place.':'Resume M to try a gesture. Motion preferences are respected.';});}
+ for(const name of M_ASSISTANT_GESTURES){const el=button({wave:'Wave',curious:'Curious',surprised:'Surprised',shy:'Shy'}[name]);actions.append(el);el.addEventListener('click',()=>{refreshMotionControl();const accepted=onGesture(name,{source:'visitor'}),motion=refreshMotionControl();status.textContent=accepted?'Gesture requested. M will respond from a safe resting place.':!motion.active?'Resume M to try a gesture.':motion.reducedMotion?'Motion is off. Enable M motion to try a gesture.':'M cannot perform this gesture yet. Please try again.';});}
  const log=make('div','m-companion-log');log.setAttribute('role','log');log.setAttribute('aria-label','Conversation with M');log.setAttribute('aria-live','polite');log.setAttribute('aria-relevant','additions');
  const suggestion=button('Explore projects','m-companion-section');suggestion.hidden=true;
  const form=make('form','m-companion-form'),label=make('label','','Message M'),input=make('textarea');input.id='m-companion-message';input.name='message';input.maxLength=1200;input.rows=2;input.placeholder=target?'Ask about Ricardo’s work…':'AI chat will be available once connected';input.disabled=!target;label.htmlFor=input.id;
  const send=button('Send','m-companion-send');send.type='submit';send.disabled=!target;
- const clear=button('Clear chat','m-companion-clear'),privacy=make('p','m-companion-privacy',target?'Only Send shares your message, recent chat and section with OpenAI. Chat stays in this tab.':'Gestures run locally. Chat stays disconnected until the server is configured.');
- form.append(label,input,send,clear);form.hidden=!target;clear.hidden=!target;panel.append(header,intro,actions,status,log,suggestion,form,privacy);document.body.append(toggle,panel);
+ const clear=button('Clear chat','m-companion-clear'),privacy=make('p','m-companion-privacy',target?'Sending shares your message, recent chat and section with OpenAI. Chat stays in this tab.':'Gestures run locally. Chat stays disconnected until the server is configured.');
+ form.append(label,input,send,clear);form.hidden=!target;clear.hidden=!target;panel.append(header,intro,motionNote,actions,status,log,suggestion,form,privacy);document.body.append(toggle,panel);
  let history=[],pending=null,destroyed=false,sectionHint='none',open=false;
  const listen=(el,name,fn)=>{el.addEventListener(name,fn);listeners.push(()=>el.removeEventListener(name,fn));};
- function setOpen(value){open=Boolean(value);panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));onEngagement(open);if(open)(target?input:close).focus();else{pending?.abort();toggle.focus();}}
+ function refreshMotionControl(){const motion=getMotionStatus(),reducedMotion=Boolean(motion?.reducedMotion);enableMotion.hidden=motionNote.hidden=!reducedMotion;intro.hidden=history.length>0||reducedMotion;return {active:motion?.active!==false,reducedMotion};}
+ function setOpen(value){refreshMotionControl();open=Boolean(value);panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));onEngagement(open);if(open)(target?input:close).focus();else{pending?.abort();toggle.focus();}}
  function append(role,text){const row=make('p','m-companion-message '+role);row.textContent=text;log.append(row);while(log.childNodes.length>12)log.firstChild.remove();log.scrollTop=log.scrollHeight;}
+ listen(enableMotion,'click',()=>{const accepted=onEnableMotion(),motion=refreshMotionControl();status.textContent=!motion.active?'Resume M to try a gesture.':accepted&&!motion.reducedMotion?'M motion enabled for this tab.':'Motion is still off. Please try again.';});
  listen(toggle,'click',()=>setOpen(!open));listen(close,'click',()=>setOpen(false));
  listen(document,'keydown',event=>{if(open&&event.key==='Escape'){event.preventDefault();setOpen(false);}});
  listen(suggestion,'click',()=>{if(sectionHint!=='none'){onSection(sectionHint);setOpen(false);}});
- listen(clear,'click',()=>{pending?.abort();history=[];log.replaceChildren();suggestion.hidden=true;intro.hidden=false;status.textContent=target?'Chat cleared.':'Local gestures are ready.';});
+ listen(clear,'click',()=>{pending?.abort();history=[];log.replaceChildren();suggestion.hidden=true;intro.hidden=false;status.textContent=target?'Chat cleared.':'Local gestures are ready.';refreshMotionControl();});
+ listen(input,'keydown',event=>{
+  if(event.key!=='Enter'||event.shiftKey||event.isComposing||event.keyCode===229)return;
+  event.preventDefault();
+  if(event.repeat||input.disabled||send.disabled||pending||destroyed)return;
+  form.requestSubmit(send);
+ });
  listen(form,'submit',async event=>{
   event.preventDefault();if(!target||pending||destroyed)return;
   const message=input.value.trim();if(!message)return;
@@ -57,5 +66,6 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
   }catch(error){if(!destroyed)status.textContent=controller.signal.aborted?'Chat request cancelled.':String(error.message||'M could not answer.');}
   finally{clearTimeout(timeout);if(pending===controller){pending=null;send.disabled=!target;input.disabled=!target;if(open&&!destroyed)input.focus();}}
  });
- return {elements:{toggle,panel},isOpen:()=>open,snapshot:()=>({open,configured:Boolean(target),pending:Boolean(pending),messages:history.length}),destroy(){destroyed=true;pending?.abort();for(const remove of listeners)remove();onEngagement(false);toggle.remove();panel.remove();}};
+ refreshMotionControl();
+ return {elements:{toggle,panel},refresh:refreshMotionControl,refreshMotionControl,isOpen:()=>open,snapshot:()=>({open,configured:Boolean(target),pending:Boolean(pending),messages:history.length}),destroy(){destroyed=true;pending?.abort();for(const remove of listeners)remove();onEngagement(false);toggle.remove();panel.remove();}};
 }

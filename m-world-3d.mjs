@@ -7,7 +7,7 @@ import {preserveFullSkinning} from './m-lab/swim-v3/threejs/full-skinning.js';
 import {createFacialV6} from './m-lab/interactions/facial-v6.mjs?blink=v21';
 import {createMotionV8,motionPose,canonicalBoneName} from './m-lab/interactions/motion-v8.mjs?rig=v16';
 import {performanceStagePoseV15} from './m-lab/interactions/performance-v15.mjs?v16';
-import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v22';
+import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=25';
 
 const PART_COUNT=19;
 const EXPECTED_SIZE=16899868;
@@ -145,8 +145,10 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   return {mesh,capacity:0,points:[],perimeter:[],rectCount:0,vertices:0};
  }
  const surfaceBatch=makeBatch(-1000),protectedBatch=makeBatch(-999);
+ // Fine facial details need supersampling even on DPR-1 desktop displays.
+ // Keep the existing upper bounds: 680px desktop, 416px mobile.
  function syncResolution(){
-  const mobile=window.matchMedia('(max-width:720px)').matches,nextSize=mobile?M_CANVAS_SIZES.mobile:M_CANVAS_SIZES.desktop,nextRatio=Math.min(window.devicePixelRatio||1,mobile?2:2.5);
+  const mobile=window.matchMedia('(max-width:720px)').matches,nextSize=mobile?M_CANVAS_SIZES.mobile:M_CANVAS_SIZES.desktop,nextRatio=Math.max(2,Math.min(window.devicePixelRatio||1,mobile?2:2.5));
   if(viewportSize===nextSize&&pixelRatio===nextRatio)return;
   viewportSize=nextSize;pixelRatio=nextRatio;renderer.setPixelRatio(pixelRatio);renderer.setSize(viewportSize,viewportSize,false);
  }
@@ -363,7 +365,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     framing:{rest:boundsRecord(restBox),envelope:boundsRecord(envelope),framed:boundsRecord(framed),scale:frameFit.scale,samples:frameSamples},
     occlusion:{supported:depthSupported,depth,worldZ:depthRoot.position.z,surfaceZ:0,protectedZ:depthPlan.protectedZ,surfaceRects:surfaceBatch.rectCount,protectedRects:protectedBatch.rectCount,maskDrawCalls:Number(surfaceBatch.mesh.visible)+Number(protectedBatch.mesh.visible)},
     render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,points:renderer.info.render.points,lines:renderer.info.render.lines,programs:renderer.info.programs.length,textures:renderer.info.memory.textures,geometries:renderer.info.memory.geometries},
-    swimWeight,gesture:{name:lastGesture.name,age:lastGesture.progress*lastGesture.duration,phase:lastGesture.phase,envelope:lastGesture.envelope},facialIntensity:facial.intensity,blink:facial.diagnostics(),shaderErrors:[...shaderErrors]};
+    swimWeight,expression:facial.expression,gesture:{name:lastGesture.name,age:lastGesture.progress*lastGesture.duration,phase:lastGesture.phase,envelope:lastGesture.envelope},facialIntensity:facial.intensity,blink:facial.diagnostics(),shaderErrors:[...shaderErrors]};
   }
   function render(){
    if(disposed)return;renderer.render(scene,camera);updateContact();
@@ -378,7 +380,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    const target=reduced||calm?0:.8*moving;swimWeight+=(target-swimWeight)*(1-Math.exp(-6*dt));if(swimWeight<1e-5)swimWeight=0;
    const mode=motionFor(state.mode||activity);
    lastGesture=sampleGesture({...state.gesture,reducedMotion:reduced});
-   const expression=lastGesture.envelope>0?lastGesture.expression:expressionFor(state.emotion??state.mood,state.mode||activity);
+   const expression=lastGesture.envelope>0?expressionFor(state.gesture?.expression??lastGesture.expression,state.mode||activity):expressionFor(state.emotion??state.mood,state.mode||activity);
    gestureLayer.prepare();motion.prepare();action.setEffectiveWeight(swimWeight);mixer.update(dt);
    const energy=reduced?0:calm?.12:.35+.49*moving;
    motion.update(dt,{mode,expression,attention:state.attention||state.gaze||{x:0,y:0},energy,clipActive:swimWeight>1e-4,
