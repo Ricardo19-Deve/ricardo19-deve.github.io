@@ -8,11 +8,17 @@ const base=process.env.BASE_URL||'http://127.0.0.1:4183/';
 const out=process.env.M_WORLD_ARTIFACT_DIR||path.resolve('../work/M_Intelligence_Validation/gestures');mkdirSync(out,{recursive:true});
 const report={url:base,scope:'Native Chrome gesture/UI observation. API responses are explicitly mocked; no real OpenAI call.',checks:[],profiles:[],passed:false};
 const check=(name,passed,details)=>report.checks.push({name,passed:Boolean(passed),details});
+const longReply='Ricardo builds software and cloud integrations, combining practical delivery with a curious approach to difficult problems. His portfolio presents mobile products, Salesforce work and integration projects with clear descriptions of their purpose and current status. Explore the projects section to compare the examples, then use the experience and expertise sections for background on his approach. I can help you navigate this portfolio and explain the information already available here. For a professional conversation, use the contact section and Ricardo’s public LinkedIn link.';
+if(longReply.length<500||longReply.length>700)throw new Error('Long chat fixture must exercise the supported response limit.');
+const localConfig=page=>page.route('**/m-world-config.mjs*',route=>route.fulfill({contentType:'text/javascript',body:"export const M_WORLD_CONFIG={assistantEndpoint:''};"}));
 const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_BIN||path.join(process.env.LOCALAPPDATA,'Google/Chrome/Application/chrome.exe')});report.browser=browser.version();
 try{
  for(const [name,options] of [['desktop',{viewport:{width:1280,height:900},deviceScaleFactor:2}],['mobile',{viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true}]]){
   const context=await browser.newContext({...options,reducedMotion:'no-preference',...(name==='desktop'?{recordVideo:{dir:path.join(out,'raw-video'),size:{width:1280,height:900}}}:{})});
+  let unintendedAPIRequests=0;
+  await context.route(/api\.openai\.com|\/api\/m\/respond(?:[?#]|$)/,route=>{unintendedAPIRequests++;return route.abort('blockedbyclient');});
   const page=await context.newPage(),errors=[];let apiRequests=0;
+  await localConfig(page);
   page.on('pageerror',error=>errors.push(String(error)));page.on('request',request=>{if(/api\.openai\.com|\/api\/m\/respond/.test(request.url()))apiRequests++;});
   const url=new URL(base);url.searchParams.set('m-debug','1');await page.goto(url.href);await page.waitForFunction(()=>window.MWorld?.snapshot().ready,undefined,{timeout:90000});
   await page.getByRole('button',{name:'Talk to M',exact:true}).click();
@@ -40,6 +46,7 @@ try{
   // Exercise a real interrupted production route, including the offscreen
   // mobile entry corridor. Do not set poses, depth or browser time directly.
   const recovery=await context.newPage(),recoveryErrors=[];
+  await localConfig(recovery);
   recovery.on('pageerror',error=>recoveryErrors.push(String(error)));
   await recovery.goto(url.href);await recovery.waitForFunction(()=>window.MWorld?.snapshot().ready,undefined,{timeout:90000});
   await recovery.locator('main h1').evaluate(element=>{const range=document.createRange();range.selectNodeContents(element);const selection=getSelection();selection.removeAllRanges();selection.addRange(range);});
@@ -80,7 +87,7 @@ try{
    const request=route.request(),headers={'Access-Control-Allow-Origin':new URL(base).origin,'Access-Control-Allow-Headers':'content-type','Access-Control-Allow-Methods':'POST,OPTIONS'};
    if(request.method()==='OPTIONS')return route.fulfill({status:204,headers});
    paidCalls++;lastInput=JSON.parse(request.postData());
-   return route.fulfill({contentType:'application/json',headers,body:JSON.stringify(paidCalls===1?{reply:'Ricardo builds software and cloud integrations. Explore the projects section.',expression:'happy',gesture:'none',section:'projects'}:{reply:'Invalid fixture',expression:'happy',gesture:'eval',section:'projects'})});
+   return route.fulfill({contentType:'application/json',headers,body:JSON.stringify(paidCalls===1?{reply:longReply,expression:'happy',gesture:'none',section:'projects'}:{reply:'Invalid fixture',expression:'happy',gesture:'eval',section:'projects'})});
   });
   await chat.goto(url.href);await chat.waitForFunction(()=>window.MWorld?.snapshot().ready,undefined,{timeout:90000});
   await chat.getByRole('button',{name:'Talk to M',exact:true}).click();
@@ -88,9 +95,24 @@ try{
   await chat.locator('#m-companion-message').fill('Show me the projects');await chat.getByRole('button',{name:'Send',exact:true}).click();
   await chat.waitForFunction(()=>document.querySelector('.m-companion-status').textContent==='Answered with OpenAI.');
   check(name+': explicit send validates reply and offers optional navigation',paidCalls===1&&lastInput.message==='Show me the projects'&&lastInput.history.length===0&&await chat.getByRole('button',{name:'Explore projects',exact:true}).isVisible()&&new URL(chat.url()).hash!=='#projects'&&await chat.evaluate(()=>window.MWorld.snapshot().state.emotion==='happy'));
+  await chat.waitForFunction(()=>window.MWorld.snapshot().state.emotion==='neutral',undefined,{timeout:8000});
+  const longChatLayout=await chat.evaluate(()=>{
+   const s=window.MWorld.snapshot(),panel=document.querySelector('#m-companion').getBoundingClientRect(),host=document.querySelector('.mascot-creature').getBoundingClientRect(),f=s.metrics.neutralFootprint;
+   const neutral={left:host.left+f.left,top:host.top+f.top,right:host.left+f.right,bottom:host.top+f.bottom,width:f.width,height:f.height};
+   const overlap=Math.max(0,Math.min(neutral.right,panel.right)-Math.max(neutral.left,panel.left))*Math.max(0,Math.min(neutral.bottom,panel.bottom)-Math.max(neutral.top,panel.top));
+   const controls=Array.from(document.querySelectorAll('.m-world-toggle,.m-companion-toggle,.m-companion-close,.m-companion-actions button,.m-companion-section,.m-companion-send,.m-companion-clear,.m-companion textarea')).map(element=>{const r=element.getBoundingClientRect(),x=(r.left+r.right)/2,y=(r.top+r.bottom)/2,hit=document.elementFromPoint(x,y);return {label:element.textContent||element.name,visible:r.width>0&&r.height>0&&r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight&&Boolean(hit&&(hit===element||element.contains(hit))),rect:{left:r.left,top:r.top,right:r.right,bottom:r.bottom}};});
+   return {neutral,panel:{left:panel.left,top:panel.top,right:panel.right,bottom:panel.bottom},neutralCoveredFraction:overlap/Math.max(1,neutral.width*neutral.height),neutralInsideViewport:neutral.left>=0&&neutral.right<=innerWidth&&neutral.top>=0&&neutral.bottom<=innerHeight,active:s.active,depth:s.state.depth,emotion:s.state.emotion,controls,logOverflow:document.querySelector('.m-companion-log').scrollHeight>document.querySelector('.m-companion-log').clientHeight,horizontalOverflow:document.documentElement.scrollWidth>innerWidth+2};
+  });
+  await chat.screenshot({path:path.join(out,name+'-long-chat-neutral.png')});
+  writeFileSync(path.join(out,name+'-long-chat-layout.json'),JSON.stringify(longChatLayout,null,2));
+  check(name+': long valid reply uses bounded scrollable log',await chat.locator('.m-companion-message.assistant').textContent()===longReply&&longChatLayout.logOverflow&&!longChatLayout.horizontalOverflow,{replyLength:longReply.length,logOverflow:longChatLayout.logOverflow,horizontalOverflow:longChatLayout.horizontalOverflow});
+  check(name+': neutral mascot stays visible beside long chat panel',longChatLayout.active&&longChatLayout.depth>.95&&longChatLayout.emotion==='neutral'&&longChatLayout.neutralInsideViewport&&longChatLayout.neutralCoveredFraction===0,{neutral:longChatLayout.neutral,panel:longChatLayout.panel,coveredFraction:longChatLayout.neutralCoveredFraction});
+  check(name+': long chat keeps controls visible and reachable',longChatLayout.controls.every(control=>control.visible),longChatLayout.controls);
+  report.profiles.find(profile=>profile.name===name).longChat=longChatLayout;
   await chat.locator('#m-companion-message').fill('Another question');await chat.getByRole('button',{name:'Send',exact:true}).click();
   await chat.waitForFunction(()=>document.querySelector('.m-companion-status').textContent.includes('unreadable'));
   check(name+': malformed remote action is rejected',await chat.locator('.m-companion-message.assistant').count()===1&&await chat.locator('.m-companion-section').isHidden()&&lastInput.history.length===2);
+  check(name+': fixture never attempts an unmocked AI request',unintendedAPIRequests===0,{unintendedAPIRequests});
   await chat.close();await context.close();
  }
  report.passed=report.checks.every(c=>c.passed);

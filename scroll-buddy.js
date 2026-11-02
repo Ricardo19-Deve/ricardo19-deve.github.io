@@ -3,7 +3,7 @@ import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
 import {MWorldBrain} from './m-world-brain.mjs?v=22';
 import {M_GESTURES,GESTURE_DURATIONS} from './m-world-acting.mjs?v=22';
 import {createMCompanion} from './m-world-companion.mjs?v=22';
-import {M_WORLD_CONFIG} from './m-world-config.mjs?v=22';
+import {M_WORLD_CONFIG} from './m-world-config.mjs?v=23';
 
 (() => {
  'use strict';

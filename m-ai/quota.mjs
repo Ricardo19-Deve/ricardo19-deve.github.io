@@ -38,8 +38,11 @@ const INTERNAL_ORIGIN = 'https://quota.internal';
 
 export function createDurableQuota(binding) {
   if (!binding?.idFromName || !binding?.get) return { ready: false };
-  const stub = binding.get(binding.idFromName(QUOTA_OBJECT_NAME));
   const call = async (path, body) => {
+    // The adapter is cached across requests, but I/O stubs are request-scoped.
+    // Exceptions can also poison a stub. Create one per operation for the same
+    // singleton; never retry an ambiguous reservation and charge it twice.
+    const stub = binding.get(binding.idFromName(QUOTA_OBJECT_NAME));
     const result = await stub.fetch(`${INTERNAL_ORIGIN}${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(2000) });
     if (!result.ok) throw new Error('quota unavailable');
     const value = JSON.parse(await readBoundedText(result.body, 1024));

@@ -447,3 +447,73 @@ test('Worker entry exports only runtime handlers and config retains native cance
   assert.equal(config.compatibility_flags.includes('enable_request_signal'), true);
   assert.equal(config.durable_objects.bindings.some(item => item.name === 'M_QUOTA' && item.class_name === 'PortfolioQuota'), true);
 });
+
+test('cached quota adapter creates stubs inside each operation request context', async t => {
+  const { AsyncLocalStorage } = await import('node:async_hooks');
+  const context = new AsyncLocalStorage();
+  const state = sqliteState(); t.after(() => state.db.close());
+  const object = new PortfolioQuota(state);
+  const objectNames = [];
+  const stubContexts = [];
+  const quota = createDurableQuota({
+    idFromName(name) { objectNames.push(name); return name; },
+    get(id) {
+      const owner = context.getStore();
+      assert.ok(owner, 'a stub must be created during a quota operation');
+      assert.equal(id, QUOTA_OBJECT_NAME);
+      stubContexts.push(owner);
+      return { async fetch(url, options) {
+        assert.equal(context.getStore(), owner, 'a stub cannot cross request contexts');
+        return object.fetch(new Request(url, options));
+      } };
+    }
+  });
+  assert.equal(stubContexts.length, 0);
+  for (const requestContext of ['first request', 'second request']) {
+    await context.run(requestContext, async () => {
+      const result = await quota.reserve('192.0.2.12');
+      assert.equal(result.allowed, true);
+      await quota.release(result.token);
+    });
+  }
+  assert.deepEqual(stubContexts, ['first request', 'first request', 'second request', 'second request']);
+  assert.deepEqual(objectNames, Array(4).fill(QUOTA_OBJECT_NAME));
+  assert.equal(state.db.prepare('SELECT count(*) AS total FROM leases').get().total, 0);
+  assert.equal(state.db.prepare("SELECT count FROM counters WHERE key LIKE 'global-day:%'").get().count, 2);
+});
+
+test('failed quota transport is not retried and later operations discard the broken stub', async t => {
+  const state = sqliteState(); t.after(() => state.db.close());
+  const object = new PortfolioQuota(state);
+  let stubs = 0;
+  let calls = 0;
+  const quota = createDurableQuota({
+    idFromName(name) { assert.equal(name, QUOTA_OBJECT_NAME); return name; },
+    get(id) {
+      assert.equal(id, QUOTA_OBJECT_NAME);
+      const failAfterCommit = ++stubs === 1;
+      let broken = false;
+      return { async fetch(url, options) {
+        calls++;
+        if (broken) throw new Error('fixture broken stub');
+        const response = await object.fetch(new Request(url, options));
+        if (failAfterCommit) {
+          broken = true;
+          throw new Error('fixture transport failure after reservation committed');
+        }
+        return response;
+      } };
+    }
+  });
+  await assert.rejects(() => quota.reserve('192.0.2.12'), /fixture transport failure/);
+  assert.equal(calls, 1, 'an ambiguous committed reservation must not be retried');
+  assert.equal(state.db.prepare("SELECT count FROM counters WHERE key LIKE 'global-day:%'").get().count, 1);
+  const result = await quota.reserve('192.0.2.12');
+  assert.equal(result.allowed, true);
+  await quota.release(result.token);
+  assert.equal(stubs, 3);
+  assert.equal(calls, 3);
+  assert.equal(state.db.prepare("SELECT count FROM counters WHERE key LIKE 'global-day:%'").get().count, 2);
+  // The ambiguous first lease remains counted until normal expiry; no refund.
+  assert.equal(state.db.prepare('SELECT count(*) AS total FROM leases').get().total, 1);
+});

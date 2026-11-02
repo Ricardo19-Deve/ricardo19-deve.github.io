@@ -29,8 +29,8 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  const suggestion=button('Explore projects','m-companion-section');suggestion.hidden=true;
  const form=make('form','m-companion-form'),label=make('label','','Message M'),input=make('textarea');input.id='m-companion-message';input.name='message';input.maxLength=1200;input.rows=2;input.placeholder=target?'Ask about Ricardo’s work…':'AI chat will be available once connected';input.disabled=!target;label.htmlFor=input.id;
  const send=button('Send','m-companion-send');send.type='submit';send.disabled=!target;
- const clear=button('Clear chat','m-companion-clear'),privacy=make('p','m-companion-privacy',target?'Your message, recent chat and current section are sent to OpenAI only when you press Send. Chat is kept in this tab only.':'Gestures run locally. Chat stays disconnected until the server is configured.');
- form.append(label,input,send);form.hidden=!target;clear.hidden=!target;panel.append(header,intro,actions,status,log,suggestion,form,clear,privacy);document.body.append(toggle,panel);
+ const clear=button('Clear chat','m-companion-clear'),privacy=make('p','m-companion-privacy',target?'Only Send shares your message, recent chat and section with OpenAI. Chat stays in this tab.':'Gestures run locally. Chat stays disconnected until the server is configured.');
+ form.append(label,input,send,clear);form.hidden=!target;clear.hidden=!target;panel.append(header,intro,actions,status,log,suggestion,form,privacy);document.body.append(toggle,panel);
  let history=[],pending=null,destroyed=false,sectionHint='none',open=false;
  const listen=(el,name,fn)=>{el.addEventListener(name,fn);listeners.push(()=>el.removeEventListener(name,fn));};
  function setOpen(value){open=Boolean(value);panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));onEngagement(open);if(open)(target?input:close).focus();else{pending?.abort();toggle.focus();}}
@@ -38,7 +38,7 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  listen(toggle,'click',()=>setOpen(!open));listen(close,'click',()=>setOpen(false));
  listen(document,'keydown',event=>{if(open&&event.key==='Escape'){event.preventDefault();setOpen(false);}});
  listen(suggestion,'click',()=>{if(sectionHint!=='none'){onSection(sectionHint);setOpen(false);}});
- listen(clear,'click',()=>{pending?.abort();history=[];log.replaceChildren();suggestion.hidden=true;status.textContent=target?'Chat cleared.':'Local gestures are ready.';});
+ listen(clear,'click',()=>{pending?.abort();history=[];log.replaceChildren();suggestion.hidden=true;intro.hidden=false;status.textContent=target?'Chat cleared.':'Local gestures are ready.';});
  listen(form,'submit',async event=>{
   event.preventDefault();if(!target||pending||destroyed)return;
   const message=input.value.trim();if(!message)return;
@@ -51,7 +51,7 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
    const reply=validateAssistantReply(await response.json());if(!reply)throw new Error('M received an unreadable answer. Please try again.');
    if(destroyed||controller.signal.aborted)return;
    append('assistant',reply.reply);history=[...history,{role:'user',content:message.slice(0,600)},{role:'assistant',content:reply.reply.slice(0,600)}].slice(-6);
-   status.textContent='Answered with OpenAI.';onExpression(reply.expression);
+   intro.hidden=true;status.textContent='Answered with OpenAI.';onExpression(reply.expression);
    if(reply.gesture!=='none')onGesture(reply.gesture,{source:'assistant',expression:reply.expression});
    if(reply.section!=='none'){sectionHint=reply.section;suggestion.textContent='Explore '+reply.section;suggestion.hidden=false;}
   }catch(error){if(!destroyed)status.textContent=controller.signal.aborted?'Chat request cancelled.':String(error.message||'M could not answer.');}
