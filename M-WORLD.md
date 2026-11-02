@@ -1,10 +1,21 @@
+# M World V23 — Living companion and bounded automatic AI play
+
+Prepared on the feature branch; V22 remains published. V23 adds acceleration/turn
+anticipation, original-morph Wink, Playful and Nod, semantic component observation
+and an automatic high-level OpenAI director with persistent request budgets.
+The model, textures, rig and portfolio content remain unchanged.
+
+See [V23 validation, previews, budgets and activation requirements](docs/m-world-v23/VALIDATION.md).
+Publishing the frontend and enabling the Worker require explicit owner approval.
+
+---
 # M World V22 — Acting and optional OpenAI companion
 
 The new feature branch adds four original-rig gestures, contextual choices, session memory and an optional explicit-send companion. V22 was approved and published on 2 November 2026, with V21 retained in Git history. The optional companion is connected through a verified Cloudflare Worker.
 
 See [V22 changes, evidence and activation status](docs/m-world-v22/VALIDATION.md) and [Cloudflare/OpenAI setup](m-ai/README.md). Only the verified Worker URL is public. The owner entered the OpenAI key directly as a Cloudflare secret; real backend and Chrome conversation checks passed.
 
-The live-fidelity fix branch adds bounded 2x rendering on DPR-1 displays, Enter submission, visible prioritized reactions, varied clear corridors and explicit reduced-motion consent. See [measurements, captures and local review steps](docs/m-world-v22/LIVE-FIX.md). Publication is pending approval.
+The live-fidelity fix branch adds bounded 2x rendering on DPR-1 displays, Enter submission, visible prioritized reactions, varied clear corridors and explicit reduced-motion consent. See [measurements, captures and local review steps](docs/m-world-v22/LIVE-FIX.md). The live-fidelity fixes were approved and published through PR #5 on 2 November 2026.
 
 The notes below describe the previous version.
 

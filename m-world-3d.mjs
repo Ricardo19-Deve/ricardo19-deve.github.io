@@ -4,10 +4,11 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {readGLB} from './m-lab/swim-v3/threejs/glb-reader.js';
 import {preserveFullSkinning} from './m-lab/swim-v3/threejs/full-skinning.js';
-import {createFacialV6} from './m-lab/interactions/facial-v6.mjs?blink=v21';
+import {createFacialV6} from './m-lab/interactions/facial-v6.mjs?blink=v26';
 import {createMotionV8,motionPose,canonicalBoneName} from './m-lab/interactions/motion-v8.mjs?rig=v16';
 import {performanceStagePoseV15} from './m-lab/interactions/performance-v15.mjs?v16';
-import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=25';
+import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=26';
+import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=26';
 
 const PART_COUNT=19;
 const EXPECTED_SIZE=16899868;
@@ -250,7 +251,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   facial.setIntensity(1);facial.setAutoBlink(false);
   const bones=new Map();source.traverse(o=>{if(o.isBone)bones.set(canonicalBoneName(o.name),o);});
   const rest=new Map([...bones].map(([name,bone])=>[name,bone.quaternion.clone()]));
-  const gestureLayer=createGestureLayer(bones,THREE);let lastGesture=sampleGesture();
+  const gestureLayer=createGestureLayer(bones,THREE),locomotionLayer=createGestureLayer(bones,THREE);let lastGesture=sampleGesture();
   function updateWorld(){scene.updateMatrixWorld(true);for(const mesh of skin.meshes)mesh.skeleton.update();}
   updateWorld();
   const restBox=new THREE.Box3().setFromObject(source),envelope=restBox.clone(),frameSamples=[],posePoints=[];
@@ -269,7 +270,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    }
    frameSamples.push({...tag,...boundsRecord(poseBox)});
   }
-  function sample(time,{mode='float',expression='neutral',swimWeight=0,energy=.35,tailEnergy=.25,emotionAge=9,gesture=null}={}){
+  function sample(time,{mode='float',expression='neutral',swimWeight=0,energy=.35,tailEnergy=.25,emotionAge=9,gesture=null,locomotion=null}={}){
    const acting=sampleGesture(gesture||{});if(acting.envelope>0)expression=acting.expression;
    mixer.stopAllAction();for(const [name,bone]of bones)bone.quaternion.copy(rest.get(name));
    action.reset().setEffectiveWeight(swimWeight).play();action.paused=true;action.time=time;mixer.update(0);
@@ -277,8 +278,9 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     const poses=motionPose({time,modeAge:3,emotionAge,mode,expression,energy,tailEnergy,tailReactivity:1.5,tailFlow:.83,performanceImpact:1,swimWeight});
     for(const [name,angles]of Object.entries(poses)){const bone=bones.get(name);if(!bone)continue;sampleEuler.set(...angles,'XYZ');sampleRotation.setFromEuler(sampleEuler);bone.quaternion.multiply(sampleRotation);}
    }
+   for(const [name,angles]of Object.entries(sampleLocomotionPose(locomotion||{}))){const bone=bones.get(name);if(!bone)continue;sampleEuler.set(...angles,'XYZ');sampleRotation.setFromEuler(sampleEuler);bone.quaternion.multiply(sampleRotation);}
    for(const [name,angles]of Object.entries(acting.pose)){const bone=bones.get(name);if(!bone)continue;sampleEuler.set(...angles,'XYZ');sampleRotation.setFromEuler(sampleEuler);bone.quaternion.multiply(sampleRotation);}
-   facial.setExpression(expression);facial.update(2,0);includePose({time,mode,expression,swimWeight,energy,...(gesture?{gesture:gesture.name,gestureAge:gesture.age,gestureSide:gesture.side}:{})});
+   facial.setGestureBlink(acting.blink);facial.setExpression(expression);facial.update(2,0);includePose({time,mode,expression,swimWeight,energy,...(gesture?{gesture:gesture.name,gestureAge:gesture.age,gestureSide:gesture.side}:{})});
   }
   // Sample supported production states. Idle has no Swim clip, and a moving
   // character uses at most .8 Swim weight; unrelated poses are never stacked
@@ -297,6 +299,15 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    sample(2.2,{gesture});
    sample(2.2,{mode:'swim',swimWeight:.8,energy:.84,tailEnergy:.94,gesture});
   }
+  // Fit correlated, physically generated turn/arrival poses rather than independent joint maxima.
+  for(const sign of [-1,1]){
+   let travel={x:0,y:0,vx:0,vy:0};
+   for(let frame=0;frame<100;frame++){
+    travel=advanceLocomotion(travel,frame<45?{x:sign*180,y:0}:{x:sign*120,y:-120},1/60);
+    if([12,32,58,78].includes(frame))sample(frame/60,{mode:'swim',swimWeight:.8,energy:.84,tailEnergy:.94,locomotion:travel});
+   }
+  }
+  facial.setGestureBlink(null);
   mixer.stopAllAction();motion.reset();facial.setExpression('neutral');facial.setBlink('left',0);facial.setBlink('right',0);facial.update(2,0);facial.setAutoBlink(true);updateWorld();
   const center=envelope.getCenter(new THREE.Vector3()),projectedBounds=projectedPoseBounds(posePoints,{center});
   const framed=new THREE.Box3(new THREE.Vector3(projectedBounds.min.x,projectedBounds.min.y,projectedBounds.min.z),new THREE.Vector3(projectedBounds.max.x,projectedBounds.max.y,projectedBounds.max.z));
@@ -381,12 +392,14 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    const mode=motionFor(state.mode||activity);
    lastGesture=sampleGesture({...state.gesture,reducedMotion:reduced});
    const expression=lastGesture.envelope>0?expressionFor(state.gesture?.expression??lastGesture.expression,state.mode||activity):expressionFor(state.emotion??state.mood,state.mode||activity);
-   gestureLayer.prepare();motion.prepare();action.setEffectiveWeight(swimWeight);mixer.update(dt);
+   gestureLayer.prepare();locomotionLayer.prepare();motion.prepare();action.setEffectiveWeight(swimWeight);mixer.update(dt);
    const energy=reduced?0:calm?.12:.35+.49*moving;
    motion.update(dt,{mode,expression,attention:state.attention||state.gaze||{x:0,y:0},energy,clipActive:swimWeight>1e-4,
     tailEnergy:reduced?0:calm?.18:.25+.69*moving,tailReactivity:reduced?0:calm?.25:1.5,tailFlow:.83,performanceImpact:reduced?0:calm?.2:1,
     swimWeight,bodyMotion:{rotation:{y:num(vx*.001,-.4,.4),z:num(vy*.001,-.4,.4)},velocity:{x:num(vx*.002,-.5,.5),y:num(vy*.002,-.5,.5)}}});
+   locomotionLayer.apply(sampleLocomotionPose(state.locomotion||{},{reducedMotion:reduced}));
    gestureLayer.apply(lastGesture.pose);
+   facial.setGestureBlink(lastGesture.blink);
    facial.setExpression(expression);if(autoBlink===reduced){autoBlink=!reduced;facial.setAutoBlink(autoBlink);}facial.update(dt,performance.now());
    const extra=performanceStagePoseV15({time:clock,mode,expression,impact:reduced?0:calm?.07:.4,reducedMotion:reduced});
    stage.rotation.x=num(extra.rx,-.12,.12);stage.rotation.y=num(extra.ry,-.17,.17)+num(vx*.0002,-.05,.05)+(state.nearCard?num((state.attention?.x||0)*.02,-.02,.02):0);stage.rotation.z=num(extra.rz,-.12,.12);

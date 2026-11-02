@@ -1,8 +1,8 @@
 # M portfolio companion backend
 
-This optional backend connects the portfolio's M character to the OpenAI Responses API. The browser sends a request only when the visitor explicitly submits a chat message. Expressions and gestures are bounded animation suggestions for the character. They do not represent consciousness or actual emotions.
+This optional backend connects the portfolio's M character to the OpenAI Responses API. Chat requests are sent when the visitor explicitly submits a message. V23 also prepares an optional automatic animation director, disabled on the server by default. Expressions and gestures are bounded animation suggestions for the character. They do not represent consciousness or actual emotions.
 
-The public frontend endpoint points to the deployed Worker. Local scripted interactions still require no API traffic; only explicit chat submissions reach the API. The public browser config contains only a backend URL. **Never put an OpenAI key in HTML, JavaScript, GitHub Pages, a browser config, a screenshot, or Git.**
+The public frontend endpoint points to the deployed Worker. Local scripted interactions still require no API traffic. If an approved rollout enables automatic directing, a limited snapshot of public visible components can also reach the API. The public browser config contains only public endpoint and feature settings. **Never put an OpenAI key in HTML, JavaScript, GitHub Pages, a browser config, a screenshot, or Git.**
 
 ## Status and files
 
@@ -10,10 +10,13 @@ Deployed on 2 November 2026 to https://m-portfolio-companion.ricardopacheco-pinh
 
 - `core.mjs`: portable Request/Response handler, strict validation and fixed OpenAI upstream.
 - `worker.mjs`: Cloudflare entrypoint and atomic SQLite quota class. Its only exports are the default handler and `PortfolioQuota`, as required by the native runtime; helper exports live in `quota.mjs`.
-- `quota.mjs`: shared quota windows, Durable Object adapter/singleton and local-only memory adapter.
+- `quota.mjs`: shared and director quota windows, Durable Object adapter/singleton and local-only memory adapter.
+- `director.mjs`: bounded automatic intent prompt and operation; shares the existing HTTP, abort, timeout and quota lifecycle in `core.mjs`.
+- `../m-world-director-protocol.mjs`: shared exact-key request/reply validators and a dynamic strict schema.
 - `server.mjs`: loopback Node HTTP adapter for local development.
 - `portfolio-context.mjs`: manually curated public facts from `../index.html`, reviewed 2026-10-31. Update this snapshot when the public page changes. Store-review claims are page snapshots, not live verification.
-- `backend.test.mjs`: offline security, quota and HTTP tests.
+- `backend.test.mjs`: original offline chat security, quota and HTTP regressions.
+- `director.test.mjs` and `../m-world-director-protocol.test.mjs`: offline automatic request, protocol, cancellation and persistent quota checks.
 - `wrangler.jsonc`: proposed Worker name and SQLite binding; no account identifiers or credentials.
 - `.env.example`: empty key placeholder for local setup.
 
@@ -25,7 +28,7 @@ Use Node 22.13 or later; the available validation runtime was Node 24.11.0. The 
 node --check m-ai/core.mjs
 node --check m-ai/worker.mjs
 node --check m-ai/server.mjs
-node --test m-ai/backend.test.mjs
+node --test m-ai/backend.test.mjs m-ai/director.test.mjs m-world-director-protocol.test.mjs
 ```
 
 ## Local development
@@ -61,7 +64,7 @@ The initial deployment was explicitly approved. The procedure below is retained 
 
 ## HTTP contract
 
-`GET /health` returns `{ "configured": boolean }` and no key/model/account details.
+`GET /health` returns `{ "configured": boolean, "director": { "version": 1, "enabled": boolean } }` and no key/model/account details. The director reports enabled only when the normal backend configuration is present and `AI_AUTOPLAY_ENABLED` is exactly the string `true`. An old deployed backend without this capability must leave automatic requests disabled.
 
 `POST /api/m/respond`, with an allowlisted `Origin` and `Content-Type: application/json`:
 
@@ -95,9 +98,60 @@ The frontend must render the reply as text and independently validate the enum f
 
 Errors use `{ "error": { "code": "...", "message": "..." } }`. Statuses include 400 invalid input, 403 disallowed origin, 413 body limit, 415 media type, 429 quota/concurrency limit, 499 caller cancellation, 502 provider/output failure, 503 unavailable configuration/quota service and 504 timeout. No provider response body, prompts, API key or exception details are returned or logged. An explicit provider refusal produces a static neutral portfolio redirection. Provider failures do not pretend that an AI answer succeeded.
 
+## Optional automatic director (V23, prepared locally)
+
+`AI_AUTOPLAY_ENABLED=false` is saved in the example environment and Worker configuration. This work has not deployed the director, changed a secret or made an OpenAI call. Enabling it is a separate approved publication step. Reuse the existing server-side secret; do not create a browser key or change backend hostnames.
+
+`POST /api/m/direct` uses the same Origin allowlist, JSON media type, 8KB body cap, upstream URL, model default, no-tools policy, `store: false`, cancellation, timeout, cleanup, errors and concurrency pool as chat. The request has exactly one top-level key:
+
+```json
+{
+  "snapshot": {
+    "revision": "view-7",
+    "section": "projects",
+    "language": "en",
+    "event": "pointer-interest",
+    "attentionId": "project-bloom",
+    "targets": [
+      {
+        "id": "project-bloom",
+        "kind": "project",
+        "title": "Magnet Bloom",
+        "actions": ["peek", "perch"],
+        "zone": "middle-right"
+      }
+    ],
+    "recent": [{ "targetId": "portrait", "action": "inspect" }]
+  }
+}
+```
+
+Snapshots contain at most eight public visible feasible components and six recent actions. Titles are public headings of 1–80 characters, with no control characters. IDs and revisions are 1–64 ASCII letters/digits/colon/underscore/hyphen, beginning with a letter or digit. IDs are opaque local references, never selectors. `attentionId` is null or one current target ID. Sections use the existing chat context enum, and language is en/pt. No full DOM, page text, form contents, chat/history, pointer coordinates, arbitrary URL or analytics identifier is accepted.
+
+- Events: `idle`, `section-change`, `arrival`, `pointer-interest`, `tap`.
+- Kinds: `portrait`, `project`, `experience`, `expertise`, `certificate`, `contact`, `about`.
+- Zones: the nine top/middle/bottom and left/center/right combinations, such as `top-left`.
+- Offered actions: one or more unique values from `peek`, `perch`, `orbit`, `inspect`, `rest`.
+
+The response has exactly five fields:
+
+```json
+{
+  "snapshot": "view-7",
+  "targetId": "project-bloom",
+  "action": "peek",
+  "gesture": "playful",
+  "expression": "happy"
+}
+```
+
+The schema narrows the revision, target IDs and action vocabulary to the submitted snapshot. Independent validation also checks that the selected action was offered by that exact target. New director gestures are `playful`, `wink`, `nod`, alongside `none`, `wave`, `curious`, `surprised`, `shy`; expressions remain `neutral`, `happy`, `curious`, `surprised`. A provider refusal returns a quiet `targetId: null, action: rest, gesture: none, expression: neutral` with the current revision. Invalid, incomplete or stale provider output fails closed. The public chat response remains the original four fields and original gesture enum for staged frontend/backend compatibility.
+
+Every field is untrusted public data. The model has no access to forms or the visitor's thoughts and cannot execute anything. The browser must independently reject a reply after its snapshot changes and rerun its current visibility, collision and motion planner before accepting an intent. Browser policy adds a maximum of six attempts per session and at least 65 seconds between attempts; server quotas do not trust these client counters.
+
 ## Cost and abuse controls
 
-Every Worker isolate reserves against the same named SQLite Durable Object, `m-portfolio-global-quota-v1`. Atomic SQL transactions enforce fixed UTC windows of 6 attempts per IP/minute, 40 per IP/hour, 60 globally/hour and 200 globally/day. Limits count attempts even if the provider fails. There is a global maximum of three active reservations, with 30-second expiry after crashes, plus a per-isolate concurrency cap. The 15-second upstream timeout and caller cancellation both abort the fetch; no automatic retries occur. Already-aborted requests never reserve quota or start the upstream. The Node adapter maps premature HTTP disconnects to cancellation while preserving normal request-body completion. The Worker keeps its cleanup promise alive with `ctx.waitUntil` after a disconnect. Cancellation frees active leases when the provider call settles; a quota reservation already in flight is released as soon as it returns. Counted attempts remain charged against request quotas, and cancelling a request does not guarantee that already-started provider work is unbilled. Quota service failures block AI calls. Never shard or rename the singleton casually: doing so resets the active budget scope.
+Every Worker isolate reserves against the same named SQLite Durable Object, `m-portfolio-global-quota-v1`. Atomic SQL transactions enforce fixed UTC windows of 6 attempts per IP/minute, 40 per IP/hour, 60 globally/hour and 200 globally/day across both routes. Automatic directing also has fixed UTC fair-share windows of 1 attempt per IP/minute, 20 globally/hour and 80 globally/day. One transaction checks and charges both the director and overall counters; a quota rejection increments neither. The same existing singleton and database retain all counters across Worker recreation, without a reset or a new Durable Object migration. Limits count attempts even if the provider fails. There is a global maximum of three active reservations, with 30-second expiry after crashes, plus a per-isolate concurrency cap. The 15-second upstream timeout and caller cancellation both abort the fetch; no automatic retries occur. Already-aborted requests never reserve quota or start the upstream. The Node adapter maps premature HTTP disconnects to cancellation while preserving normal request-body completion. The Worker keeps its cleanup promise alive with `ctx.waitUntil` after a disconnect. Cancellation frees active leases when the provider call settles; a quota reservation already in flight is released as soon as it returns. Counted attempts remain charged against request quotas, and cancelling a request does not guarantee that already-started provider work is unbilled. Quota service failures block AI calls. Never shard or rename the singleton casually: doing so resets the active budget scope.
 
 These are request/token-size controls, not a monetary spend guarantee. Each request bounds input, history and output (`max_output_tokens: 700`); actual model pricing, tokenization and provider/account limits still determine cost. Review dedicated project spend settings before activation. Distributed attackers can exhaust the small global allowance and deny service to legitimate visitors. Fixed-window boundaries can allow a burst spanning two windows.
 
@@ -107,7 +161,7 @@ Cloudflare's edge-supplied `CF-Connecting-IP` is trusted only in the Cloudflare 
 
 ## Privacy and grounding
 
-Only explicit chat submissions and a bounded in-memory history are sent to this backend and OpenAI. Page browsing, pointer movement, idle behavior and local gestures do not require AI requests. Do not enter confidential or sensitive data. `store: false` disables Responses API application storage for these calls; it does not claim zero retention, because provider abuse-monitoring and account policies can still apply. This code does not persist chat or establish analytics identifiers.
+Explicit chat submissions and bounded in-memory chat history are sent to this backend and OpenAI. If the separately gated automatic director is enabled, a bounded snapshot of public component headings/kinds/zones and recent actions is also sent. Raw pointer movement, full page contents, form fields and private chat are excluded from that snapshot; ordinary local animation still requires no AI request. Do not enter confidential or sensitive data. `store: false` disables Responses API application storage for these calls; it does not claim zero retention, because provider abuse-monitoring and account policies can still apply. This code does not persist chat or establish analytics identifiers.
 
 Responses are grounded by a curated snapshot of already public portfolio facts, not private repositories or arbitrary website retrieval. The model has no tools. The upstream URL is fixed and HTTP redirects are handled manually then rejected, so the authorization header is never forwarded to a redirect destination. Prompt instructions and validation reduce accidental disclosure and invalid actions; they cannot prove factual accuracy of every natural-language sentence. Review representative answers about projects, employment, missing information and malicious instructions during the pending live evaluation.
 

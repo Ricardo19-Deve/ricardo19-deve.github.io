@@ -1,7 +1,8 @@
 /** Explicit gestures outrank autonomous life; staging never changes position or depth. */
 export const isExplicitGesture=intent=>Boolean(intent&&intent.source!=='life');
+export const gesturePriority=intent=>!intent?-1:intent.source==='life'?0:intent.source==='director'?1:2;
 export function selectGestureIntent(current,incoming,playing=null){
- if(incoming?.source==='life'&&(isExplicitGesture(current)||isExplicitGesture(playing)))return current;
+ if(gesturePriority(incoming)<Math.max(gesturePriority(current),gesturePriority(playing)))return current;
  return incoming;
 }
 export function gestureIntentExpired(intent,clock){return Boolean(intent&&!isExplicitGesture(intent)&&clock-intent.queuedAt>30);}

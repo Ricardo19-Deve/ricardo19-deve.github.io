@@ -185,6 +185,7 @@ try{
  ]){
   if(!report.selectedProfiles.includes(name))continue;
   const context=await browser.newContext({...options,reducedMotion:'no-preference'});
+  await context.route('**/m-world-config.mjs*',route=>route.fulfill({contentType:'text/javascript',body:"export const M_WORLD_CONFIG={assistantEndpoint:'',directorEndpoint:''};"}));
   const result={name,options,emulatedMobile:name==='mobile',consoleErrors:[],pageErrors:[],httpErrors:[],failedRequests:[],resourceWarnings:[]};
   const page=await context.newPage();let modelChunkRequests=0;
   page.on('pageerror',error=>result.pageErrors.push(String(error.stack||error)));

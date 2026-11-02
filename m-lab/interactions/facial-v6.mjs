@@ -90,7 +90,7 @@ export function createFacialV6(root,clips=[]) {
  const eyes={left:makeBlink(root,clips,'left'),right:makeBlink(root,clips,'right')};
  const availableExpressions=Object.fromEntries(Object.entries(EXPRESSIONS).map(([key,morph])=>
   [key,key==='neutral'||body.some(t=>t.morph===morph)]));
- let expression='neutral',blend={happy:0,curious:0,surprised:0},intensity=1.65,autoBlink=true,nextAutoBlink=0;
+ let expression='neutral',blend={happy:0,curious:0,surprised:0},intensity=1.65,autoBlink=true,nextAutoBlink=0,gestureBlink=null;
  function setExpression(key) {
   if(!Object.hasOwn(availableExpressions,key)||!availableExpressions[key])return false;
   expression=key;return true;
@@ -101,14 +101,26 @@ export function createFacialV6(root,clips=[]) {
   if(!eyes[side]?.channels.length)return false;
   eyes[side].manual=clamp(Number(amount)||0);return true;
  }
+ /** Temporary wink ownership. Existing manual sliders and auto preference survive. */
+ function setGestureBlink(value=null){
+  if(value===null){
+   if(gestureBlink){gestureBlink=null;nextAutoBlink=0;}
+   return true;
+  }
+  if(typeof value!=='object'||!['left','right'].every(side=>Number.isFinite(value[side])))return false;
+  if(!['left','right'].every(side=>eyes[side].channels.length||value[side]===0))return false;
+  // Cancel an automatic clip once, so release cannot resume halfway through it.
+  if(!gestureBlink)for(const eye of Object.values(eyes))eye.started=-1;
+  gestureBlink={left:clamp(value.left),right:clamp(value.right)};return true;
+ }
  function blink(side,now=performance.now()) {
   if(!eyes[side]?.channels.length)return false;
   eyes[side].started=now;return true;
  }
- function applyEye(eye,now) {
+ function applyEye(eye,now,side) {
   if(!eye.channels.length)return;
-  let t=timeForClosure(eye,eye.manual);
-  if(eye.started>=0){
+  let t=timeForClosure(eye,gestureBlink?gestureBlink[side]:eye.manual);
+  if(!gestureBlink&&eye.started>=0){
    const elapsed=now-eye.started;
    if(elapsed>=eye.duration){eye.started=-1;}
    else {
@@ -123,7 +135,7 @@ export function createFacialV6(root,clips=[]) {
  }
  function update(dt,now) {
   const k=1-Math.exp(-6*Math.max(0,dt));
-  if(autoBlink && eyes.left.channels.length && eyes.right.channels.length) {
+  if(autoBlink && !gestureBlink && eyes.left.channels.length && eyes.right.channels.length) {
    if(!nextAutoBlink)nextAutoBlink=now+2400;
    if(now>=nextAutoBlink){blink('left',now);blink('right',now+45);nextAutoBlink=now+3400+700*(.5+.5*Math.sin(now*.0013));}
   }
@@ -134,7 +146,18 @@ export function createFacialV6(root,clips=[]) {
    const key=morph.slice(5).toLowerCase();
    mesh.morphTargetInfluences[index]=blend[key]*intensity;
   }
-  applyEye(eyes.left,now);applyEye(eyes.right,now);
+  applyEye(eyes.left,now,'left');applyEye(eyes.right,now,'right');
+ }
+ function observedClosure(eye){
+  const channel=eye.channels.find(({mesh})=>Object.keys(BLINK_KNOTS).every(name=>mesh.morphTargetDictionary?.[name]!==undefined));
+  if(!channel)return null;
+  let closure=0;
+  for(const [name,knot]of Object.entries(BLINK_KNOTS)){
+   const weight=channel.mesh.morphTargetInfluences[channel.mesh.morphTargetDictionary[name]];
+   if(!Number.isFinite(weight))return null;
+   closure+=weight*knot;
+  }
+  return clamp(closure);
  }
  function diagnostics() {
   return {
@@ -142,12 +165,12 @@ export function createFacialV6(root,clips=[]) {
    leftBlinkTracks:eyes.left.channels.length,rightBlinkTracks:eyes.right.channels.length,
    leftBlinkClip:eyes.left.clip?.name||null,rightBlinkClip:eyes.right.clip?.name||null,
    bodyMorphs:[...new Set(body.map(t=>t.morph))],
-   intensity,extrapolatingExpressions:intensity>1,
+   intensity,extrapolatingExpressions:intensity>1,gestureBlinkActive:Boolean(gestureBlink),
    leftBlinkControl:eyes.left.path?'seven-key-hat':'generic',rightBlinkControl:eyes.right.path?'seven-key-hat':'generic',
-   leftBlinkDurationMs:eyes.left.duration,rightBlinkDurationMs:eyes.right.duration
+   leftBlinkDurationMs:eyes.left.duration,rightBlinkDurationMs:eyes.right.duration,leftClosure:observedClosure(eyes.left),rightClosure:observedClosure(eyes.right)
   };
  }
- return {setExpression,setBlink,setIntensity,setAutoBlink,blink,update,diagnostics,
+ return {setExpression,setBlink,setGestureBlink,setIntensity,setAutoBlink,blink,update,diagnostics,
   hasBlink:side=>Boolean(eyes[side]?.channels.length),
   hasExpression:key=>Boolean(availableExpressions[key]),
   get expression(){return expression;},get intensity(){return intensity;}};

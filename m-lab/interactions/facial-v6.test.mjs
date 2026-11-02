@@ -128,3 +128,49 @@ test('non-HAT synthetic clips retain generic control behavior',()=>{
  rig.setBlink('left',.5);rig.update(.1,0);
  assert.ok(f.l.morphTargetInfluences[1]>.45&&f.l.morphTargetInfluences[1]<.55);
 });
+
+test('gesture wink overrides an already running auto blink with gradual independent HAT closure',()=>{
+ const f=hatFixture(),rig=createFacialV6(f.root,f.clips);
+ rig.update(.01,0);rig.update(.01,2400);rig.update(.01,2960);
+ assert.ok(f.l.morphTargetInfluences[f.l.morphTargetDictionary.Closed]>.99,'automatic blink is already closed');
+ for(const amount of [0,.1,.3,.5,.75,1,.75,.5,.3,.1,0]){
+  assert.equal(rig.setGestureBlink({left:amount,right:0}),true);rig.update(.016,3000);
+  const closure=f.knots.reduce((sum,[name,knot])=>sum+f.l.morphTargetInfluences[f.l.morphTargetDictionary[name]]*knot,0);
+  assert.ok(Math.abs(closure-amount)<1e-5,`${closure} != ${amount}`);
+  assert.ok(f.r.morphTargetInfluences.every(value=>value===0));
+  assert.equal(f.body.morphTargetInfluences[0],.75);assert.equal(f.body.morphTargetInfluences[1],.25);
+ }
+ assert.equal(rig.diagnostics().gestureBlinkActive,true);
+ rig.setGestureBlink(null);rig.update(.016,3100);
+ assert.equal(rig.diagnostics().gestureBlinkActive,false);
+ assert.ok(f.l.morphTargetInfluences.every(value=>value===0),'release must not resume a cancelled clip in the middle');
+ rig.update(.016,5500);rig.update(.016,6060);
+ assert.ok(f.l.morphTargetInfluences[f.l.morphTargetDictionary.Closed]>.99,'automatic blink must resume after release');
+});
+
+test('gesture release preserves existing manual controls and disabled auto-blink preference',()=>{
+ const f=hatFixture(),rig=createFacialV6(f.root,f.clips);rig.setAutoBlink(false);
+ rig.setBlink('left',.5);rig.setGestureBlink({left:0,right:1});rig.update(.1,100);
+ assert.ok(f.l.morphTargetInfluences.every(value=>value===0));
+ assert.ok(f.r.morphTargetInfluences[f.r.morphTargetDictionary.Closed]>.99);
+ rig.setGestureBlink(null);rig.update(.1,200);
+ assert.ok(f.l.morphTargetInfluences[f.l.morphTargetDictionary.Half_Closed]>.99);
+ assert.ok(f.r.morphTargetInfluences.every(value=>value===0));
+ rig.update(.1,5000);rig.update(.1,7400);rig.update(.1,7960);
+ assert.ok(f.l.morphTargetInfluences[f.l.morphTargetDictionary.Half_Closed]>.99);
+ assert.ok(f.r.morphTargetInfluences.every(value=>value===0));
+ for(const invalid of [{left:NaN,right:0},{left:0},{left:'1',right:0},false])assert.equal(rig.setGestureBlink(invalid),false);
+});
+
+test('closure diagnostics observe actual current mesh weights rather than the requested control',()=>{
+ const f=hatFixture(),rig=createFacialV6(f.root,f.clips);rig.setAutoBlink(false);
+ rig.setGestureBlink({left:.5,right:0});rig.update(.1,100);
+ assert.ok(Math.abs(rig.diagnostics().leftClosure-.5)<1e-5);
+ assert.equal(rig.diagnostics().rightClosure,0);
+ f.l.morphTargetInfluences.fill(0);f.l.morphTargetInfluences[f.l.morphTargetDictionary.Closed]=.75;
+ assert.equal(rig.diagnostics().leftClosure,.75,'must read a changed actual influence independently of desired .5');
+ f.l.morphTargetInfluences[f.l.morphTargetDictionary.Closed]=NaN;
+ assert.equal(rig.diagnostics().leftClosure,null);
+ const absent=createFacialV6(f.root,[]);
+ assert.equal(absent.diagnostics().leftClosure,null);assert.equal(absent.diagnostics().rightClosure,null);
+});
