@@ -4,6 +4,8 @@ The new feature branch adds four original-rig gestures, contextual choices, sess
 
 See [V22 changes, evidence and activation status](docs/m-world-v22/VALIDATION.md) and [Cloudflare/OpenAI setup](m-ai/README.md). Only the verified Worker URL is public. The owner entered the OpenAI key directly as a Cloudflare secret; real backend and Chrome conversation checks passed.
 
+The live-fidelity fix branch adds bounded 2x rendering on DPR-1 displays, Enter submission, visible prioritized reactions, varied clear corridors and explicit reduced-motion consent. See [measurements, captures and local review steps](docs/m-world-v22/LIVE-FIX.md). Publication is pending approval.
+
 The notes below describe the previous version.
 
 ---

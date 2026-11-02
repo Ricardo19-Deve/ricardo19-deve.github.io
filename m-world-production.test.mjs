@@ -42,3 +42,18 @@ test('the intentionally disabled right socket normal and full body influences re
  }
  assert.ok(document.extras.M_facial_layers_v1);
 });
+test('the M entry point and every first-party runtime import share one cache revision',()=>{
+ const revision=page.match(/scroll-buddy\.js\?v=(\d+)/)?.[1];
+ assert.ok(revision,'The entry point needs an explicit cache revision.');
+ assert.ok(page.includes('m-world.css?v='+revision+'"'),'The M stylesheet must advance with the runtime.');
+ const imports=new Set();
+ for(const file of ['scroll-buddy.js','m-world-3d.mjs','m-world-companion.mjs','m-world-spatial.mjs','m-world-action-policy.mjs','m-world-acting.mjs','m-world-brain.mjs']){
+  const source=readFileSync(new URL(file,here),'utf8');
+  for(const match of source.matchAll(/(['"])\.\/(m-world-[a-z0-9-]+\.mjs)([^'"]*)\1/g)){
+   assert.equal(match[3],'?v='+revision,file+' imports a stale or unversioned '+match[2]);
+   imports.add(match[2]);
+  }
+ }
+ for(const file of ['m-world-3d.mjs','m-world-companion.mjs','m-world-spatial.mjs','m-world-action-policy.mjs','m-world-acting.mjs','m-world-brain.mjs','m-world-config.mjs'])
+  assert.ok(imports.has(file),'Missing verified import: '+file);
+});

@@ -108,7 +108,7 @@ test('all spatial choreography stays within mobile and desktop bounds',()=>{
 
 
 
-import {actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint} from './m-world-spatial.mjs';
+import {actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs';
 
 const realMetrics={size:272,footprint:{left:34,top:32,right:238,bottom:240,width:204,height:208},
  contact:{x:137,y:230}};
@@ -418,4 +418,93 @@ test('top peeks expose the neutral facial line instead of only the empty animati
  const facialLine=pose.y+metrics.neutralFootprint.top+metrics.neutralFootprint.height*.4;
  assert.ok(facialLine<=card.top-4,'the eye/cheek line must emerge above the actual card');
  assert.ok(actorRect(pose,metrics).top>=62,'the global clearance envelope is still respected');
+});
+
+const corridorMetrics={size:208,footprint:{left:14.56,top:29,right:193.44,bottom:179},
+ neutralFootprint:{left:57.22,top:78.99,right:138.20,bottom:145.93},contact:{x:91,y:146}};
+const corridorViewport={width:390,height:844,headerBottom:103};
+const neutralRect=(point,metrics=corridorMetrics)=>actorRect(point,{...metrics,footprint:metrics.neutralFootprint});
+
+test('free corridors distribute equally visible destinations with useful movement',()=>{
+ const viewport={width:1000,height:800,headerBottom:64},recent=[];
+ let position={x:400,y:300};const visited=[];
+ for(let i=0;i<8;i++){
+  const target=chooseCorridorTarget({viewport,metrics:corridorMetrics,position,recent});
+  assert.equal(target.visibleShare,1);
+  assert.ok(target.travelDistance>=100,'equally clear alternatives should not reselect the same point');
+  const bounds=actorRect(target,corridorMetrics);
+  assert.ok(bounds.left>=8&&bounds.right<=viewport.width-8);
+  assert.ok(bounds.top>=8&&bounds.bottom<=viewport.height-8);
+  visited.push(neutralRect(target));recent.push({x:target.x,y:target.y});
+  if(recent.length>6)recent.shift();position=target;
+ }
+ assert.ok(visited.some(r=>r.left<viewport.width*.35));
+ assert.ok(visited.some(r=>r.right>viewport.width*.65));
+ assert.ok(visited.some(r=>r.top<viewport.height*.35));
+ assert.ok(visited.some(r=>r.bottom>viewport.height*.65));
+});
+
+test('recent destinations prefer a different safe corridor without mutating memory',()=>{
+ const input={viewport:{width:850,height:650,headerBottom:64},metrics:corridorMetrics,position:{x:300,y:250}};
+ const first=chooseCorridorTarget(input),recent=Object.freeze([Object.freeze({x:first.x,y:first.y})]);
+ const next=chooseCorridorTarget({...input,recent});
+ assert.ok(Math.hypot(first.x-next.x,first.y-next.y)>100);
+ assert.equal(first.visibleShare,next.visibleShare);
+ assert.deepEqual(recent,[{x:first.x,y:first.y}]);
+});
+
+test('a narrow hero finds the clear body strip missed by three fixed fallback points',()=>{
+ const protectedRects=[
+  {left:0,top:186,right:390,bottom:222},
+  {left:0,top:246,right:390,bottom:494},
+  {left:0,top:518,right:390,bottom:702},
+  {left:0,top:722,right:390,bottom:844}
+ ];
+ const recent=[];let position={x:-6.56,y:95.7};const choices=[];
+ for(let i=0;i<4;i++){
+  const target=chooseCorridorTarget({viewport:corridorViewport,metrics:corridorMetrics,
+   position,protectedRects,recent});
+  assert.equal(target.reason,'clear-corridor');assert.equal(target.visibleShare,1);
+  const body=neutralRect(target);
+  assert.ok(body.top>=corridorViewport.headerBottom+4);
+  assert.ok(body.bottom<=182,'the actual body must be above the eyebrow text');
+  assert.equal(protectedRects.some(r=>overlapsRect(body,r)),false);
+  if(i)assert.ok(Math.hypot(target.x-position.x,target.y-position.y)>=50);
+  choices.push(body);recent.push({x:target.x,y:target.y});position=target;
+ }
+ assert.ok(choices.some(r=>r.left<100));assert.ok(choices.some(r=>r.right>290));
+});
+
+test('novelty never trades a completely clear body for text coverage',()=>{
+ const protectedRects=[{left:0,top:230,right:390,bottom:844}];
+ const first=chooseCorridorTarget({viewport:corridorViewport,metrics:corridorMetrics,
+  position:{x:100,y:300},protectedRects});
+ const recent=Array.from({length:6},()=>({x:first.x,y:first.y}));
+ const next=chooseCorridorTarget({viewport:corridorViewport,metrics:corridorMetrics,
+  position:first,protectedRects,recent});
+ assert.equal(first.visibleShare,1);assert.equal(next.visibleShare,1);
+ assert.equal(protectedRects.some(r=>overlapsRect(neutralRect(next),r)),false);
+});
+
+test('corridor results are deterministic, bounded and independent of rectangle order',()=>{
+ const rects=[{left:140,top:160,right:270,bottom:330},{left:40,top:400,right:350,bottom:550}];
+ const input={viewport:corridorViewport,metrics:corridorMetrics,position:{x:80,y:150},protectedRects:rects};
+ const chosen=chooseCorridorTarget(input);
+ assert.deepEqual(chooseCorridorTarget(input),chosen);
+ assert.deepEqual(chooseCorridorTarget({...input,protectedRects:[...rects].reverse()}),chosen);
+ assert.deepEqual(chooseCorridorTarget({...input,protectedRects:[...rects,...rects]}),chosen,
+  'overlapping protected rectangles are a union, not an inflated coverage penalty');
+ assert.equal(chooseCorridorTarget({...input,viewport:{width:0,height:844}}),null);
+ assert.equal(chooseCorridorTarget({...input,viewport:{width:120,height:200}}),null);
+ assert.equal(chooseCorridorTarget({...input,viewport:{width:NaN,height:844}}),null);
+});
+
+test('fully protected layouts remain masked and do not invent a clear corridor',()=>{
+ const viewport={width:240,height:300,headerBottom:64};
+ const target=chooseCorridorTarget({viewport,metrics:corridorMetrics,
+  protectedRects:[{left:0,top:0,right:240,bottom:300}],recent:[{x:0,y:0}]});
+ assert.equal(target.visibleShare,0);assert.equal(target.envelopeVisibleShare,0);
+ assert.equal(target.reason,'least-covered-corridor');
+ assert.equal(visibleAtPoint({x:target.x+100,y:target.y+100},actorRect(target,corridorMetrics),1,[],
+  [{left:0,top:0,right:240,bottom:300}]),false);
 });

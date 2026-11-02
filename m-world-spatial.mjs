@@ -252,6 +252,80 @@ const coveredArea=(actor,surfaces)=>{
  return area;
 };
 
+/** Choose a visible free destination; the caller still owns steering and depth.
+ * The neutral body must remain as readable as the safest available alternative.
+ * The larger animation envelope breaks safety ties; recent destinations only
+ * distribute choices between corridors with comparable visibility. No state is
+ * retained here, and protected text/control rectangles are never modified.
+ */
+export function chooseCorridorTarget({viewport,metrics,position={},protectedRects=[],
+ surfaces=[],depth=1,recent=[]}={}){
+ if(!Number.isFinite(viewport?.width)||!Number.isFinite(viewport?.height)||
+  viewport.width<=0||viewport.height<=0)return null;
+ const v=viewportOf(viewport),m=metricsOf(metrics),f=m.footprint;
+ const body=m.neutralFootprint?.width>0&&m.neutralFootprint?.height>0?m.neutralFootprint:f;
+ const limits={left:8-f.left,right:v.width-8-f.right,top:8-f.top,bottom:v.height-8-f.bottom};
+ if(limits.right<limits.left||limits.bottom<limits.top)return null;
+ const origin={x:bound(finite(position.x,(limits.left+limits.right)/2),limits.left,limits.right),
+  y:bound(finite(position.y,(limits.top+limits.bottom)/2),limits.top,limits.bottom)};
+ const masks=surfacesOf([...protectedRects,...(depth<0?surfaces:[]),
+  {left:0,top:0,right:v.width,bottom:v.headerBottom+4}]);
+ const gap=4,ys=new Set(),candidates=new Map();
+ const addY=y=>ys.add(bound(y,limits.top,limits.bottom));
+ const add=(x,y)=>{
+  const p={x:bound(x,limits.left,limits.right),y:bound(y,limits.top,limits.bottom)};
+  candidates.set(`${p.x.toFixed(3)}:${p.y.toFixed(3)}`,p);
+ };
+ addY(origin.y);
+ for(let i=0;i<=10;i++)addY(mix(limits.top,limits.bottom,i/10));
+ for(const r of masks){addY(r.top-body.bottom-gap);addY(r.bottom-body.top+gap);}
+ for(const y of [...ys].sort((a,b)=>a-b)){
+  // A horizontal sweep also finds thin responsive gaps missed by a fixed grid.
+  const blocked=masks.filter(r=>y+body.bottom>r.top-gap&&y+body.top<r.bottom+gap)
+   .map(r=>[Math.max(limits.left,r.left-body.right-gap),Math.min(limits.right,r.right-body.left+gap)])
+   .filter(([left,right])=>right>left).sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  let left=limits.left;
+  const addGap=right=>{
+   if(right<left)return;
+   for(const x of [left,(left+right)/2,right,bound(origin.x,left,right)])add(x,y);
+  };
+  for(const [a,b]of blocked){if(a>left)addGap(a);left=Math.max(left,b);}
+  if(left<=limits.right)addGap(limits.right);
+  // Retain least-covered alternatives when no fully open body corridor exists.
+  for(let i=0;i<=8;i++)add(mix(limits.left,limits.right,i/8),y);
+ }
+ const memory=(Array.isArray(recent)?recent:[]).slice(-6)
+  .filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.y));
+ const translate=(p,r)=>({left:p.x+r.left,top:p.y+r.top,right:p.x+r.right,bottom:p.y+r.bottom,
+  width:r.width,height:r.height});
+ const visibleShare=(r,area)=>{
+  const share=bound(1-coveredArea(r,masks)/Math.max(1,area),0,1);
+  return share<1e-10?0:share>1-1e-10?1:share;
+ };
+ const rows=[...candidates.values()].map(p=>{
+  const neutral=translate(p,body),envelope=translate(p,f);
+  return {...p,visibleShare:visibleShare(neutral,body.width*body.height),
+   envelopeVisibleShare:visibleShare(envelope,f.width*f.height),
+   travelDistance:Math.hypot(p.x-origin.x,p.y-origin.y)};
+ });
+ const bestBody=Math.max(...rows.map(p=>p.visibleShare));
+ // A completely clear body always wins over any text-covered alternative.
+ let safe=rows.filter(p=>p.visibleShare>=bestBody-(bestBody>=1-1e-8?1e-8:.01));
+ const bestEnvelope=Math.max(...safe.map(p=>p.envelopeVisibleShare));
+ safe=safe.filter(p=>p.envelopeVisibleShare>=bestEnvelope-.10);
+ const usefulDistance=bound(Math.min(v.width,v.height)*.2,50,100);
+ if(safe.some(p=>p.travelDistance>=usefulDistance))safe=safe.filter(p=>p.travelDistance>=usefulDistance);
+ const diagonal=Math.max(1,Math.hypot(v.width,v.height));
+ const score=p=>{
+  const novelty=memory.length?Math.min(...memory.map(q=>Math.hypot(p.x-q.x,p.y-q.y))):0;
+  return novelty/diagonal*.8+p.travelDistance/diagonal*.35+p.envelopeVisibleShare*.25;
+ };
+ safe.sort((a,b)=>score(b)-score(a)||a.y-b.y||a.x-b.x);
+ const chosen=safe[0];
+ return chosen?{...chosen,reason:chosen.visibleShare>=1-1e-8?'clear-corridor':'least-covered-corridor',
+  candidateCount:rows.length}:null;
+}
+
 const choosePortal=(r,m,v,side,surfaces,text,start)=>{
  const f=m.footprint,gutter={left:r.left-8,right:v.width-r.right-8,top:r.top-v.headerBottom-8};
  const choices=[];

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {assistantEndpoint,validateAssistantReply} from './m-world-companion.mjs';
+import {assistantEndpoint,validateAssistantReply,createMCompanion} from './m-world-companion.mjs';
 test('assistant accepts only explicit HTTPS or local development endpoints, without embedded credentials',()=>{
  assert.equal(assistantEndpoint(''),null);
  assert.equal(assistantEndpoint('https://m.example.workers.dev/api/m/respond'),'https://m.example.workers.dev/api/m/respond');
@@ -13,3 +13,106 @@ test('assistant validates bounded gestures and section hints instead of interpre
  for(const patch of [{gesture:'eval'},{section:'https://evil.example'},{reply:'x'.repeat(701)},{expression:'angry'},{command:'run'}])assert.equal(validateAssistantReply({...good,...patch}),null);
  assert.equal(validateAssistantReply(null),null);
 });
+
+class CompanionElement extends EventTarget {
+ constructor(tag,document){super();this.tag=tag;this.ownerDocument=document;this.dataset={};this.childNodes=[];this.className='';this.value='';this.disabled=false;this.submissions=0;}
+ setAttribute(name,value){this[name]=value;}
+ append(...elements){for(const element of elements){element.parent=this;this.childNodes.push(element);}}
+ replaceChildren(...elements){this.childNodes=[];this.append(...elements);}
+ get firstChild(){return this.childNodes[0];}
+ focus(){this.ownerDocument.activeElement=this;}
+ remove(){if(this.parent)this.parent.childNodes=this.parent.childNodes.filter(element=>element!==this);}
+ requestSubmit(submitter){this.submissions++;const event=new Event('submit',{cancelable:true});event.submitter=submitter;this.dispatchEvent(event);}
+}
+function companionFixture(options={}){
+ const document=new EventTarget(),elements=[],requests=[];
+ document.location={href:'https://portfolio.example/'};
+ document.createElement=tag=>{const element=new CompanionElement(tag,document);elements.push(element);return element;};
+ document.body=document.createElement('body');
+ const companion=createMCompanion({document,endpoint:'https://m-companion-test.invalid/api/m/respond',fetchImpl:(url,options)=>new Promise((resolve,reject)=>{
+  const request={url,options,body:JSON.parse(options.body),reply:value=>resolve({ok:true,json:async()=>value})};requests.push(request);
+  options.signal.addEventListener('abort',()=>reject(new Error('Aborted')),{once:true});
+ }),...options});
+ const find=cls=>elements.find(element=>element.className===cls);
+ return {companion,document,requests,enableMotion:find('m-companion-enable-motion'),motionNote:elements.find(element=>element.textContent?.startsWith('Reduced motion is on.')),gesture:label=>elements.find(element=>element.tag==='button'&&element.textContent===label),input:elements.find(element=>element.tag==='textarea'),form:find('m-companion-form'),send:find('m-companion-send'),clear:find('m-companion-clear'),status:find('m-companion-status'),log:find('m-companion-log')};
+}
+function keydown(input,properties={}){
+ const event=Object.assign(new Event('keydown',{cancelable:true}),{key:'Enter',shiftKey:false,isComposing:false,keyCode:13,repeat:false},properties);
+ input.dispatchEvent(event);return event;
+}
+const settle=()=>new Promise(resolve=>setImmediate(resolve));
+const validReply={reply:'A fixture response.',expression:'neutral',gesture:'none',section:'none'};
+
+test('Enter submits once through the form and cannot repeat while pending or after completion',async t=>{
+ const fixture=companionFixture(),{companion,input,send,form,requests,status,log}=fixture;t.after(()=>companion.destroy());
+ input.value=' First question ';
+ assert.equal(keydown(input).defaultPrevented,true);
+ assert.equal(form.submissions,1);
+ assert.equal(requests.length,1);
+ assert.equal(requests[0].body.message,'First question');
+ assert.deepEqual(requests[0].body.history,[]);
+ assert.equal(companion.snapshot().pending,true);
+ assert.equal(input.disabled,true);assert.equal(send.disabled,true);
+ assert.equal(status.textContent,'M is thinking…');
+ keydown(input,{repeat:true});keydown(input);form.requestSubmit(send);
+ assert.equal(requests.length,1);
+ requests[0].reply(validReply);await settle();
+ assert.equal(companion.snapshot().messages,2);
+ assert.equal(companion.snapshot().pending,false);
+ assert.equal(input.disabled,false);assert.equal(send.disabled,false);
+ assert.equal(status.textContent,'Answered with OpenAI.');assert.equal(log.childNodes.length,2);
+ input.value='Do not send while Enter is held';keydown(input,{repeat:true});
+ assert.equal(requests.length,1);assert.equal(input.value,'Do not send while Enter is held');
+ input.value='Button submission';form.requestSubmit(send);
+ assert.equal(requests.length,2);assert.equal(requests[1].body.history.length,2);
+ requests[1].reply(validReply);await settle();
+ assert.equal(companion.snapshot().messages,4);
+});
+
+test('Shift+Enter, IME composition and non-Enter keys preserve textarea editing',t=>{
+ const {companion,input,form,requests}=companionFixture();t.after(()=>companion.destroy());input.value='Draft';
+ for(const properties of [{shiftKey:true},{isComposing:true},{keyCode:229},{key:'a'}])assert.equal(keydown(input,properties).defaultPrevented,false);
+ assert.equal(form.submissions,0);assert.equal(requests.length,0);assert.equal(input.value,'Draft');
+ input.value='  ';assert.equal(keydown(input).defaultPrevented,true);assert.equal(requests.length,0);
+});
+
+test('disabled controls and destruction prevent keyboard submission, while Clear preserves tab-local history behavior',async t=>{
+ const {companion,input,send,clear,form,requests,log,status}=companionFixture();t.after(()=>companion.destroy());input.value='Draft';
+ input.disabled=true;keydown(input);input.disabled=false;send.disabled=true;keydown(input);
+ assert.equal(form.submissions,0);assert.equal(requests.length,0);
+ send.disabled=false;keydown(input);requests[0].reply(validReply);await settle();
+ clear.dispatchEvent(new Event('click'));
+ assert.equal(companion.snapshot().messages,0);assert.equal(log.childNodes.length,0);assert.equal(status.textContent,'Chat cleared.');
+ companion.destroy();input.value='After destruction';keydown(input);
+ assert.equal(requests.length,1);
+});
+ test('reduced motion remains off until explicit local consent, and gestures report accepted versus motion-off',t=>{
+  let motion={active:true,reducedMotion:true},enabled=0,gestures=0;
+  const {companion,enableMotion,motionNote,gesture,status,requests}=companionFixture({getMotionStatus:()=>motion,onEnableMotion:()=>{enabled++;motion={...motion,reducedMotion:false};return true;},onGesture:()=>{gestures++;return !motion.reducedMotion;}});t.after(()=>companion.destroy());
+  assert.equal(enabled,0);assert.equal(enableMotion.hidden,false);assert.equal(motionNote.hidden,false);
+  gesture('Wave').dispatchEvent(new Event('click'));
+  assert.equal(status.textContent,'Motion is off. Enable M motion to try a gesture.');assert.equal(enabled,0);
+  enableMotion.dispatchEvent(new Event('click'));
+  assert.equal(enabled,1);assert.equal(enableMotion.hidden,true);assert.equal(motionNote.hidden,true);assert.equal(status.textContent,'M motion enabled for this tab.');
+  gesture('Wave').dispatchEvent(new Event('click'));
+  assert.equal(gestures,2);assert.equal(status.textContent,'Gesture requested. M will respond from a safe resting place.');assert.equal(requests.length,0);
+ });
+
+ test('enabling motion preserves pause, and refreshing follows later motion preference changes',t=>{
+  let motion={active:false,reducedMotion:true};
+  const {companion,enableMotion,motionNote,gesture,status,requests}=companionFixture({getMotionStatus:()=>motion,onEnableMotion:()=>{motion={...motion,reducedMotion:false};return true;}});t.after(()=>companion.destroy());
+  enableMotion.dispatchEvent(new Event('click'));
+  assert.equal(motion.active,false);assert.equal(status.textContent,'Resume M to try a gesture.');
+  gesture('Curious').dispatchEvent(new Event('click'));assert.equal(status.textContent,'Resume M to try a gesture.');
+  motion={active:true,reducedMotion:true};companion.refreshMotionControl();
+  assert.equal(enableMotion.hidden,false);assert.equal(motionNote.hidden,false);
+  motion.reducedMotion=false;companion.refresh();assert.equal(enableMotion.hidden,true);assert.equal(requests.length,0);
+ });
+
+ test('a rejected assistant gesture keeps the validated chat answer and never enables motion',async t=>{
+  let enabled=0,gestures=0;
+  const {companion,input,requests,status,enableMotion}=companionFixture({getMotionStatus:()=>({active:true,reducedMotion:true}),onEnableMotion:()=>{enabled++;return false;},onGesture:()=>{gestures++;return false;}});t.after(()=>companion.destroy());
+  input.value='A question';keydown(input);requests[0].reply({...validReply,gesture:'wave'});await settle();
+  assert.equal(companion.snapshot().messages,2);assert.equal(status.textContent,'Answered with OpenAI.');
+  assert.equal(gestures,1);assert.equal(enabled,0);assert.equal(enableMotion.hidden,false);assert.equal(requests.length,1);
+ });
