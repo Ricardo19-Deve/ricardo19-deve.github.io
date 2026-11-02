@@ -1,5 +1,9 @@
-import {sectionElements,chooseTarget,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint} from './m-world-spatial.mjs?v=21';
+import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint} from './m-world-spatial.mjs?v=22';
 import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
+import {MWorldBrain} from './m-world-brain.mjs?v=22';
+import {M_GESTURES,GESTURE_DURATIONS} from './m-world-acting.mjs?v=22';
+import {createMCompanion} from './m-world-companion.mjs?v=22';
+import {M_WORLD_CONFIG} from './m-world-config.mjs?v=22';
 
 (() => {
  'use strict';
@@ -14,7 +18,10 @@ import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
  toggle.textContent='M · Loading';toggle.setAttribute('aria-label','Pause M');toggle.setAttribute('aria-pressed','true');
  document.body.append(layer,toggle);
  const life=new MLifeV16({seed:18421,personality:'balanced'});
- const state={x:0,y:100,vx:0,vy:0,depth:1,depthTarget:1,mode:'float',phase:'hold',emotion:'neutral',emotionUntil:0,clock:0,targetId:null};
+ const brain=new MWorldBrain({seed:18421}),failedPlans=new Map();
+ const interest={scrollUntil:0,readingUntil:0};
+ let brainState=brain.snapshot(),companion=null,pendingGesture=null;
+ const state={x:0,y:100,vx:0,vy:0,depth:1,depthTarget:1,mode:'float',phase:'hold',emotion:'neutral',emotionUntil:0,clock:0,targetId:null,gesture:null};
  let avatar=null,loading=null,active=true,frameId=null,lastFrame=0,route=null,nextChoice=0,frozen=false,disposed=false;
  let reducedMotion=motionPreference.matches,lastLife=null,renderFrame=null;
  let metrics={size:innerWidth<720?208:272,footprint:{left:24,top:16,right:248,bottom:256,width:224,height:240},contact:{x:136,y:244}};
@@ -78,7 +85,7 @@ import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
   const project=r=>({...r,left:r.left-sx,right:r.right-sx,top:r.top-sy,bottom:r.bottom-sy});
   const surfaces=cache.documents.map(project).filter(r=>onScreen(r,v,metrics.size));
   const protectedRects=cache.texts.map(project).filter(r=>onScreen(r,v,metrics.size));
-  for(const element of [document.querySelector('header.top'),toggle].filter(Boolean)){
+  for(const element of [document.querySelector('header.top'),toggle,companion?.elements.toggle,companion?.isOpen()?companion.elements.panel:null].filter(Boolean)){
    const b=element.getBoundingClientRect();stats.layoutReads++;
    if(b.width)protectedRects.push({...rect(b,4),radius:Math.min(16,b.height/2)});
   }
@@ -108,23 +115,33 @@ import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
   return best;
  }
  function startRoute(now,world,preferred=null,requestedElement=null){
+  const recovering=state.depthTarget<0||state.depth<-.05;
   const visible=world.surfaces.filter(s=>onScreen(s,world.viewport)&&s.height>65&&s.width>95);
-  const remaining=visible.filter(s=>s.id!==state.targetId);
-  let selected=requestedElement?visible.find(s=>s.element===requestedElement):null;
-  const candidates=(remaining.length?remaining:visible).map(s=>({el:s.element,rect:s}));
-  const choice=selected?{el:selected.element,rect:selected}:chooseTarget(candidates,{x:state.x+metrics.size/2,y:state.y+metrics.size/2},world.viewport.width,world.viewport.height,()=>life.random());
-  selected=choice?.rect;
-  const kinds=preferred?[preferred]:[life.random()<.45?'peek':'perch','orbit','perch','peek'];
+  const actor={x:state.x+metrics.size/2,y:state.y+metrics.size/2};
+  const options={nowMs:now,actor,viewport:world.viewport};
+  let pool=requestedElement?visible.filter(r=>r.element===requestedElement):visible.filter(r=>(failedPlans.get(r.id)||0)<=now);
   route=null;
-  for(const candidate of selected?[selected,...visible.filter(s=>s.id!==selected.id)]:[]){
-   selected=candidate;
+  while(pool.length){
+   const id=requestedElement?pool[0].id:brain.chooseTarget(pool.map(r=>{
+    const area=Math.max(1,r.width*r.height);
+    const covered=world.protectedRects.reduce((sum,t)=>sum+Math.max(0,Math.min(r.right,t.right)-Math.max(r.left,t.left))*Math.max(0,Math.min(r.bottom,t.bottom)-Math.max(r.top,t.top)),0);
+    return {...r,protectedCoverage:Math.min(1,covered/area)};
+   }),options);
+   const selected=pool.find(r=>r.id===id);
+   if(!selected)break;
+   const kinds=preferred?[preferred]:[life.random()<.45?'peek':'perch','orbit','perch','peek'];
    for(const kind of [...new Set(kinds)]){
     const side=life.random()<.5?-1:1;
     const plan=planCardAction({allowExternalPortal:true,rect:selected,viewport:world.viewport,metrics,kind,side,start:{x:state.x,y:state.y,depth:state.depthTarget},depth:state.depthTarget,surfaces:world.surfaces,protectedRects:world.protectedRects});
     if(plan.available){route={plan,side,elapsed:0,element:selected.element,version:world.version,documentRect:{left:selected.left+scrollX,top:selected.top+scrollY,width:selected.width,height:selected.height}};state.mode=plan.kind;state.targetId=selected.id;break;}
    }
    if(route)break;
+   failedPlans.set(selected.id,now+6000);if(failedPlans.size>32)failedPlans.delete(failedPlans.keys().next().value);
+   pool=pool.filter(r=>r.id!==selected.id);
   }
+  // A quiet/cooldown decision never falls back to a random route.
+  if(!route&&!requestedElement&&!recovering&&!brain.snapshot().spontaneousAllowed){nextChoice=now+1200;return false;}
+  if(!route&&!requestedElement&&!recovering&&brain.snapshot().reason==='visit-cooldown'){nextChoice=now+1200;return false;}
   if(!route){
    const f=metrics.footprint;
    const points=[{x:8-f.left,y:world.viewport.headerBottom+20-f.top},{x:world.viewport.width-f.right-10,y:world.viewport.height-f.bottom-68},{x:world.viewport.width*.55-metrics.size/2,y:world.viewport.height*.45-metrics.size/2}];
@@ -134,7 +151,7 @@ import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
     return hidden;
    };
    points.sort((a,b)=>score(a)-score(b));
-   const target=clampActor(points[0],world.viewport),escape=state.depthTarget<0;
+   const target=clampActor(points[0],world.viewport),escape=recovering;
    const left=Math.min(0,...world.surfaces.map(r=>r.left))-f.right-16,right=Math.max(world.viewport.width,...world.surfaces.map(r=>r.right))-f.left+16;
    const egress={x:Math.abs(state.x-left)<Math.abs(state.x-right)?left:right,y:state.y};
    route={free:true,escape,reentry:escape,egress,start:{x:state.x,y:state.y},target,elapsed:0,duration:3200};
@@ -143,7 +160,8 @@ import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
  }
  function advanceRoute(dt,now,world){
   if(!route&&now<nextChoice)return {x:state.x,y:state.y,depth:state.depthTarget,phase:'hold'};
-  if(!route||(route.free&&!route.escape&&now>=nextChoice))startRoute(now,world);
+  if((!route||(route.free&&!route.escape&&now>=nextChoice))&&!state.gesture)startRoute(now,world);
+  if(!route)return {x:state.x,y:state.y,depth:state.depthTarget,phase:'hold'};
   if(route?.free){
    if(route.escape){
     const clear=!world.surfaces.some(r=>overlap(actorRect(state,metrics),r,6));
@@ -179,17 +197,42 @@ import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
   const distance=Math.hypot(sample.x-state.x,sample.y-state.y);
   const arrivedInside=actual.left>=0&&actual.right<=world.viewport.width&&actual.top>=0&&actual.bottom<=world.viewport.height;
   const waiting=(sample.portalHold&&(!resolved.portalClear||Math.abs(state.depth-resolved.depth)>.03||distance>7))||(sample.waitForArrival&&(distance>4||!arrivedInside));
-  if(!waiting)route.elapsed+=dt*1000;
-  if(route.elapsed>=route.plan.duration&&Math.hypot(sample.x-state.x,sample.y-state.y)<6&&Math.abs(state.depth-sample.depth)<.08){route=null;nextChoice=now+600;}
+  if(!waiting&&!state.gesture)route.elapsed+=dt*1000;
+  if(!route.visited&&sample.phase==='hold'&&!sample.portalHold&&distance<4&&arrivedInside){brain.noteVisit(state.targetId,now);route.visited=true;}
+  if(!state.gesture&&route.elapsed>=route.plan.duration&&Math.hypot(sample.x-state.x,sample.y-state.y)<6&&Math.abs(state.depth-sample.depth)<.08){route=null;nextChoice=now+600;}
   return sample;
  }
- function updateLife(dt,world){
-  lastLife=life.step(dt,{mode:state.mode==='float'?'float':'swim',reducedMotion,manualFace:performance.now()<state.emotionUntil});
-  if(lastLife.action){
-   state.emotion=lastLife.action.expression||'neutral';state.emotionUntil=performance.now()+1900;
-   if(!route||(route.free&&!route.escape&&state.phase==='hold'))startRoute(performance.now(),world,lastLife.action.mode==='peek'?'peek':lastLife.action.mode==='swim'?'orbit':null);
+ function currentSection(world){
+  const ranked=world.surfaces.map(r=>({r,area:Math.max(0,Math.min(r.right,world.viewport.width)-Math.max(r.left,0))*Math.max(0,Math.min(r.bottom,world.viewport.height)-Math.max(r.top,world.viewport.headerBottom))})).sort((a,b)=>b.area-a.area);
+  return ranked[0]?.r.element.closest('section[id]')?.id||'home';
+ }
+ function queueGesture(name,{source='visitor',expression}={}){
+  if(!active||reducedMotion||!M_GESTURES.includes(name))return false;
+  pendingGesture={name,source,expression,queuedAt:state.clock};
+  if(source!=='life')life.manual();
+  schedule();return true;
+ }
+ function updateGesture(dt,world){
+  if(state.gesture){state.gesture.age+=dt;if(state.gesture.age>=GESTURE_DURATIONS[state.gesture.name])state.gesture=null;}
+  if(pendingGesture&&state.clock-pendingGesture.queuedAt>30)pendingGesture=null;
+  const a=actorRect(state,metrics),inside=a.left>=0&&a.right<=world.viewport.width&&a.top>=0&&a.bottom<=world.viewport.height;
+  if(pendingGesture&&!state.gesture&&state.phase==='hold'&&inside&&state.depth>.95&&Math.hypot(state.vx,state.vy)<14&&!route?.escape){
+   state.gesture={name:pendingGesture.name,age:0,side:life.random()<.5?-1:1};
+   state.emotion=pendingGesture.expression||'neutral';state.emotionUntil=performance.now()+GESTURE_DURATIONS[pendingGesture.name]*1000;pendingGesture=null;
   }
-  if(performance.now()>state.emotionUntil)state.emotion=state.mode==='peek'?'curious':state.mode==='perch'?'neutral':'neutral';
+ }
+ function updateLife(dt,world,now){
+  const input=document.activeElement,typing=Boolean(input?.matches?.('input,textarea,select,[contenteditable="true"]'));
+  brainState=brain.observe({nowMs:now,section:currentSection(world),scrolling:now<interest.scrollUntil,reading:now<interest.readingUntil||document.getSelection()?.isCollapsed===false,engaged:Boolean(companion?.isOpen()||typing),reducedMotion,hidden:document.hidden,active});
+  lastLife=life.step(dt,{mode:state.mode==='float'?'float':'swim',reducedMotion,manualFace:now<state.emotionUntil||(!brainState.spontaneousAllowed&&!life.pending)});
+  if(lastLife.action){
+   state.emotion=lastLife.action.expression||'neutral';state.emotionUntil=now+1900;
+   const gesture=lastLife.action.mood==='welcoming'?'wave':({curious:'curious',knock:'surprised',shy:'shy'}[lastLife.action.mode]);
+   if(gesture)queueGesture(gesture,{source:'life',expression:lastLife.action.expression});
+   if((lastLife.action.mode==='peek'||lastLife.action.mode==='swim')&&(!route||(route.free&&!route.escape&&state.phase==='hold')))startRoute(now,world,lastLife.action.mode==='peek'?'peek':'orbit');
+  }
+  if(now>state.emotionUntil)state.emotion=state.mode==='peek'?'curious':'neutral';
+  updateGesture(dt,world);
  }
  function renderCurrent(world,dt=0){
   const f=metrics.footprint,ratio=devicePixelRatio||1;
@@ -204,16 +247,16 @@ import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
   const target=world.surfaces.find(s=>s.id===state.targetId);
   const gaze=lastLife?.attention==='pointer'?lastLife.gaze:target?{x:bound((target.left+target.width*.5-(state.x+(f.left+f.right)/2))/260,-1,1),y:bound(((state.y+(f.top+f.bottom)*.4)-(target.top+Math.min(100,target.height*.3)))/220,-1,1)}:lastLife?.gaze||{x:0,y:0};
   if(frozen)avatar.render();
-  else avatar.update(dt,{mode:state.mode,activity:state.mode==='perch'&&state.phase==='hold'?'perch':state.mode,emotion:reducedMotion?'neutral':state.emotion,vx:state.vx,vy:state.vy,clock:state.clock,reducedMotion,attention:gaze,nearCard:Boolean(target),depth:state.depth});
+  else avatar.update(dt,{mode:state.mode,activity:state.mode==='perch'&&state.phase==='hold'?'perch':state.mode,emotion:reducedMotion?'neutral':state.emotion,vx:state.vx,vy:state.vy,clock:state.clock,gesture:state.gesture,reducedMotion,attention:gaze,nearCard:Boolean(target),depth:state.depth});
   layer.dataset.depth=state.depth<0?'behind':'front';layer.dataset.worldAction=state.mode;layer.dataset.phase=state.phase;
   layer.dataset.worldTarget=state.targetId||'corridor';layer.dataset.occluders=String(world.surfaces.filter(r=>overlap(bounds,r)).length);
-  layer.dataset.lifeMood=lastLife?.mood||'resting';
+  layer.dataset.lifeMood=lastLife?.mood||'resting';layer.dataset.gesture=state.gesture?.name||'none';
  }
  function tick(now){
   frameId=null;if(disposed||!active||!avatar||document.hidden||frozen)return;
   const started=performance.now(),dt=bound((now-(lastFrame||now))/1000,0,.05);lastFrame=now;
   metrics=avatar.getMetrics();state.clock+=dt;
-  const world=worldSnapshot(now);updateLife(dt,world);
+  const world=worldSnapshot(now);updateLife(dt,world,now);
   if(reducedMotion){Object.assign(state,clampActor({x:world.viewport.width-metrics.footprint.right-12,y:world.viewport.height-metrics.footprint.bottom-66},world.viewport),{vx:0,vy:0,mode:'rest',phase:'hold'});}
   else{
    const point=advanceRoute(dt,now,world),dx=point.x-state.x,dy=point.y-state.y;
@@ -249,7 +292,7 @@ import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
   if(loading||avatar)return loading;
   loading=(async()=>{
    try{
-    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=21');
+    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=22');
     avatar=await mountMWorld3D(host,{onProgress(percent){layer.dataset.loadProgress=String(percent);if(active)toggle.textContent='M · '+percent+'%';}});
     metrics=avatar.getMetrics();cache.dirty=true;cache.lastRead=0;
     const world=worldSnapshot();
@@ -269,7 +312,7 @@ import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
   return loading;
  }
  toggle.addEventListener('click',()=>{if(layer.dataset.error&&!avatar){delete layer.dataset.error;active=true;layer.hidden=false;load();}else setActive(!active);});
- window.addEventListener('scroll',()=>{life.signal('scroll',{delta:bound((scrollY-(cache.lastScroll??scrollY))/160,-1,1)});cache.lastScroll=scrollY;if(reducedMotion)schedule();},{passive:true});
+ window.addEventListener('scroll',()=>{interest.scrollUntil=performance.now()+650;life.signal('scroll',{delta:bound((scrollY-(cache.lastScroll??scrollY))/160,-1,1)});cache.lastScroll=scrollY;if(reducedMotion)schedule();},{passive:true});
  window.addEventListener('resize',()=>{invalidate();route=null;nextChoice=0;},{passive:true});
  window.visualViewport?.addEventListener('resize',invalidate,{passive:true});
  document.addEventListener('load',event=>{if(event.target?.tagName==='IMG')invalidate();},true);
@@ -286,6 +329,8 @@ import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
  const resizeObserver=new ResizeObserver(invalidate);if(document.querySelector('main'))resizeObserver.observe(document.querySelector('main'));
  const mutationObserver=new MutationObserver(records=>{if(records.some(r=>!ownNode(r.target instanceof Element?r.target:r.target.parentElement)))invalidate();});
  mutationObserver.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','style']});
+ document.addEventListener('pointerover',event=>{if(!ownNode(event.target)&&event.target.closest?.('p,h1,h2,h3,li,.card-body'))interest.readingUntil=performance.now()+1800;},{passive:true});
+ document.addEventListener('focusin',event=>{if(!ownNode(event.target))interest.readingUntil=performance.now()+1400;});
  document.addEventListener('visibilitychange',()=>{if(document.hidden){if(frameId!==null)cancelAnimationFrame(frameId);frameId=null;}else{lastFrame=0;schedule();}});
  motionPreference.addEventListener('change',event=>{reducedMotion=event.matches;life.setEnabled(active&&!reducedMotion);route=null;nextChoice=0;invalidate();schedule();});
  window.addEventListener('pointermove',event=>{
@@ -303,7 +348,7 @@ import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
  function snapshot(){
   if(avatar)metrics=avatar.getMetrics();
   const world=worldSnapshot();
-  return {ready:Boolean(avatar),active,error:layer.dataset.error||null,state:{...state},acting:{attached:Boolean(route?.attached),externalPortal:Boolean(route?.plan?.externalPortal)},metrics,actor:actorRect(renderFrame?{x:renderFrame.actor.left,y:renderFrame.actor.top}:state,metrics),
+  return {ready:Boolean(avatar),active,error:layer.dataset.error||null,state:{...state},acting:{attached:Boolean(route?.attached),externalPortal:Boolean(route?.plan?.externalPortal)},brain:brain.snapshot(),companion:companion?.snapshot(),pendingGesture:pendingGesture?.name||null,metrics,actor:actorRect(renderFrame?{x:renderFrame.actor.left,y:renderFrame.actor.top}:state,metrics),
    surfaces:world.surfaces.map(({element,...r})=>r),protectedRects:world.protectedRects,renderer:avatar?.getDiagnostics(),life:lastLife,stats:{...stats},frozen};
  }
  if(debugEnabled)window.MWorld={
@@ -334,9 +379,11 @@ import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
    metrics=avatar.getMetrics();state.depth=state.depthTarget=Number(value)<0?-1:1;renderCurrent(worldSnapshot(),0);return snapshot();
   },
   resume(){frozen=false;nextChoice=0;schedule();},
+  playGesture:queueGesture,
   setActive,
-  dispose(){disposed=true;if(frameId!==null)cancelAnimationFrame(frameId);resizeObserver.disconnect();mutationObserver.disconnect();for(const type of ['transitionrun','transitionend','transitioncancel'])document.removeEventListener(type,geometryTransition,true);avatar?.dispose();layer.remove();toggle.remove();}
+  dispose(){disposed=true;if(frameId!==null)cancelAnimationFrame(frameId);resizeObserver.disconnect();mutationObserver.disconnect();for(const type of ['transitionrun','transitionend','transitioncancel'])document.removeEventListener(type,geometryTransition,true);companion?.destroy();avatar?.dispose();layer.remove();toggle.remove();}
  };
+ companion=createMCompanion({endpoint:M_WORLD_CONFIG.assistantEndpoint,onGesture:queueGesture,onExpression:expression=>{if(active&&!reducedMotion&&['neutral','happy','curious','surprised'].includes(expression)){state.emotion=expression;state.emotionUntil=performance.now()+2200;schedule();}},getContext:()=>({section:brain.snapshot().section||'home',language:navigator.language?.startsWith('pt')?'pt':'en'}),onSection:name=>{document.getElementById(name)?.scrollIntoView({behavior:reducedMotion?'instant':'smooth',block:'start'});},onEngagement:()=>{invalidate();}});
  try{if(localStorage.getItem('m-world-enabled')==='no')active=false;}catch{}
  life.setEnabled(active&&!reducedMotion);setActive(active,false);
 })();

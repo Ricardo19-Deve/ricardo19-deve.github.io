@@ -164,3 +164,17 @@ test('neutral intro rectangle converts fixed camera bounds to local CSS pixels a
  assert.deepEqual(mobile,{left:52,top:26,right:156,bottom:130,width:104,height:104});
  assert.equal(desktop.width/272,mobile.width/208);
 });
+
+test('gestures use a reversible layer after base motion and join actual correlated framing samples',()=>{
+ assert.match(rendererSource,/import \{M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer\} from '.\/m-world-acting.mjs\?v22'/);
+ assert.match(rendererSource,/lastGesture=sampleGesture\(\{\.\.\.state.gesture,reducedMotion:reduced\}\)/);
+ assert.match(rendererSource,/gestureLayer.prepare\(\);motion.prepare\(\);action.setEffectiveWeight\(swimWeight\);mixer.update\(dt\)/);
+ assert.ok(rendererSource.indexOf('gestureLayer.apply(lastGesture.pose)')>rendererSource.indexOf('motion.update(dt,'));
+ assert.match(rendererSource,/lastGesture.envelope>0\?lastGesture.expression:expressionFor/);
+ assert.match(rendererSource,/for\(const name of M_GESTURES\)for\(const side of \[-1,1\]\)for\(const progress of gestureTimes\)/);
+ assert.match(rendererSource,/age:progress\*GESTURE_DURATIONS\[name\]/);
+ assert.match(rendererSource,/sample\(2.2,\{gesture\}\)/);
+ assert.match(rendererSource,/sample\(2.2,\{mode:'swim',swimWeight:.8,energy:.84,tailEnergy:.94,gesture\}\)/);
+ assert.ok(rendererSource.indexOf('Object.entries(acting.pose)')<rendererSource.indexOf('includePose({time,mode,expression'));
+ assert.match(rendererSource,/projectedPoseBounds\(posePoints,\{center\}\)/);
+});

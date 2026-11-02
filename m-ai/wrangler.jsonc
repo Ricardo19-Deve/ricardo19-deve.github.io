@@ -1,0 +1,16 @@
+{
+  "name": "m-portfolio-companion",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-30",
+  "compatibility_flags": ["enable_request_signal"],
+  "workers_dev": true,
+  "observability": { "enabled": false },
+  "vars": {
+    "OPENAI_MODEL": "gpt-5-mini",
+    "PORTFOLIO_ORIGIN": "https://ricardo19-deve.github.io"
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "M_QUOTA", "class_name": "PortfolioQuota" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["PortfolioQuota"] }]
+}
