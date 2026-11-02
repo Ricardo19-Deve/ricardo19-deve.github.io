@@ -1,10 +1,13 @@
-import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=25';
+import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=26';
+import {createWorldObserver} from './m-world-observer.mjs?v=26';
+import {createWorldDirector} from './m-world-director.mjs?v=26';
+import {advanceLocomotion} from './m-world-locomotion.mjs?v=26';
 import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
-import {MWorldBrain} from './m-world-brain.mjs?v=25';
-import {M_GESTURES,GESTURE_DURATIONS} from './m-world-acting.mjs?v=25';
-import {createMCompanion} from './m-world-companion.mjs?v=25';
-import {M_WORLD_CONFIG} from './m-world-config.mjs?v=25';
-import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=25';
+import {MWorldBrain} from './m-world-brain.mjs?v=26';
+import {M_GESTURES,GESTURE_DURATIONS} from './m-world-acting.mjs?v=26';
+import {createMCompanion} from './m-world-companion.mjs?v=26';
+import {M_WORLD_CONFIG} from './m-world-config.mjs?v=26';
+import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=26';
 
 (() => {
  'use strict';
@@ -18,11 +21,13 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  toggle.type='button';toggle.className='m-world-toggle';toggle.dataset.mOverlay='true';
  toggle.textContent='M · Loading';toggle.setAttribute('aria-label','Pause M');toggle.setAttribute('aria-pressed','true');
  document.body.append(layer,toggle);
- const life=new MLifeV16({seed:18421,personality:'balanced'});
+ const life=new MLifeV16({seed:18421,personality:'playful'});
  const brain=new MWorldBrain({seed:18421}),failedPlans=new Map(),recentCorridors=[];
- const interest={scrollUntil:0,readingUntil:0};
- let brainState=brain.snapshot(),companion=null,pendingGesture=null;
- const state={x:0,y:100,vx:0,vy:0,depth:1,depthTarget:1,mode:'float',phase:'hold',emotion:'neutral',emotionUntil:0,clock:0,targetId:null,gesture:null,expressionHold:null};
+ const interest={scrollUntil:0,readingUntil:0,attentionId:null};
+ let brainState=brain.snapshot(),companion=null,pendingGesture=null,director=null,observer=null;
+ let directorComponents=[],directorSnapshot=null,directorActivity=null,directorLastExecution=null;
+ let directorKey='',directorRevision=0,directorNextRead=0,directorEvent='idle',directorRouteId=0,directorCompletedRouteId=null;const directorRecent=[];
+ const state={x:0,y:100,vx:0,vy:0,ax:0,ay:0,heading:0,turn:0,travel:0,leanX:0,leanY:0,depth:1,depthTarget:1,mode:'float',phase:'hold',emotion:'neutral',emotionUntil:0,clock:0,targetId:null,gesture:null,expressionHold:null};
  let avatar=null,loading=null,active=true,frameId=null,lastFrame=0,route=null,nextChoice=0,frozen=false,disposed=false;
  let motionOptIn=false;try{motionOptIn=sessionStorage.getItem('m-world-motion-allowed')==='yes';}catch{}
  let reducedMotion=motionPreference.matches&&!motionOptIn,lastLife=null,renderFrame=null;
@@ -199,15 +204,105 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   const waiting=(sample.portalHold&&(!resolved.portalClear||Math.abs(state.depth-resolved.depth)>.03||distance>7))||(sample.waitForArrival&&(distance>4||!arrivedInside));
   if(!waiting&&!state.gesture)route.elapsed+=dt*1000;
   if(!route.visited&&sample.phase==='hold'&&!sample.portalHold&&distance<4&&arrivedInside){brain.noteVisit(state.targetId,now);route.visited=true;}
-  if(!state.gesture&&route.elapsed>=route.plan.duration&&Math.hypot(sample.x-state.x,sample.y-state.y)<6&&Math.abs(state.depth-sample.depth)<.08){route=null;nextChoice=now+600;}
+  if(!state.gesture&&route.elapsed>=route.plan.duration&&Math.hypot(sample.x-state.x,sample.y-state.y)<6&&Math.abs(state.depth-sample.depth)<.08){directorCompletedRouteId=route.directorRouteId??null;route=null;nextChoice=now+600;}
   return sample;
  }
+
+ function componentKind(element){
+  if(element.matches('.hero-visual'))return 'portrait';
+  if(element.matches('.card,.case-teaser'))return 'project';
+  if(element.matches('.role'))return 'experience';
+  if(element.matches('.expertise article'))return 'expertise';
+  if(element.matches('.cert'))return 'certificate';
+  if(element.closest('.contact'))return 'contact';
+  return 'about';
+ }
+ function publicComponents(world){
+  const v=world.viewport;
+  return world.surfaces.filter(r=>{
+   const area=Math.max(1,r.width*r.height),visible=Math.max(0,Math.min(r.right,v.width)-Math.max(r.left,0))*Math.max(0,Math.min(r.bottom,v.height)-Math.max(r.top,v.headerBottom));
+   return visible/area>=.3&&r.element.isConnected;
+  }).slice(0,8).map(r=>{
+   const kind=componentKind(r.element),heading=r.element.querySelector('h3,h2,h4,strong'),title=(heading?.textContent||(kind==='portrait'?'Ricardo Pinheiro portrait':kind+' component')).replace(/\s+/g,' ').trim().slice(0,80);
+   const cx=Math.max(0,Math.min(v.width,(r.left+r.right)/2))/Math.max(1,v.width),cy=Math.max(0,Math.min(v.height,(r.top+r.bottom)/2))/Math.max(1,v.height);
+   return {id:r.id,kind,title,zone:(cy<1/3?'top':cy>2/3?'bottom':'middle')+'-'+(cx<1/3?'left':cx>2/3?'right':'center'),shape:[Math.round(r.left/24),Math.round(r.top/24),Math.round(r.width/24),Math.round(r.height/24)]};
+  });
+ }
+ function directorPlan(world,surface,kind){
+  for(const side of [1,-1]){
+   const plan=planCardAction({allowExternalPortal:true,rect:surface,viewport:world.viewport,metrics,kind,side,start:{x:state.x,y:state.y,depth:state.depthTarget},depth:state.depthTarget,surfaces:world.surfaces,protectedRects:world.protectedRects});
+   if(plan.available&&plan.kind===kind)return {plan,side};
+  }
+  return null;
+ }
+ function directorBlocked(now){
+  const typing=Boolean(document.activeElement?.matches?.('input,textarea,select,[contenteditable="true"]'));
+  return {hidden:document.hidden||!active||frozen,reducedMotion,typing,reading:now<interest.readingUntil||document.getSelection()?.isCollapsed===false,scrolling:now<interest.scrollUntil,busy:Boolean(companion?.isOpen()||state.gesture||state.expressionHold||isExplicitGesture(pendingGesture))};
+ }
+ function rememberDirector(decision){
+  directorRecent.push({targetId:decision.targetId,action:decision.action});if(directorRecent.length>6)directorRecent.shift();
+  directorLastExecution={...decision,at:state.clock,status:'complete'};directorEvent='arrival';
+ }
+ function applyDirectorIntent(decision,snapshot){
+  const now=performance.now(),world=worldSnapshot(now);
+  if(Object.values(directorBlocked(now)).some(Boolean)||snapshot.revision!==directorSnapshot?.revision)return false;
+  const surface=decision.targetId===null?null:world.surfaces.find(r=>r.id===decision.targetId&&onScreen(r,world.viewport));
+  if(decision.targetId!==null&&(!surface||!publicComponents(world).some(r=>r.id===decision.targetId&&r.title===snapshot.targets.find(t=>t.id===decision.targetId)?.title)))return false;
+  const intent={name:decision.gesture==='none'?null:decision.gesture,source:'director',expression:decision.expression,queuedAt:state.clock};
+  interest.attentionId=surface?.id||null;
+  if(['inspect','rest'].includes(decision.action)){
+   intent.directorDecision={...decision};
+   if(!queueIntent(intent))return false;
+   directorLastExecution={...decision,at:state.clock,status:'queued'};return true;
+  }
+  const selected=surface&&directorPlan(world,surface,decision.action);if(!selected)return false;
+  const {plan,side}=selected,routeId=++directorRouteId;directorCompletedRouteId=null;
+  if(pendingGesture?.source==='life')pendingGesture=null;
+  route={plan,side,directorRouteId:routeId,elapsed:0,element:surface.element,version:world.version,documentRect:{left:surface.left+scrollX,top:surface.top+scrollY,width:surface.width,height:surface.height}};
+  state.mode=plan.kind;state.targetId=surface.id;state.emotion=decision.expression;state.emotionUntil=now+Math.min(60000,plan.duration*2+5000);
+  directorActivity={...decision,routeId,started:now};directorLastExecution={...decision,at:state.clock,status:'travelling'};return true;
+ }
+ function updateDirectorActivity(now){
+  if(!directorActivity)return;
+  const decision=directorActivity;
+  if(now-decision.started>35000||(route&&route.directorRouteId!==decision.routeId)){
+   directorActivity=null;directorLastExecution={...decision,at:state.clock,status:'cancelled'};state.emotionUntil=now+600;return;
+  }
+  if(!route){
+   directorActivity=null;state.emotionUntil=now+600;
+   if(directorCompletedRouteId!==decision.routeId){directorLastExecution={...decision,at:state.clock,status:'cancelled'};return;}
+   rememberDirector(decision);
+   if(!Object.values(directorBlocked(now)).some(Boolean))queueIntent({name:decision.gesture==='none'?null:decision.gesture,source:'director',expression:decision.expression,queuedAt:state.clock});
+  }
+ }
+ function updateDirector(now,world,force=false){
+  if(!director||!observer||!avatar)return;
+  const context=directorBlocked(now);
+  if(!force&&now<directorNextRead){if(Object.values(context).some(Boolean))director.update({snapshot:directorSnapshot,...context});return;}
+  directorNextRead=now+1000;
+  const records=publicComponents(world),section=currentSection(world);
+  const key=JSON.stringify([section,Math.round(world.viewport.width/16),Math.round(world.viewport.height/16),records,interest.attentionId,directorEvent,directorRecent]);
+  if(key!==directorKey){
+   directorKey=key;directorRevision++;
+   directorComponents=records.map(({shape,...r})=>{
+    const surface=world.surfaces.find(s=>s.id===r.id),actions=['inspect'];
+    for(const action of ['peek','perch','orbit'])if(directorPlan(world,surface,action))actions.push(action);
+    return {...r,actions};
+   });
+  }
+  directorSnapshot=observer.capture({revision:'scene-'+directorRevision,section,language:navigator.language?.startsWith('pt')?'pt':'en',event:directorEvent,attentionId:interest.attentionId,recent:directorRecent});
+  director.update({snapshot:directorSnapshot?.targets.length?directorSnapshot:null,...context});
+  if(director.getStatus().pending&&pendingGesture?.source==='life')pendingGesture=null;
+  companion?.refresh();
+ }
+
  function currentSection(world){
   const ranked=world.surfaces.map(r=>({r,area:Math.max(0,Math.min(r.right,world.viewport.width)-Math.max(r.left,0))*Math.max(0,Math.min(r.bottom,world.viewport.height)-Math.max(r.top,world.viewport.headerBottom))})).sort((a,b)=>b.area-a.area);
   return ranked[0]?.r.element.closest('section[id]')?.id||'home';
  }
  function queueIntent(incoming){
   if(!active||reducedMotion||(avatar&&!gestureViewportFits(metrics,viewport())))return false;
+  if(incoming.source==='visitor'||incoming.source==='assistant'){if(directorActivity)directorLastExecution={...directorActivity,at:state.clock,status:'cancelled'};directorActivity=null;director?.update({snapshot:directorSnapshot,busy:true});}
   pendingGesture=selectGestureIntent(pendingGesture,incoming,state.gesture||state.expressionHold);
   if(pendingGesture!==incoming)return false;
   if(isExplicitGesture(incoming)){life.manual();if(avatar&&!state.gesture&&!state.expressionHold)stageGesture(worldSnapshot());}
@@ -237,6 +332,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(isExplicitGesture(pendingGesture)&&!playing&&!route?.gestureStage)stageGesture(world);
   if(pendingGesture&&!playing&&gestureReady({state,actor:actorRect(state,metrics),viewport:world.viewport,escaping:route?.escape})){
    const intent=pendingGesture;pendingGesture=null;
+   if(intent.directorDecision)rememberDirector(intent.directorDecision);
    if(intent.name)state.gesture={name:intent.name,source:intent.source,expression:intent.expression,age:0,side:life.random()<.5?-1:1};
    else state.expressionHold={source:intent.source,age:0};
    state.vx=state.vy=0;
@@ -248,9 +344,9 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   const input=document.activeElement,typing=Boolean(input?.matches?.('input,textarea,select,[contenteditable="true"]'));
   brainState=brain.observe({nowMs:now,section:currentSection(world),scrolling:now<interest.scrollUntil,reading:now<interest.readingUntil||document.getSelection()?.isCollapsed===false,engaged:Boolean(companion?.isOpen()||typing),reducedMotion,hidden:document.hidden,active});
   lastLife=life.step(dt,{mode:state.mode==='float'?'float':'swim',reducedMotion,manualFace:now<state.emotionUntil||(!brainState.spontaneousAllowed&&!life.pending)});
-  if(lastLife.action&&!isExplicitGesture(pendingGesture)&&!state.gesture&&!state.expressionHold){
+  if(lastLife.action&&!isExplicitGesture(pendingGesture)&&!state.gesture&&!state.expressionHold&&!director?.getStatus().pending&&!directorActivity){
    state.emotion=lastLife.action.expression||'neutral';state.emotionUntil=now+1900;
-   const gesture=lastLife.action.mood==='welcoming'?'wave':({curious:'curious',knock:'surprised',shy:'shy'}[lastLife.action.mode]);
+   const gesture=lastLife.action.mood==='welcoming'?(life.random()<.35?'playful':'wave'):lastLife.action.mode==='curious'?(life.random()<.35?'nod':'curious'):lastLife.action.mode==='shy'?(life.random()<.4?'wink':'shy'):lastLife.action.mood==='playful'?'playful':({knock:'surprised'}[lastLife.action.mode]);
    if(gesture)queueGesture(gesture,{source:'life',expression:lastLife.action.expression});
    if((lastLife.action.mode==='peek'||lastLife.action.mode==='swim')&&(!route||(route.free&&!route.escape&&state.phase==='hold')))startRoute(now,world,lastLife.action.mode==='peek'?'peek':'orbit');
   }
@@ -267,10 +363,10 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   const spatial={actor,surfaces:world.surfaces.map(({element,...r})=>r),protectedRects:world.protectedRects,depth:state.depth};
   renderFrame={...spatial,bounds};
   avatar.setSpatialFrame(spatial);
-  const target=world.surfaces.find(s=>s.id===state.targetId);
+  const target=world.surfaces.find(s=>s.id===interest.attentionId)||world.surfaces.find(s=>s.id===state.targetId);
   const gaze=lastLife?.attention==='pointer'?lastLife.gaze:target?{x:bound((target.left+target.width*.5-(state.x+(f.left+f.right)/2))/260,-1,1),y:bound(((state.y+(f.top+f.bottom)*.4)-(target.top+Math.min(100,target.height*.3)))/220,-1,1)}:lastLife?.gaze||{x:0,y:0};
   if(frozen)avatar.render();
-  else avatar.update(dt,{mode:state.mode,activity:state.mode==='perch'&&state.phase==='hold'?'perch':state.mode,emotion:reducedMotion?'neutral':state.emotion,vx:state.vx,vy:state.vy,clock:state.clock,gesture:state.gesture,reducedMotion,attention:gaze,nearCard:Boolean(target),depth:state.depth});
+  else avatar.update(dt,{mode:state.mode,activity:state.mode==='perch'&&state.phase==='hold'?'perch':state.mode,emotion:reducedMotion?'neutral':state.emotion,vx:state.vx,vy:state.vy,clock:state.clock,gesture:state.gesture,reducedMotion,locomotion:{ax:state.ax,ay:state.ay,heading:state.heading,turn:state.turn,travel:state.travel,leanX:state.leanX,leanY:state.leanY},attention:gaze,nearCard:Boolean(target),depth:state.depth});
   layer.dataset.depth=state.depth<0?'behind':'front';layer.dataset.worldAction=state.mode;layer.dataset.phase=state.phase;
   layer.dataset.worldTarget=state.targetId||'corridor';layer.dataset.occluders=String(world.surfaces.filter(r=>overlap(bounds,r)).length);
   layer.dataset.lifeMood=lastLife?.mood||'resting';layer.dataset.gesture=state.gesture?.name||'none';
@@ -279,7 +375,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   frameId=null;if(disposed||!active||!avatar||document.hidden||frozen)return;
   const started=performance.now(),dt=bound((now-(lastFrame||now))/1000,0,.05);lastFrame=now;
   metrics=avatar.getMetrics();state.clock+=dt;
-  const world=worldSnapshot(now);updateLife(dt,world,now);
+  const world=worldSnapshot(now);updateLife(dt,world,now);updateDirector(now,world);
   if(reducedMotion){Object.assign(state,clampActor({x:world.viewport.width-metrics.footprint.right-12,y:world.viewport.height-metrics.footprint.bottom-66},world.viewport),{vx:0,vy:0,mode:'rest',phase:'hold'});}
   else{
    const point=advanceRoute(dt,now,world),dx=point.x-state.x,dy=point.y-state.y;
@@ -287,16 +383,16 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
    const attached=perchHold&&(route?.attached||Math.hypot(point.x-state.x,point.y-state.y)<3);
    if(route)route.attached=Boolean(attached);
    const maxSpeed=state.mode==='peek'?110:state.mode==='perch'?120:150;
-   if(attached){state.vx=(point.x-state.x)/Math.max(.008,dt);state.vy=(point.y-state.y)/Math.max(.008,dt);state.x=point.x;state.y=point.y;}
+   if(attached){const previous={x:state.x,y:state.y};Object.assign(state,advanceLocomotion({...state,vx:0,vy:0},{x:state.x,y:state.y},dt));state.vx=(point.x-previous.x)/Math.max(.008,dt);state.vy=(point.y-previous.y)/Math.max(.008,dt);state.x=point.x;state.y=point.y;}
    else{
-    const distance=Math.hypot(dx,dy),speed=Math.min(maxSpeed,distance*2.5),response=1-Math.exp(-4.8*dt);
-    state.vx+=((distance>1?dx/distance*speed:0)-state.vx)*response;state.vy+=((distance>1?dy/distance*speed:0)-state.vy)*response;
-    Object.assign(state,clampActor({x:state.x+state.vx*dt,y:state.y+state.vy*dt},world.viewport,point.allowViewportExit));
+    Object.assign(state,advanceLocomotion(state,point,dt,{maxSpeed,maxAcceleration:340,arrivalRadius:72}));
+    Object.assign(state,clampActor(state,world.viewport,point.allowViewportExit));
    }
    state.phase=point.phase;
    const previous=state.depthTarget,resolved=resolveDepth(actorRect(state,metrics),point.depth,world.surfaces,previous,point.portal);
    state.depthTarget=resolved.depth;if(previous!==resolved.depth)stats.depthTransitions++;
   }
+  updateDirectorActivity(now);
   state.depth+=(state.depthTarget-state.depth)*(1-Math.exp(-9*dt));
   renderCurrent(world,dt);stats.frames++;stats.lastFrameMs=performance.now()-started;stats.maxFrameMs=Math.max(stats.maxFrameMs,stats.lastFrameMs);
   if(!reducedMotion)schedule();
@@ -309,6 +405,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   toggle.setAttribute('aria-label',active?'Pause M':'Resume M');toggle.setAttribute('aria-pressed',String(active));
   if(persist)try{localStorage.setItem('m-world-enabled',active?'yes':'no');}catch{}
   companion?.refreshMotionControl?.();
+  if(!active)director?.update({snapshot:directorSnapshot,hidden:true});
   if(!active){if(frameId!==null)cancelAnimationFrame(frameId);frameId=null;life.setEnabled(false);}
   else{life.setEnabled(!reducedMotion);lastFrame=0;if(!avatar)load();else if(frozen)renderCurrent(worldSnapshot());else schedule();}
  }
@@ -316,7 +413,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(loading||avatar)return loading;
   loading=(async()=>{
    try{
-    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=25');
+    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=26');
     avatar=await mountMWorld3D(host,{onProgress(percent){layer.dataset.loadProgress=String(percent);if(active)toggle.textContent='M · '+percent+'%';}});
     metrics=avatar.getMetrics();cache.dirty=true;cache.lastRead=0;
     const world=worldSnapshot();
@@ -355,17 +452,22 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  mutationObserver.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','style']});
  document.addEventListener('pointerover',event=>{if(!ownNode(event.target)&&event.target.closest?.('p,h1,h2,h3,li,.card-body'))interest.readingUntil=performance.now()+1800;},{passive:true});
  document.addEventListener('focusin',event=>{if(!ownNode(event.target))interest.readingUntil=performance.now()+1400;});
- document.addEventListener('visibilitychange',()=>{if(document.hidden){if(frameId!==null)cancelAnimationFrame(frameId);frameId=null;}else{lastFrame=0;schedule();}});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)director?.update({snapshot:directorSnapshot,hidden:true});if(document.hidden){if(frameId!==null)cancelAnimationFrame(frameId);frameId=null;}else{lastFrame=0;schedule();}});
  function refreshMotionPreference(){
   reducedMotion=motionPreference.matches&&!motionOptIn;
   if(reducedMotion){pendingGesture=null;state.gesture=null;state.expressionHold=null;state.emotionUntil=0;}
-  life.setEnabled(active&&!reducedMotion);route=null;nextChoice=0;companion?.refreshMotionControl?.();invalidate();schedule();
+  life.setEnabled(active&&!reducedMotion);route=null;directorActivity=null;nextChoice=0;companion?.refreshMotionControl?.();director?.update({snapshot:directorSnapshot,reducedMotion,hidden:!active});invalidate();schedule();
  }
  function enableMotion(){
   motionOptIn=true;try{sessionStorage.setItem('m-world-motion-allowed','yes');}catch{}
   refreshMotionPreference();return true;
  }
  motionPreference.addEventListener('change',()=>{motionOptIn=false;try{sessionStorage.removeItem('m-world-motion-allowed');}catch{}refreshMotionPreference();});
+ document.addEventListener('pointerover',event=>{
+  if(ownNode(event.target)||!active||reducedMotion)return;
+  const surface=cache.documents.find(r=>r.element.contains(event.target));
+  if(surface&&interest.attentionId!==surface.id){interest.attentionId=surface.id;directorEvent='pointer-interest';directorNextRead=0;}
+ },{passive:true});
  window.addEventListener('pointermove',event=>{
   if(!active||!avatar||reducedMotion||event.pointerType==='touch')return;
   const a=actorRect(state,metrics),dx=event.clientX-(a.left+a.width*.5),dy=event.clientY-(a.top+a.height*.4);
@@ -382,7 +484,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(avatar)metrics=avatar.getMetrics();
   const world=worldSnapshot();
   return {ready:Boolean(avatar),active,error:layer.dataset.error||null,state:{...state,gesture:state.gesture?{...state.gesture}:null,expressionHold:state.expressionHold?{...state.expressionHold}:null},acting:{attached:Boolean(route?.attached),externalPortal:Boolean(route?.plan?.externalPortal)},brain:brain.snapshot(),companion:companion?.snapshot(),pendingGesture:pendingGesture?.name||null,pendingIntent:pendingGesture?{...pendingGesture}:null,preferences:{reducedMotion,systemReducedMotion:motionPreference.matches,motionOptIn},staging:route?.gestureStage?{escape:route.escape,target:{...route.target},egress:{...route.egress}}:null,metrics,actor:actorRect(renderFrame?{x:renderFrame.actor.left,y:renderFrame.actor.top}:state,metrics),
-   surfaces:world.surfaces.map(({element,...r})=>r),protectedRects:world.protectedRects,renderer:avatar?.getDiagnostics(),life:lastLife,stats:{...stats},frozen};
+   surfaces:world.surfaces.map(({element,...r})=>r),protectedRects:world.protectedRects,director:{...director?.getStatus(),perception:directorSnapshot,activity:directorActivity,lastExecution:directorLastExecution},renderer:avatar?.getDiagnostics(),life:lastLife,stats:{...stats},frozen};
  }
  if(debugEnabled)window.MWorld={
   snapshot,
@@ -414,9 +516,11 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   resume(){frozen=false;nextChoice=0;schedule();},
   playGesture:queueGesture,
   setActive,
-  dispose(){disposed=true;if(frameId!==null)cancelAnimationFrame(frameId);resizeObserver.disconnect();mutationObserver.disconnect();for(const type of ['transitionrun','transitionend','transitioncancel'])document.removeEventListener(type,geometryTransition,true);companion?.destroy();avatar?.dispose();layer.remove();toggle.remove();}
+  dispose(){disposed=true;if(frameId!==null)cancelAnimationFrame(frameId);resizeObserver.disconnect();mutationObserver.disconnect();for(const type of ['transitionrun','transitionend','transitioncancel'])document.removeEventListener(type,geometryTransition,true);director?.dispose();observer?.dispose();companion?.destroy();avatar?.dispose();layer.remove();toggle.remove();}
  };
- companion=createMCompanion({endpoint:M_WORLD_CONFIG.assistantEndpoint,onGesture:queueGesture,onExpression:queueExpression,getMotionStatus:()=>({active,reducedMotion}),onEnableMotion:enableMotion,getContext:()=>({section:brain.snapshot().section||'home',language:navigator.language?.startsWith('pt')?'pt':'en'}),onSection:name=>{document.getElementById(name)?.scrollIntoView({behavior:reducedMotion?'instant':'smooth',block:'start'});},onEngagement:()=>{invalidate();}});
+ observer=createWorldObserver({getComponents:()=>directorComponents});
+ director=createWorldDirector({endpoint:M_WORLD_CONFIG.directorEndpoint||'',onIntent:applyDirectorIntent,onStatus:()=>companion?.refresh()});
+ companion=createMCompanion({getDirectorStatus:()=>director.getStatus(),onDirectorEnabled:enabled=>{director.setEnabled(enabled);if(!enabled)directorActivity=null;updateDirector(performance.now(),worldSnapshot(),true);},endpoint:M_WORLD_CONFIG.assistantEndpoint,onGesture:queueGesture,onExpression:queueExpression,getMotionStatus:()=>({active,reducedMotion}),onEnableMotion:enableMotion,getContext:()=>({section:brain.snapshot().section||'home',language:navigator.language?.startsWith('pt')?'pt':'en'}),onSection:name=>{document.getElementById(name)?.scrollIntoView({behavior:reducedMotion?'instant':'smooth',block:'start'});},onEngagement:()=>{invalidate();}});
  try{if(localStorage.getItem('m-world-enabled')==='no')active=false;}catch{}
  life.setEnabled(active&&!reducedMotion);setActive(active,false);
 })();

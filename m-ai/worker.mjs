@@ -19,14 +19,18 @@ export class PortfolioQuota {
       this.sql.exec('DELETE FROM leases WHERE token = ?', data.token);
       return jsonResponse({ released: true });
     }
-    if (path !== '/reserve' || typeof data.client !== 'string' || !/^[a-f0-9]{64}$/.test(data.client)) return jsonResponse({ error: 'request' }, 400);
+    if (path !== '/reserve' || typeof data.client !== 'string' || !/^[a-f0-9]{64}$/.test(data.client)
+      || !['chat', 'director'].includes(data.scope ?? 'chat')
+      || Object.keys(data).some(key => !['client', 'scope'].includes(key))) return jsonResponse({ error: 'request' }, 400);
     const now = Date.now();
     const result = this.storage.transactionSync(() => {
       this.sql.exec('DELETE FROM counters WHERE expires <= ?', now);
       this.sql.exec('DELETE FROM leases WHERE expires <= ?', now);
       const active = this.sql.exec('SELECT count(*) AS total FROM leases').toArray()[0].total;
       if (active >= QUOTA_POLICY.concurrent) return { allowed: false, retryAfter: 30 };
-      const windows = quotaWindows(data.client, now);
+      // General and director windows are checked and incremented in this one
+      // transaction: rejected automatic requests spend neither allowance.
+      const windows = quotaWindows(data.client, now, QUOTA_POLICY, data.scope ?? 'chat');
       for (const item of windows) {
         const row = this.sql.exec('SELECT count FROM counters WHERE key = ?', item.key).toArray()[0];
         if (row && row.count >= item.limit) return { allowed: false, retryAfter: Math.max(1, Math.ceil((item.expires - now) / 1000)) };
@@ -51,7 +55,7 @@ export default {
       // Cloudflare sets this header at its edge. Never use x-forwarded-for here.
       // Missing identity fails closed for paid POSTs (including unconfigured dev).
       const clientIp = request.headers.get('CF-Connecting-IP');
-      if (new URL(request.url).pathname === '/api/m/respond' && request.method === 'POST' && !clientIp) return jsonResponse({ error: { code: 'unavailable', message: 'AI chat is temporarily unavailable.' } }, 503);
+      if (['/api/m/respond', '/api/m/direct'].includes(new URL(request.url).pathname) && request.method === 'POST' && !clientIp) return jsonResponse({ error: { code: 'unavailable', message: 'AI chat is temporarily unavailable.' } }, 503);
       const pending = handler(request, { clientIp: clientIp || 'unknown' });
       // Keep cleanup alive briefly after disconnect so its Durable Object lease
       // can be released. The linked request signal still aborts the paid fetch.

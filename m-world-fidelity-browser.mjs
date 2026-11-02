@@ -14,6 +14,7 @@ try{
  for(const [name,options] of profiles){
   const context=await browser.newContext({...options,reducedMotion:'no-preference'}),errors=[],warnings=[];let apiRequests=0;
   await context.route(/api\.openai\.com|\/api\/m\/respond(?:[?#]|$)/,route=>{apiRequests++;return route.abort('blockedbyclient');});
+  await context.route('**/m-world-config.mjs*',route=>route.fulfill({contentType:'text/javascript',body:"export const M_WORLD_CONFIG={assistantEndpoint:'',directorEndpoint:''};"}));
   const page=await context.newPage();page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='warning'&&/M 3D|shader|WebGL/.test(m.text()))warnings.push(m.text());});
   const url=new URL(base);url.searchParams.set('m-debug','1');await page.goto(url.href);await page.waitForFunction(()=>window.MWorld?.snapshot().ready&&window.MWorld.snapshot().stats.frames>30,undefined,{timeout:90000});
   const result=await page.evaluate(async()=>{

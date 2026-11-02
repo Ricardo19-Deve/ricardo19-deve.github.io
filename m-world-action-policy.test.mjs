@@ -98,3 +98,14 @@ test('mobile long chat keeps the neutral body clear between the header and panel
  assert.ok(Math.hypot(plan.target.x-185.4,plan.target.y-84.5)<80);
  assert.ok(plan.target.y<104+8-m.footprint.top,'the envelope may overlap the header while the body stays clear');
 });
+
+test('automatic director suggestions cannot replace queued or playing human intent',()=>{
+ const ai=intent('director','playful'),visitor=intent('visitor','wave'),assistant=intent('assistant','curious');
+ for(const human of [visitor,assistant]){
+  assert.equal(selectGestureIntent(human,ai),human);
+  assert.equal(selectGestureIntent(null,ai,human),null);
+  assert.equal(selectGestureIntent(ai,human),human);
+ }
+ assert.equal(selectGestureIntent(ai,intent('life','shy')),ai);
+ assert.equal(selectGestureIntent(null,ai),ai);
+});

@@ -168,7 +168,7 @@ test('neutral intro rectangle converts fixed camera bounds to local CSS pixels a
 test('gestures use a reversible layer after base motion and join actual correlated framing samples',()=>{
  assert.match(rendererSource,/import \{M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer\} from '.\/m-world-acting.mjs\?v=\d+'/);
  assert.match(rendererSource,/lastGesture=sampleGesture\(\{\.\.\.state.gesture,reducedMotion:reduced\}\)/);
- assert.match(rendererSource,/gestureLayer.prepare\(\);motion.prepare\(\);action.setEffectiveWeight\(swimWeight\);mixer.update\(dt\)/);
+ assert.match(rendererSource,/gestureLayer.prepare\(\);locomotionLayer.prepare\(\);motion.prepare\(\);action.setEffectiveWeight\(swimWeight\);mixer.update\(dt\)/);
  assert.ok(rendererSource.indexOf('gestureLayer.apply(lastGesture.pose)')>rendererSource.indexOf('motion.update(dt,'));
  assert.match(rendererSource,/lastGesture.envelope>0\?expressionFor\(state\.gesture\?\.expression\?\?lastGesture\.expression/);
  assert.match(rendererSource,/for\(const name of M_GESTURES\)for\(const side of \[-1,1\]\)for\(const progress of gestureTimes\)/);

@@ -47,13 +47,13 @@ test('the M entry point and every first-party runtime import share one cache rev
  assert.ok(revision,'The entry point needs an explicit cache revision.');
  assert.ok(page.includes('m-world.css?v='+revision+'"'),'The M stylesheet must advance with the runtime.');
  const imports=new Set();
- for(const file of ['scroll-buddy.js','m-world-3d.mjs','m-world-companion.mjs','m-world-spatial.mjs','m-world-action-policy.mjs','m-world-acting.mjs','m-world-brain.mjs']){
+ for(const file of ['scroll-buddy.js','m-world-3d.mjs','m-world-companion.mjs','m-world-spatial.mjs','m-world-action-policy.mjs','m-world-acting.mjs','m-world-brain.mjs','m-world-observer.mjs','m-world-director.mjs','m-world-director-protocol.mjs','m-world-locomotion.mjs']){
   const source=readFileSync(new URL(file,here),'utf8');
   for(const match of source.matchAll(/(['"])\.\/(m-world-[a-z0-9-]+\.mjs)([^'"]*)\1/g)){
    assert.equal(match[3],'?v='+revision,file+' imports a stale or unversioned '+match[2]);
    imports.add(match[2]);
   }
  }
- for(const file of ['m-world-3d.mjs','m-world-companion.mjs','m-world-spatial.mjs','m-world-action-policy.mjs','m-world-acting.mjs','m-world-brain.mjs','m-world-config.mjs'])
+ for(const file of ['m-world-3d.mjs','m-world-companion.mjs','m-world-spatial.mjs','m-world-action-policy.mjs','m-world-acting.mjs','m-world-brain.mjs','m-world-config.mjs','m-world-observer.mjs','m-world-director.mjs','m-world-director-protocol.mjs','m-world-locomotion.mjs'])
   assert.ok(imports.has(file),'Missing verified import: '+file);
 });

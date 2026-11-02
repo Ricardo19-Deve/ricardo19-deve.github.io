@@ -1,6 +1,6 @@
 # M live fidelity and reaction fixes
 
-Status: validated locally on the dedicated fix branch; not yet merged or published.
+Status: approved and published through PR #5 on 2 November 2026 (merge 7fadb35).
 The original V6 GLB, ten detail maps, geometry, materials, UVs, 31-bone rig,
 four skinning sets and six clips are unchanged.
 

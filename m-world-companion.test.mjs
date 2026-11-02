@@ -116,3 +116,35 @@ test('disabled controls and destruction prevent keyboard submission, while Clear
   assert.equal(companion.snapshot().messages,2);assert.equal(status.textContent,'Answered with OpenAI.');
   assert.equal(gestures,1);assert.equal(enabled,0);assert.equal(enableMotion.hidden,false);assert.equal(requests.length,1);
  });
+test('new local gestures stay separate from the backward-compatible four chat gestures',t=>{
+ const played=[];
+ const {companion,gesture,requests}=companionFixture({onGesture:(name,metadata)=>{played.push({name,metadata});return true;}});t.after(()=>companion.destroy());
+ for(const label of ['Playful','Wink','Nod'])gesture(label).dispatchEvent(new Event('click'));
+ assert.deepEqual(played.map(value=>value.name),['playful','wink','nod']);assert.ok(played.every(value=>value.metadata.source==='visitor'));assert.equal(requests.length,0);
+ for(const name of ['playful','wink','nod'])assert.equal(validateAssistantReply({...validReply,gesture:name}),null);
+});
+
+test('AI play defaults on, pauses independently, and refresh never initiates network or enables motion',t=>{
+ let state={enabled:true,available:true,pending:false,attempts:3,limit:6,source:'openai'},enabledMotion=0;const changes=[];
+ const {companion,requests}=companionFixture({getDirectorStatus:()=>state,getMotionStatus:()=>({active:true,reducedMotion:false}),onEnableMotion:()=>{enabledMotion++;return true;},onDirectorEnabled:value=>{changes.push(value);state={...state,enabled:value};}});t.after(()=>companion.destroy());
+ const {directorToggle,directorStatus}=companion.elements;
+ assert.equal(directorToggle.textContent,'Pause AI play');assert.equal(directorToggle['aria-pressed'],'true');assert.equal(directorStatus.role,'status');assert.match(directorStatus.textContent,/3 of 6/);
+ directorToggle.dispatchEvent(new Event('click'));assert.equal(changes[0],false);assert.equal(directorToggle.textContent,'Enable AI play');assert.match(directorStatus.textContent,/paused/);
+ directorToggle.dispatchEvent(new Event('click'));assert.equal(changes[1],true);assert.equal(state.attempts,3);
+ for(let n=0;n<8;n++)companion.refresh();assert.equal(requests.length,0);assert.equal(enabledMotion,0);
+});
+
+test('AI status honestly reports unavailable, reduced motion and session limits without changing chat status',t=>{
+ let state={enabled:true,available:false,pending:false,attempts:1,limit:6},motion={active:true,reducedMotion:false};
+ const {companion,status,requests}=companionFixture({getDirectorStatus:()=>state,getMotionStatus:()=>motion});t.after(()=>companion.destroy());
+ const {directorStatus}=companion.elements;assert.match(directorStatus.textContent,/unavailable/);assert.match(directorStatus.textContent,/locally/);const chatStatus=status.textContent;
+ motion.reducedMotion=true;companion.refresh();assert.match(directorStatus.textContent,/motion is off/);
+ motion.reducedMotion=false;state={...state,attempts:6,reason:'session-limit'};companion.refresh();assert.match(directorStatus.textContent,/request limit/);
+ assert.equal(status.textContent,chatStatus);assert.equal(requests.length,0);
+});
+test('the original four gestures stay prominent while extra gestures have an accessible disclosure',t=>{
+ const {companion}=companionFixture();t.after(()=>companion.destroy());
+ const panel=companion.elements.panel,actions=panel.childNodes.find(element=>element.className==='m-companion-actions'),more=companion.elements.moreGestures;
+ assert.equal(actions.childNodes.length,4);assert.deepEqual(actions.childNodes.map(element=>element.textContent),['Wave','Curious','Surprised','Shy']);
+ assert.equal(more.tag,'details');assert.equal(Boolean(more.open),false);assert.equal(more.firstChild.tag,'summary');assert.equal(more.firstChild.textContent,'More gestures');assert.deepEqual(more.childNodes[1].childNodes.map(element=>element.textContent),['Playful','Wink','Nod']);
+});
