@@ -1,8 +1,8 @@
 # M World V22 — Acting and optional OpenAI companion
 
-The new feature branch adds four original-rig gestures, contextual choices, session memory and an optional explicit-send companion. The published V21 remains preserved until this version is approved.
+The new feature branch adds four original-rig gestures, contextual choices, session memory and an optional explicit-send companion. V22 was approved and published on 2 November 2026, with V21 retained in Git history. The optional companion is connected through a verified Cloudflare Worker.
 
-See [V22 changes, evidence and activation status](docs/m-world-v22/VALIDATION.md) and [Cloudflare/OpenAI setup](m-ai/README.md). The API endpoint is deliberately empty: no key belongs in the browser and no live API call is claimed.
+See [V22 changes, evidence and activation status](docs/m-world-v22/VALIDATION.md) and [Cloudflare/OpenAI setup](m-ai/README.md). Only the verified Worker URL is public. The owner entered the OpenAI key directly as a Cloudflare secret; real backend and Chrome conversation checks passed.
 
 The notes below describe the previous version.
 

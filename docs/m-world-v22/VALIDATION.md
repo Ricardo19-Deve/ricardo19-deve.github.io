@@ -1,6 +1,6 @@
 # M World V22 — Acting, context and optional OpenAI companion
 
-Feature branch: `feat/m-world-intelligence`, based on the published V21 commit `794f939`. This version is prepared for review. Neither this frontend nor its new Worker has been published by this change. The existing production version stays available.
+V22 was published through PR #2 on 2 November 2026, merge commit `32dbcc1`, after explicit approval. Activation adds the verified Cloudflare endpoint and a request-scoped quota transport fix. Original V21 remains preserved in Git history.
 
 ## Implemented
 
@@ -14,11 +14,11 @@ Feature branch: `feat/m-world-intelligence`, based on the published V21 commit `
 
 ## Validation
 
-- 182 Node tests passed, including the original asset/homepage fingerprints, 32 backend tests, gesture reversibility over real quaternion composition, contextual memory and input validation. Backend tests use mocked OpenAI responses and real local SQLite.
+- 184 Node tests passed, including the original asset/homepage fingerprints, 34 backend tests, gesture reversibility over real quaternion composition, contextual memory and input validation. Backend tests use mocked OpenAI responses and real local SQLite.
 - The existing 29-check native Chrome suite passed in desktop 1280x900@2 and mobile/touch emulation 390x844@2. It exercised original skinning, source detail maps, actual GPU depth/text masking, mobile navigation and perching during scroll. A real perch recorded its successful target in the new session memory.
 - Warm native desktop-GPU cadence remained about 60 FPS in both viewport profiles. This is a short PC measurement, not physical-phone performance evidence.
-- A separate native Chrome fixture passed 34 checks and exercises all four desktop gestures and wave/curiosity on mobile, observes their rig phases, checks local-only traffic, keyboard controls, independent expressions, and rejects a malformed remote action. API replies in that fixture are explicitly mocked. It also reproduced a real behind-card route interruption while the panel remained engaged: the corrected desktop recovered front depth in 4.95 seconds and began the queued wave at 9.80 seconds; mobile recovered in 2.61 seconds and waved at 6.46 seconds. Neither profile chose a new card during that recovery, and visit memory was preserved.
-- Official Wrangler 4.156.0 compiled the Worker, and bundled workerd started it successfully. `/health` returned 200/configured false; a no-key chat request failed closed with 503. Runtime entry exports and the request-signal compatibility flag were verified. No actual OpenAI call or remote deployment was performed.
+- A separate native Chrome fixture passed 42 checks and exercises all four desktop gestures and wave/curiosity on mobile, observes their rig phases, checks local-only traffic, keyboard controls, independent expressions, and rejects a malformed remote action. API replies in that fixture are explicitly mocked. It also reproduced a real behind-card route interruption while the panel remained engaged: the corrected desktop recovered front depth in 4.95 seconds and began the queued wave at 9.80 seconds; mobile recovered in 2.61 seconds and waved at 6.46 seconds. Neither profile chose a new card during that recovery, and visit memory was preserved.
+- Official Wrangler 4.156.0 compiled the Worker, and bundled workerd started it successfully. `/health` returned 200/configured false; a no-key chat request failed closed with 503. Runtime entry exports and the request-signal compatibility flag were verified. These preliminary no-key fixtures preceded the approved production deployment and live API checks described below.
 
 The hosted software-GPU browser suite retains the V21 logical-clock scope documented in its report. The separate gesture recording below uses native Chrome timing and real rendering.
 
@@ -42,21 +42,22 @@ node m-world-intelligence-browser.mjs
 
 The intelligence browser fixture uses the installed Chrome executable and native timing. It does not replace the hosted software-renderer smoke suite. Report artifacts identify mocked chat responses separately from real animation/rendering.
 
-## Activation still required
+## OpenAI activation
 
-The public `m-world-config.mjs` deliberately has an empty endpoint. [Worker setup and the full HTTP contract](../../m-ai/README.md) describe the proposed `m-portfolio-companion` resource and configuration.
+The owner approved the Worker deployment and entered OPENAI_API_KEY directly as a Cloudflare secret. The verified service is https://m-portfolio-companion.ricardopacheco-pinheiro.workers.dev, with the public chat endpoint /api/m/respond.
 
-1. Approve deployment to the intended authenticated Cloudflare account and review the proposed Worker/SQLite resource and quota limits.
-2. Publish the prepared Worker; configure `OPENAI_API_KEY` as a Cloudflare secret, never in Git, the browser, this chat or public `vars`. Secret changes can publish a new Worker version.
-3. Use the actual account-specific HTTPS Workers URL in `m-world-config.mjs` only after verifying the backend. Do not guess a hostname.
-4. Perform one live portfolio conversation and test its returned expressions, quota/cancellation behavior and browser CORS before publishing the frontend configuration.
+Production checks confirmed health 200, exact CORS preflight 204 and rejection of an unrelated origin with 403. A real Portuguese portfolio question returned a structured answer with expression/gesture enums. A real Chrome greeting sent no request before explicit Send, then received HTTP 200 and performed the returned wave on the original 31-bone, 14-influence rig without JavaScript errors or browser Authorization headers.
 
-No API key was requested, inspected or stored by the implementation. Existing CLI authentication alone does not prove OpenAI credit/model access or deployment approval. Request/token limits are not a monetary spend guarantee; review provider account settings before activation.
+The first configured request exposed a cached-stub transport failure before the provider call. The adapter now creates a new stub for each operation, retaining the same global singleton, atomic limits and no-retry reservation policy. New regressions reproduce request-context and poisoned-stub failures; live requests pass after the fix.
+
+The independent browser fixture isolates both local-only and mocked-chat pages, blocking unmocked AI calls. Its long-reply check also identified a mobile layout issue; the connected panel keeps M visible and its input/actions accessible with an independently scrolling conversation log.
+
+[Worker setup, usage limits and HTTP contract](../../m-ai/README.md). No credential was requested, inspected or committed. Request/token limits are not a monetary spend guarantee. Chat is triggered only by explicit visitor submissions; the model suggests bounded expressions, gestures and user-clicked section hints.
 
 ## Remaining limits
 
 - Owner review of gesture appeal and timing; an actual Android/iOS phone and Safari.
-- Real Cloudflare deployment, deployed Durable Object behavior and live OpenAI responses/costs.
+- Longer live evaluations, real mobile keyboards, quota-exhaustion/abuse behavior and usage costs over time. The initial deployed Worker and real OpenAI conversation have been checked.
 - The original actor payload remains heavy on slow/mobile connections. No destructive mesh or texture optimization was introduced.
 - Quietness is inferred from interaction and text selection; it cannot establish whether someone is actually reading. Session memory resets on reload.
 - Local behavior remains deterministic and responsive without AI. Model replies may still require factual review despite public-context grounding and schema validation.
