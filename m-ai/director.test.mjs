@@ -47,7 +47,7 @@ test('automatic director is disabled by default and health advertises version an
     const env = { OPENAI_API_KEY: MOCK_KEY, AI_AUTOPLAY_ENABLED: flag };
     const handle = handler({ env, quota: { ready: true, reserve() { calls++; } } });
     assert.equal((await handle(request())).status, 503);
-    assert.deepEqual(await (await handle(request(undefined, { path: '/health', method: 'GET' }))).json(), { configured: true, director: { version: 1, enabled: false }, contextualChat: { version: 1 } });
+    assert.deepEqual(await (await handle(request(undefined, { path: '/health', method: 'GET' }))).json(), { configured: true, director: { version: 1, enabled: false }, contextualChat: { version: 1 }, character: { version: 1 } });
   }
   const enabled = await handler()(request(undefined, { path: '/health', method: 'GET' }));
   assert.equal((await enabled.json()).director.enabled, true);
@@ -234,4 +234,16 @@ test('SQLite director write failure rolls back overall counters, director counte
   state.storage.sql.exec = original;
   const recovered = await claim(object, digest(1)); assert.equal(recovered.allowed, true);
   await release(object, recovered.token);
+});
+
+
+test('character-aware directing keeps data untrusted, the output schema fixed and quota accounting independent',async()=>{
+ const character={version:1,chapter:'small-light',beat:'returning',goal:'find-lookout',discovery:'little-light',preference:'small-lights',recall:'returning',favoriteComponent:null};
+ let seen,claims=0;const handle=handler({quota:{ready:true,reserve:async()=>{claims++;return {allowed:true,token:'token'};},release:async()=>{}},fetchImpl:async(_url,init)=>{seen=JSON.parse(init.body);return fixture();}});
+ const result=await handle(request({...INPUT,character}),{clientIp:'fixture'});assert.equal(result.status,200);assert.deepEqual(await result.json(),OUTPUT);
+ assert.match(seen.instructions,/authored identity/i);assert.match(seen.instructions,/untrusted local fictional encounter data/);
+ assert.ok(seen.input[0].content.includes(JSON.stringify(character)));assert.equal(seen.instructions.includes(JSON.stringify(character)),false);
+ assert.deepEqual(seen.text.format.schema.required,['snapshot','targetId','action','gesture','expression']);assert.equal(seen.model,'gpt-5-mini');assert.equal(claims,1);
+ for(const bad of [{...character,visitor:'private'},{...character,discovery:'none'},{...character,goal:'publish-code'}])assert.equal((await handle(request({...INPUT,character:bad}),{clientIp:'fixture'})).status,400);
+ assert.equal(claims,1);
 });

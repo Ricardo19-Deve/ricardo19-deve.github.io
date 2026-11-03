@@ -99,6 +99,8 @@ export function createAutonomy({seed=18421}={}){
   const energy=clamp(facts.energy,.65),restNeed=1-smooth(energy);
   const playNeed=clamp((at-lastPlayAt)/40_000,.5);
   const curiosity=clamp((at-(lastAchievementAt??0))/30_000,.5);
+  const requestedGoal=object(facts.goal),goal=['follow-light','find-lookout','revisit-lookout'].includes(requestedGoal.id)?requestedGoal:null;
+  const availableTargets=targetsOf(facts.targets);
   const candidates=[];
   const add=(family,score,decision,stableId=null)=>{
    if(at<(familyUntil.get(family)||0))return;
@@ -109,7 +111,7 @@ export function createAutonomy({seed=18421}={}){
      affect:'calm',play:null,quiet:true,reason:family,...decision}});
   };
   if(!reading){
-   for(const target of targetsOf(facts.targets)){
+   for(const target of availableTargets){
     if(at<entryFor(target.stableId).cooldownUntil)continue;
     const {novelty:n,visibleShare:v,proximity:p}=target;
     for(const action of target.actions){
@@ -125,6 +127,15 @@ export function createAutonomy({seed=18421}={}){
    }
    if(facts.selfPlayAvailable===true&&energy>.25)add('light',.19+.31*smooth(energy)+.30*playNeed+.20*curiosity,
     {kind:'self-play',gesture:'playful',expression:'happy',affect:'anticipation',play:'light',quiet:false});
+   if(goal?.id==='follow-light'&&facts.selfPlayAvailable===true&&energy>.25)add('goal-light',.65+.35*smooth(energy),
+    {kind:'self-play',gesture:'playful',expression:'happy',affect:'anticipation',play:'light',quiet:false,reason:'follow-light',characterGoal:goal.id});
+   if(['find-lookout','revisit-lookout'].includes(goal?.id)){
+    const target=availableTargets.find(value=>value.id===goal.targetId&&value.actions.includes('perch'));
+    if(target&&at>=entryFor(target.stableId).cooldownUntil)add('goal-lookout',.88+.12*restNeed,
+     {kind:'scene',targetId:target.id,action:'perch',gesture:'nod',expression:'happy',affect:goal.id==='find-lookout'?'proud':'content',quiet:false,reason:goal.id,characterGoal:goal.id},target.stableId);
+    else if(goal.targetId===null&&safeId(goal.restingPlace)&&at>=entryFor(goal.restingPlace).cooldownUntil)add('goal-lookout',.88+.12*restNeed,
+     {kind:'expression',gesture:'nod',expression:'happy',affect:goal.id==='find-lookout'?'proud':'content',quiet:false,reason:goal.id,characterGoal:goal.id},goal.restingPlace);
+   }
    if(achievement)add('achievement',1,{expression:'happy',affect:achievement.affect,reason:'achievement'});
   }
   add('observe',reading?.72:.24+.17*curiosity+.10*(1-restNeed),
@@ -132,6 +143,8 @@ export function createAutonomy({seed=18421}={}){
   add('rest',reading?.62+.25*restNeed:.17+.61*restNeed,
    {kind:'rest',affect:energy<.3?'sleepy':'calm',reason:reading?'quiet-rest':'rest'});
   if(!candidates.length){reason='unavailable';settle(at,1000);return null;}
+  // A persistent intention focuses attention while rest and safety remain available.
+  if(candidates.some(value=>value.decision.characterGoal))for(const candidate of candidates){if(!candidate.decision.characterGoal&&candidate.family!=='rest'&&candidate.family!=='observe')candidate.score*=.72;}
   // A low-temperature softmax adds reproducible variety without ignoring strong needs.
   candidates.sort((a,b)=>(a.family+':'+(a.decision.targetId||'')).localeCompare(b.family+':'+(b.decision.targetId||''),'en'));
   const peak=Math.max(...candidates.map(value=>value.score));
@@ -142,7 +155,8 @@ export function createAutonomy({seed=18421}={}){
   let roll=random()*weights.reduce((sum,value)=>sum+value,0),index=weights.length-1;
   for(let i=0;i<weights.length;i++){roll-=weights[i];if(roll<=0){index=i;break;}}
   const selected=candidates[index];
-  const decision={id:'autonomy-'+(++serial),...selected.decision};
+  const satisfiesGoal=goal?.id==='follow-light'&&selected.decision.play==='light'||['find-lookout','revisit-lookout'].includes(goal?.id)&&selected.decision.action==='perch'&&selected.decision.targetId===goal.targetId;
+  const decision={id:'autonomy-'+(++serial),...selected.decision,...(satisfiesGoal?{characterGoal:goal.id}:{})};
   pending={decision,stableId:selected.stableId,family:selected.family,expiresAt:at+AUTONOMY_RESERVATION_MS};
   reason=decision.reason;return clone(decision);
  }

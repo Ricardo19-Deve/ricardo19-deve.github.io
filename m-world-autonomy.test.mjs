@@ -277,3 +277,48 @@ test('character-memory reset clears local familiarity and reservations without i
  assert.equal(reset.active,null);assert.equal(reset.pending,null);assert.equal(reset.achievementPending,false);
  assert.equal(reset.completedCount,1);assert.ok(reset.nextDecisionAt>7000);
 });
+
+
+test('an unfinished character goal chooses real offered light play or a specific safe lookout',()=>{
+ const goals=[{id:'follow-light'},{id:'find-lookout',targetId:'card-b'},{id:'revisit-lookout',targetId:'card-b'}];
+ for(const goal of goals){
+  const ai=createAutonomy({seed:18425}),decision=ai.choose(facts(1000,{goal,energy:.8}));
+  assert.equal(decision.characterGoal,goal.id);
+  if(goal.id==='follow-light'){assert.equal(decision.kind,'self-play');assert.equal(decision.play,'light');}
+  else{assert.equal(decision.kind,'scene');assert.equal(decision.action,'perch');assert.equal(decision.targetId,'card-b');}
+  assert.equal(ai.snapshot().completedCount,0,'Wanting something is not completing it');
+  accept(ai,decision,1000);
+  assert.equal(ai.choose(facts(20_000,{goal:{id:'follow-light'}})),null,'A changing long goal cannot steal accepted physical work');
+ }
+});
+
+test('character goals yield to reading, visitor interruption, low energy and unavailable offered actions',()=>{
+ for(const goal of [{id:'follow-light'},{id:'find-lookout',targetId:'card-b'}]){
+  const quiet=createAutonomy({seed:18425}).choose(facts(1000,{goal,context:{reading:true}}));
+  assert.equal(quiet.quiet,true);assert.equal(quiet.characterGoal,undefined);
+  for(const blocker of [{reducedMotion:true},{typing:true},{selection:true},{scrolling:true},{busy:true},{active:false}]){
+   assert.equal(createAutonomy({seed:18425}).choose(facts(1000,{goal,context:blocker})),null);
+  }
+ }
+ const unavailable=createAutonomy({seed:18425}).choose(facts(1000,{goal:{id:'find-lookout',targetId:'card-b'},targets:[target('card-b',{actions:['inspect']})]}));
+ assert.equal(unavailable.characterGoal,undefined);
+ const tired=createAutonomy({seed:18425}).choose(facts(1000,{goal:{id:'follow-light'},energy:.1,selfPlayAvailable:false}));
+ assert.notEqual(tired.play,'light');assert.equal(tired.characterGoal,undefined);
+});
+
+test('a failed story lookout cools down the actual stable target without inventing another goal destination',()=>{
+ const ai=createAutonomy({seed:18425}),goal={id:'find-lookout',targetId:'card-b'};
+ const first=ai.choose(facts(1000,{goal}));assert.equal(first.characterGoal,goal.id);accept(ai,first,1000);
+ assert.equal(ai.complete({success:false,reason:'no-safe-route',nowMs:2000}),true);
+ const next=ai.choose(facts(6000,{goal}));
+ assert.ok(next);assert.notEqual(next.targetId,'card-b');assert.equal(next.characterGoal,undefined);
+ assert.equal(ai.snapshot().completedCount,0);
+});
+
+test('invalid character goals preserve the established V25 decision distribution',()=>{
+ for(const goal of [{id:'arbitrary-code',targetId:'card-a'},'follow-light',[],null]){
+  assert.deepEqual(createAutonomy({seed:47}).choose(facts(1000,{goal})),createAutonomy({seed:47}).choose(facts(1000)));
+ }
+ const absent=createAutonomy({seed:18425}).choose(facts(1000,{goal:{id:'revisit-lookout',targetId:'removed-card'}}));
+ assert.equal(absent.characterGoal,undefined);
+});

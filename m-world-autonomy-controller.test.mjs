@@ -37,7 +37,7 @@ function fixture(){
  const calls={stages:0,scheduled:0,lightGoals:0,director:[]};
  const context=createContext({
   actorRect,bound,gestureReady,gestureViewportFits,isExplicitGesture,selectGestureIntent,gestureIntentExpired,
-  createScenePlan,AFFECT_DURATIONS,M_AFFECTS,M_GESTURES,GESTURE_DURATIONS:{curious:2.2,playful:3,wave:2.4},
+  currentCharacterGoal:()=>null,recordCharacterExperience:()=>false,character:{snapshot:()=>({visits:1})},getContextComponent:()=>null,createScenePlan,AFFECT_DURATIONS,M_AFFECTS,M_GESTURES,GESTURE_DURATIONS:{curious:2.2,playful:3,wave:2.4},
   avatar:{},active:true,reducedMotion:false,frozen:false,document:{activeElement:null,hidden:false,getSelection:()=>({isCollapsed:true})},
   navigator:{language:'en'},performance:{now:()=>1000},scrollX:0,scrollY:0,
   state:{x:120,y:120,vx:0,vy:0,depth:1,depthTarget:1,phase:'hold',mode:'rest',clock:0,

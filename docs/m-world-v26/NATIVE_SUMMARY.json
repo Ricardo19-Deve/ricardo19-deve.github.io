@@ -1,0 +1,295 @@
+{
+  "scope": "Separate native Chrome runs. No story progress, arrival, pose, route or clock injection. Original actor unchanged. Provider responses mocked or offline; mobile emulated.",
+  "nodeTests": 421,
+  "desktopChecks": {
+    "passed": 19,
+    "total": 19
+  },
+  "correctedMobileChecks": {
+    "passed": 21,
+    "total": 21
+  },
+  "firstFullRun": {
+    "passed": 39,
+    "total": 40,
+    "diagnostic": "Mobile score zero was in the warm-up trace but sliced away. Corrected evidence includes that trace; only mobile repeated, without product or deadline changes."
+  },
+  "profiles": [
+    {
+      "name": "desktop",
+      "cadence": {
+        "wallMs": 4009.300000011921,
+        "frames": 241,
+        "fps": 60.11024368325729,
+        "cpuP95": 3,
+        "rafP95": 18,
+        "drawSamples": 241,
+        "samples": 241,
+        "minRenderCalls": 12,
+        "heapBytes": 174309840,
+        "scope": "Warm actual drawing without recording or forced clock."
+      },
+      "firstAdventure": {
+        "realWallMs": 19271,
+        "complete": true,
+        "inputs": 0,
+        "observedScores": [
+          0,
+          1,
+          2
+        ],
+        "story": {
+          "version": 1,
+          "chapter": "small-light",
+          "beat": "complete",
+          "goal": "explore",
+          "discovery": "little-light",
+          "preference": "quiet-lookouts",
+          "recall": "first-visit",
+          "favoriteComponent": null,
+          "remember": true,
+          "storageAvailable": true,
+          "visits": 1,
+          "visitId": 1,
+          "revision": 3,
+          "journal": [
+            {
+              "id": "light-found",
+              "atMs": 1793740694605,
+              "visit": 1,
+              "componentId": null,
+              "publicComponent": null
+            },
+            {
+              "id": "lookout-found",
+              "atMs": 1793740701870,
+              "visit": 1,
+              "componentId": "lookout-home",
+              "publicComponent": null
+            }
+          ],
+          "favorite": {
+            "stableId": "lookout-home",
+            "publicId": null
+          }
+        }
+      },
+      "reopenedVisit": {
+        "realWallMs": 4496,
+        "complete": true,
+        "inputs": 0,
+        "story": {
+          "version": 1,
+          "chapter": "small-light",
+          "beat": "complete",
+          "goal": "explore",
+          "discovery": "little-light",
+          "preference": "quiet-lookouts",
+          "recall": "returning",
+          "favoriteComponent": null,
+          "remember": true,
+          "storageAvailable": true,
+          "visits": 2,
+          "visitId": 2,
+          "revision": 5,
+          "journal": [
+            {
+              "id": "light-found",
+              "atMs": 1793740694605,
+              "visit": 1,
+              "componentId": null,
+              "publicComponent": null
+            },
+            {
+              "id": "lookout-found",
+              "atMs": 1793740701870,
+              "visit": 1,
+              "componentId": "lookout-home",
+              "publicComponent": null
+            },
+            {
+              "id": "lookout-revisited",
+              "atMs": 1793740711821,
+              "visit": 2,
+              "componentId": "lookout-home",
+              "publicComponent": null
+            }
+          ],
+          "favorite": {
+            "stableId": "lookout-home",
+            "publicId": null
+          }
+        }
+      }
+    },
+    {
+      "name": "mobile",
+      "cadence": {
+        "wallMs": 4006.099999964237,
+        "frames": 241,
+        "fps": 60.15825865608733,
+        "cpuP95": 3.100000023841858,
+        "rafP95": 18.100000023841858,
+        "drawSamples": 241,
+        "samples": 241,
+        "minRenderCalls": 12,
+        "heapBytes": 181226179,
+        "scope": "Warm actual drawing without recording or forced clock."
+      },
+      "firstAdventure": {
+        "realWallMs": 11573,
+        "complete": true,
+        "inputs": 0,
+        "observedScores": [
+          0,
+          1,
+          2
+        ],
+        "story": {
+          "version": 1,
+          "chapter": "small-light",
+          "beat": "complete",
+          "goal": "explore",
+          "discovery": "little-light",
+          "preference": "quiet-lookouts",
+          "recall": "first-visit",
+          "favoriteComponent": null,
+          "remember": true,
+          "storageAvailable": true,
+          "visits": 1,
+          "visitId": 1,
+          "revision": 3,
+          "journal": [
+            {
+              "id": "light-found",
+              "atMs": 1793740893666,
+              "visit": 1,
+              "componentId": null,
+              "publicComponent": null
+            },
+            {
+              "id": "lookout-found",
+              "atMs": 1793740900696,
+              "visit": 1,
+              "componentId": "lookout-home",
+              "publicComponent": null
+            }
+          ],
+          "favorite": {
+            "stableId": "lookout-home",
+            "publicId": null
+          }
+        }
+      },
+      "reopenedVisit": {
+        "realWallMs": 3389,
+        "complete": true,
+        "inputs": 0,
+        "story": {
+          "version": 1,
+          "chapter": "small-light",
+          "beat": "complete",
+          "goal": "explore",
+          "discovery": "little-light",
+          "preference": "quiet-lookouts",
+          "recall": "returning",
+          "favoriteComponent": null,
+          "remember": true,
+          "storageAvailable": true,
+          "visits": 2,
+          "visitId": 2,
+          "revision": 5,
+          "journal": [
+            {
+              "id": "light-found",
+              "atMs": 1793740893666,
+              "visit": 1,
+              "componentId": null,
+              "publicComponent": null
+            },
+            {
+              "id": "lookout-found",
+              "atMs": 1793740900696,
+              "visit": 1,
+              "componentId": "lookout-home",
+              "publicComponent": null
+            },
+            {
+              "id": "lookout-revisited",
+              "atMs": 1793740910230,
+              "visit": 2,
+              "componentId": "lookout-home",
+              "publicComponent": null
+            }
+          ],
+          "favorite": {
+            "stableId": "lookout-home",
+            "publicId": null
+          }
+        }
+      }
+    }
+  ],
+  "aiTransport": {
+    "passed": true,
+    "checks": 6,
+    "scope": "Actual director and Enter submission use mocked replies; actual completed context reaches chat; no paid request."
+  },
+  "preview": {
+    "passed": true,
+    "restored": true,
+    "revisited": true,
+    "draftNotStored": true,
+    "paidAttempts": 0,
+    "encoding": "Real viewport frames encoded at average source cadence; individual source timestamps retained in frames.json. Recording is not the unrecorded FPS benchmark.",
+    "clips": [
+      {
+        "name": "first-adventure",
+        "sourceFrames": 837,
+        "sourceSeconds": 27.965965032577515,
+        "bytes": 6106477
+      },
+      {
+        "name": "return-visit",
+        "sourceFrames": 359,
+        "sourceSeconds": 11.933023929595947,
+        "bytes": 2373398
+      }
+    ]
+  },
+  "decodedVideos": [
+    {
+      "name": "first-adventure",
+      "width": 1280,
+      "height": 900,
+      "duration": 28.04,
+      "decoded": 18,
+      "ended": true
+    },
+    {
+      "name": "return-visit",
+      "width": 1280,
+      "height": 900,
+      "duration": 12,
+      "decoded": 17,
+      "ended": true
+    }
+  ],
+  "workerDryRun": {
+    "compiler": "Wrangler 4.135.0 (already cached)",
+    "passed": true,
+    "uploadKiB": 40.94,
+    "gzipKiB": 11.58,
+    "deployed": false
+  },
+  "notVerified": [
+    "Real provider wording in new persona",
+    "Physical devices and Safari/iOS",
+    "Shared global world or cross-device character state"
+  ],
+  "repositoryHarness": {
+    "passed": true,
+    "checks": 21,
+    "scope": "Committed portable command, mobile profile, after header paint fix; real Chrome close/reopen and UI checks. Separate run."
+  }
+}

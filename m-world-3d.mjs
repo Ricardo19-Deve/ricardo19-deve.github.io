@@ -4,12 +4,12 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {readGLB} from './m-lab/swim-v3/threejs/glb-reader.js';
 import {preserveFullSkinning} from './m-lab/swim-v3/threejs/full-skinning.js';
-import {createFacialV6} from './m-lab/interactions/facial-v6.mjs?blink=v29';
+import {createFacialV6} from './m-lab/interactions/facial-v6.mjs?blink=v30';
 import {createMotionV8,motionPose,canonicalBoneName} from './m-lab/interactions/motion-v8.mjs?rig=v16';
 import {performanceStagePoseV15} from './m-lab/interactions/performance-v15.mjs?v16';
-import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=29';
-import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=29';
-import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs?v=29';
+import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=30';
+import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=30';
+import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs?v=30';
 
 const PART_COUNT=19;
 const EXPECTED_SIZE=16899868;
