@@ -1,13 +1,17 @@
-import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=26';
-import {createWorldObserver} from './m-world-observer.mjs?v=26';
-import {createWorldDirector} from './m-world-director.mjs?v=26';
-import {advanceLocomotion} from './m-world-locomotion.mjs?v=26';
+import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=27';
+import {createSessionMemory} from './m-world-memory.mjs?v=27';
+import {getContextComponent,matchContextComponent} from './m-world-context.mjs?v=27';
+import {M_AFFECTS,AFFECT_DURATIONS} from './m-world-affect.mjs?v=27';
+import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=27';
+import {createWorldObserver} from './m-world-observer.mjs?v=27';
+import {createWorldDirector} from './m-world-director.mjs?v=27';
+import {advanceLocomotion} from './m-world-locomotion.mjs?v=27';
 import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
-import {MWorldBrain} from './m-world-brain.mjs?v=26';
-import {M_GESTURES,GESTURE_DURATIONS} from './m-world-acting.mjs?v=26';
-import {createMCompanion} from './m-world-companion.mjs?v=26';
-import {M_WORLD_CONFIG} from './m-world-config.mjs?v=26';
-import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=26';
+import {MWorldBrain} from './m-world-brain.mjs?v=27';
+import {M_GESTURES,GESTURE_DURATIONS} from './m-world-acting.mjs?v=27';
+import {createMCompanion} from './m-world-companion.mjs?v=27';
+import {M_WORLD_CONFIG} from './m-world-config.mjs?v=27';
+import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=27';
 
 (() => {
  'use strict';
@@ -23,11 +27,15 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  document.body.append(layer,toggle);
  const life=new MLifeV16({seed:18421,personality:'playful'});
  const brain=new MWorldBrain({seed:18421}),failedPlans=new Map(),recentCorridors=[];
- const interest={scrollUntil:0,readingUntil:0,attentionId:null};
+ const memory=createSessionMemory(),scenes=createScenePlayer();
+ let characterEnergy=memory.snapshot().energy,sceneMeta=null,sceneCommand=null,completedSceneRoute=null,completedSceneGesture=null,nextSceneAt=0,lastMemoryAt=0,lastPaceScroll=scrollY,game=null,gameSerial=0;
+ const playDock=document.createElement('section'),playNote=document.createElement('p'),playNext=document.createElement('button'),playStop=document.createElement('button'),playLight=document.createElement('span');
+ playDock.className='m-play-dock';playDock.dataset.mOverlay='true';playDock.hidden=true;playDock.setAttribute('aria-label','Play with M');playNote.setAttribute('role','status');playNext.type=playStop.type='button';playNext.textContent='I found M';playStop.textContent='Stop play';playDock.append(playNote,playNext,playStop);playLight.className='m-play-light';playLight.setAttribute('aria-hidden','true');playLight.hidden=true;document.body.append(playDock,playLight);
+ const interest={scrollUntil:0,readingUntil:0,attentionId:null,hoverGuardUntil:0,userAttentionUntil:0};
  let brainState=brain.snapshot(),companion=null,pendingGesture=null,director=null,observer=null;
  let directorComponents=[],directorSnapshot=null,directorActivity=null,directorLastExecution=null;
  let directorKey='',directorRevision=0,directorNextRead=0,directorEvent='idle',directorRouteId=0,directorCompletedRouteId=null;const directorRecent=[];
- const state={x:0,y:100,vx:0,vy:0,ax:0,ay:0,heading:0,turn:0,travel:0,leanX:0,leanY:0,depth:1,depthTarget:1,mode:'float',phase:'hold',emotion:'neutral',emotionUntil:0,clock:0,targetId:null,gesture:null,expressionHold:null};
+ const state={x:0,y:100,vx:0,vy:0,ax:0,ay:0,heading:0,turn:0,travel:0,leanX:0,leanY:0,depth:1,depthTarget:1,mode:'float',phase:'hold',emotion:'neutral',emotionUntil:0,clock:0,targetId:null,gesture:null,expressionHold:null,affect:null};
  let avatar=null,loading=null,active=true,frameId=null,lastFrame=0,route=null,nextChoice=0,frozen=false,disposed=false;
  let motionOptIn=false;try{motionOptIn=sessionStorage.getItem('m-world-motion-allowed')==='yes';}catch{}
  let reducedMotion=motionPreference.matches&&!motionOptIn,lastLife=null,renderFrame=null;
@@ -92,7 +100,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   const project=r=>({...r,left:r.left-sx,right:r.right-sx,top:r.top-sy,bottom:r.bottom-sy});
   const surfaces=cache.documents.map(project).filter(r=>onScreen(r,v,metrics.size));
   const protectedRects=cache.texts.map(project).filter(r=>onScreen(r,v,metrics.size));
-  for(const element of [document.querySelector('header.top'),toggle,companion?.elements.toggle,companion?.isOpen()?companion.elements.panel:null].filter(Boolean)){
+  for(const element of [document.querySelector('header.top'),toggle,companion?.elements.toggle,companion?.isOpen()?companion.elements.panel:null,!playDock.hidden?playDock:null].filter(Boolean)){
    const b=element.getBoundingClientRect();stats.layoutReads++;
    if(b.width)protectedRects.push({...rect(b,4),radius:Math.min(16,b.height/2)});
   }
@@ -132,7 +140,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
    const id=requestedElement?pool[0].id:brain.chooseTarget(pool.map(r=>{
     const area=Math.max(1,r.width*r.height);
     const covered=world.protectedRects.reduce((sum,t)=>sum+Math.max(0,Math.min(r.right,t.right)-Math.max(r.left,t.left))*Math.max(0,Math.min(r.bottom,t.bottom)-Math.max(r.top,t.top)),0);
-    return {...r,protectedCoverage:Math.min(1,covered/area)};
+    return {...r,protectedCoverage:Math.min(1,covered/area),novelty:memory.score(publicComponent(r)?.id||r.id)};
    }),options);
    const selected=pool.find(r=>r.id===id);
    if(!selected)break;
@@ -164,7 +172,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  function advanceRoute(dt,now,world){
   if(state.gesture||state.expressionHold)return {x:state.x,y:state.y,depth:state.depthTarget,phase:'hold'};
   if(!route&&now<nextChoice)return {x:state.x,y:state.y,depth:state.depthTarget,phase:'hold'};
-  if((!route||(route.free&&!route.gestureStage&&!route.escape&&now>=nextChoice))&&!state.gesture)startRoute(now,world);
+  if((!route||(route.free&&!route.gestureStage&&!route.escape&&now>=nextChoice))&&!state.gesture&&scenes.snapshot().status!=='playing'&&!game)startRoute(now,world);
   if(!route)return {x:state.x,y:state.y,depth:state.depthTarget,phase:'hold'};
   if(route?.free){
    if(route.gestureStage&&(route.version!==world.version||route.scrollX!==scrollX||route.scrollY!==scrollY)&&!stageGesture(world))return {x:state.x,y:state.y,depth:state.depthTarget,phase:'hold'};
@@ -201,10 +209,12 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   const actual=actorRect(state,metrics),resolved=resolveDepth(actual,sample.depth,world.surfaces,state.depthTarget,sample.portal);
   const distance=Math.hypot(sample.x-state.x,sample.y-state.y);
   const arrivedInside=actual.left>=0&&actual.right<=world.viewport.width&&actual.top>=0&&actual.bottom<=world.viewport.height;
-  const waiting=(sample.portalHold&&(!resolved.portalClear||Math.abs(state.depth-resolved.depth)>.03||distance>7))||(sample.waitForArrival&&(distance>4||!arrivedInside));
-  if(!waiting&&!state.gesture)route.elapsed+=dt*1000;
+  const waiting=(state.mode==='perch'&&sample.phase==='hold'&&!sample.portalHold&&distance>3)||(sample.portalHold&&(!resolved.portalClear||Math.abs(state.depth-resolved.depth)>.03||distance>7))||(sample.waitForArrival&&(distance>4||!arrivedInside));
+  const searching=game?.name==='hide'&&route.sceneCommandId&&sample.phase==='hold'&&sample.waitForArrival&&!sample.portalHold&&sample.depth<0&&distance<5;
+  if(searching&&!game.searchUntil){game.searchUntil=now+8000;playNext.disabled=false;playNote.textContent='M is peeking near a card. Can you find her?';}
+  if(!waiting&&!state.gesture&&!(searching&&!game.found&&now<game.searchUntil))route.elapsed+=dt*1000;
   if(!route.visited&&sample.phase==='hold'&&!sample.portalHold&&distance<4&&arrivedInside){brain.noteVisit(state.targetId,now);route.visited=true;}
-  if(!state.gesture&&route.elapsed>=route.plan.duration&&Math.hypot(sample.x-state.x,sample.y-state.y)<6&&Math.abs(state.depth-sample.depth)<.08){directorCompletedRouteId=route.directorRouteId??null;route=null;nextChoice=now+600;}
+  if(!state.gesture&&route.elapsed>=route.plan.duration&&Math.hypot(sample.x-state.x,sample.y-state.y)<6&&Math.abs(state.depth-sample.depth)<.08){directorCompletedRouteId=route.directorRouteId??null;completedSceneRoute=route.sceneCommandId??null;route=null;nextChoice=now+600;}
   return sample;
  }
 
@@ -237,7 +247,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  }
  function directorBlocked(now){
   const typing=Boolean(document.activeElement?.matches?.('input,textarea,select,[contenteditable="true"]'));
-  return {hidden:document.hidden||!active||frozen,reducedMotion,typing,reading:now<interest.readingUntil||document.getSelection()?.isCollapsed===false,scrolling:now<interest.scrollUntil,busy:Boolean(companion?.isOpen()||state.gesture||state.expressionHold||isExplicitGesture(pendingGesture))};
+  return {hidden:document.hidden||!active||frozen,reducedMotion,typing,reading:now<interest.readingUntil||document.getSelection()?.isCollapsed===false,scrolling:now<interest.scrollUntil,busy:Boolean(companion?.isOpen()||state.gesture||state.expressionHold||isExplicitGesture(pendingGesture)||scenes.snapshot().status==='playing'||game||route?.explicit)};
  }
  function rememberDirector(decision){
   directorRecent.push({targetId:decision.targetId,action:decision.action});if(directorRecent.length>6)directorRecent.shift();
@@ -248,33 +258,19 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(Object.values(directorBlocked(now)).some(Boolean)||snapshot.revision!==directorSnapshot?.revision)return false;
   const surface=decision.targetId===null?null:world.surfaces.find(r=>r.id===decision.targetId&&onScreen(r,world.viewport));
   if(decision.targetId!==null&&(!surface||!publicComponents(world).some(r=>r.id===decision.targetId&&r.title===snapshot.targets.find(t=>t.id===decision.targetId)?.title)))return false;
-  const intent={name:decision.gesture==='none'?null:decision.gesture,source:'director',expression:decision.expression,queuedAt:state.clock};
-  interest.attentionId=surface?.id||null;
-  if(['inspect','rest'].includes(decision.action)){
-   intent.directorDecision={...decision};
-   if(!queueIntent(intent))return false;
-   directorLastExecution={...decision,at:state.clock,status:'queued'};return true;
-  }
-  const selected=surface&&directorPlan(world,surface,decision.action);if(!selected)return false;
-  const {plan,side}=selected,routeId=++directorRouteId;directorCompletedRouteId=null;
-  if(pendingGesture?.source==='life')pendingGesture=null;
-  route={plan,side,directorRouteId:routeId,elapsed:0,element:surface.element,version:world.version,documentRect:{left:surface.left+scrollX,top:surface.top+scrollY,width:surface.width,height:surface.height}};
-  state.mode=plan.kind;state.targetId=surface.id;state.emotion=decision.expression;state.emotionUntil=now+Math.min(60000,plan.duration*2+5000);
-  directorActivity={...decision,routeId,started:now};directorLastExecution={...decision,at:state.clock,status:'travelling'};return true;
+  if(beginCharacterScene({source:'director',decision,targetId:decision.targetId,action:decision.action,gesture:decision.gesture,expression:decision.expression}))return true;
+  return false;
  }
+
  function updateDirectorActivity(now){
   if(!directorActivity)return;
-  const decision=directorActivity;
-  if(now-decision.started>35000||(route&&route.directorRouteId!==decision.routeId)){
-   directorActivity=null;directorLastExecution={...decision,at:state.clock,status:'cancelled'};state.emotionUntil=now+600;return;
+  const decision=directorActivity,current=scenes.snapshot();
+  if(current.id!==decision.sceneId||current.status==='cancelled'||current.status==='idle'||now-decision.started>90000){
+   directorActivity=null;directorLastExecution={...decision,at:state.clock,status:'cancelled'};return;
   }
-  if(!route){
-   directorActivity=null;state.emotionUntil=now+600;
-   if(directorCompletedRouteId!==decision.routeId){directorLastExecution={...decision,at:state.clock,status:'cancelled'};return;}
-   rememberDirector(decision);
-   if(!Object.values(directorBlocked(now)).some(Boolean))queueIntent({name:decision.gesture==='none'?null:decision.gesture,source:'director',expression:decision.expression,queuedAt:state.clock});
-  }
+  if(current.status==='complete'){directorActivity=null;rememberDirector(decision);}
  }
+
  function updateDirector(now,world,force=false){
   if(!director||!observer||!avatar)return;
   const context=directorBlocked(now);
@@ -296,11 +292,129 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   companion?.refresh();
  }
 
+ function publicComponent(surface){
+  if(!surface)return null;
+  const kind=componentKind(surface.element),heading=surface.element.querySelector('h3,h2,h4,strong');
+  return matchContextComponent({kind,title:heading?.textContent||(kind==='portrait'?'Ricardo Pinheiro portrait':'')});
+ }
+ function activeChatContext(){
+  const world=worldSnapshot(),records=publicComponents(world);
+  const chosen=records.find(r=>r.id===interest.attentionId)||records.find(r=>r.id===state.targetId)||records[0];
+  const component=chosen&&publicComponent(world.surfaces.find(r=>r.id===chosen.id));
+  return {section:currentSection(world),language:navigator.language?.startsWith('pt')?'pt':'en',...(component?{component:component.id}:{})};
+ }
+ function clearScene(reason='interrupted'){
+  const before=scenes.snapshot(),ownsGesture=state.gesture?.sceneId===before.id||state.expressionHold?.sceneId===before.id,ownsStage=route?.gestureStage&&(pendingGesture?.sceneId===before.id||ownsGesture);scenes.cancel(reason);
+  if(route?.sceneCommandId||ownsStage)route=null;
+  if(before.status==='playing'){nextChoice=performance.now()+800;nextSceneAt=performance.now()+17000;}
+  if(ownsGesture){state.emotionUntil=performance.now()+600;state.emotion='neutral';}
+  if(pendingGesture?.sceneId===before.id)pendingGesture=null;
+  if(state.gesture?.sceneId===before.id)state.gesture=null;
+  if(state.expressionHold?.sceneId===before.id)state.expressionHold=null;
+  if(sceneMeta?.decision)directorLastExecution={...sceneMeta.decision,at:state.clock,status:'cancelled'};
+  sceneMeta=null;sceneCommand=null;directorActivity=null;state.affect=null;
+ }
+ function stopPlay(reason='stopped'){
+  if(!game)return;game=null;playDock.hidden=playLight.hidden=true;
+  clearScene(reason);if(route?.gameId){route=null;nextChoice=performance.now()+800;}
+ }
+ function beginCharacterScene({source='visitor',decision=null,targetId=null,action=null,gesture='curious',expression='curious'}={}){
+  if(!avatar||!active||reducedMotion||frozen||state.gesture||state.expressionHold)return false;
+  const now=performance.now(),world=worldSnapshot(),records=publicComponents(world);
+  if(source==='visitor'||source==='game'){interest.readingUntil=now;interest.scrollUntil=now;}
+  if(source==='life'&&(companion?.isOpen()||Object.values(directorBlocked(now)).some(Boolean)))return false;
+  let selected=targetId?records.find(r=>r.id===targetId):(['life','game'].includes(source)&&now>interest.userAttentionUntil?null:records.find(r=>r.id===interest.attentionId));
+  if(targetId&&!selected)return false;
+  if(action==='rest'&&targetId===null)selected=null;
+  if(!selected&&action!=='rest')selected=[...records].sort((a,b)=>memory.score(publicComponent(world.surfaces.find(r=>r.id===b.id))?.id||b.id)-memory.score(publicComponent(world.surfaces.find(r=>r.id===a.id))?.id||a.id))[0];
+  if(!selected&&action!=='rest')return false;
+  const surface=selected&&world.surfaces.find(r=>r.id===selected.id),actions=surface?['inspect',...['peek','perch','orbit'].filter(kind=>directorPlan(world,surface,kind))]:['rest'];
+  action=action||(['peek','perch','orbit'].find(kind=>actions.includes(kind))||'inspect');
+  const plan=createScenePlan({targetId:action==='rest'&&!surface?null:surface?.id||null,action,gesture,expression,source,actions});
+  if(!plan)return false;
+  if(scenes.snapshot().status==='playing')clearScene('replaced');
+  if(!scenes.start(plan,{nowMs:now}))return false;
+  route=null;pendingGesture=null;nextChoice=Infinity;sceneCommand=null;completedSceneRoute=completedSceneGesture=null;
+  sceneMeta={decision,action,stableId:publicComponent(surface)?.id||null};interest.attentionId=surface?.id||null;
+  if(decision){directorActivity={...decision,sceneId:scenes.snapshot().id,started:now};directorLastExecution={...decision,at:state.clock,status:'sequencing'};}
+  return true;
+ }
+ function beginLightGoal(now,world){
+  const target=chooseCorridorTarget({viewport:world.viewport,metrics,position:state,protectedRects:world.protectedRects,surfaces:world.surfaces,depth:1,recent:recentCorridors});
+  if(!target){stopPlay('no-safe-space');return false;}
+  const bounded=clampActor(target,world.viewport);recentCorridors.push(bounded);if(recentCorridors.length>6)recentCorridors.shift();
+  const f=metrics.footprint;game.goal=bounded;playLight.style.transform='translate3d('+(bounded.x+(f.left+f.right)/2)+'px,'+(bounded.y+(f.top+f.bottom)/2)+'px,0)';
+  playLight.hidden=false;route={free:true,gameId:game.id,start:{x:state.x,y:state.y},target:bounded,elapsed:0,duration:2200};state.mode='float';nextChoice=Infinity;
+  playNote.textContent='Follow the light: '+game.score+' / 3. M follows a safe path.';return true;
+ }
+ function startPlay(name){
+  if(!['hide','light'].includes(name)||!avatar||!active||reducedMotion||frozen||state.gesture||state.expressionHold)return false;
+  stopPlay('replaced');clearScene('play-started');
+  if(name==='hide'&&!beginCharacterScene({source:'game',action:'peek',gesture:'wink',expression:'happy'}))return false;
+  game={id:++gameSerial,name,score:0,started:performance.now(),found:false,searchUntil:0};
+  playNext.disabled=name==='hide';playNext.textContent=name==='hide'?'I found M':'Move light';playNote.textContent=name==='hide'?'M is finding a card edge. Watch where she goes.':'Follow the light.';playDock.hidden=false;
+  if(name==='light'&&!beginLightGoal(performance.now(),worldSnapshot()))return false;
+  return true;
+ }
+ playStop.addEventListener('click',()=>stopPlay());
+ playNext.addEventListener('click',()=>{if(!game)return;if(game.name==='hide'){game.found=true;playNote.textContent='Found! M is coming back.';}else beginLightGoal(performance.now(),worldSnapshot());});
+ function updateCharacter(dt,now,world){
+  if(state.affect){state.affect.age+=dt;if(state.affect.age>=(AFFECT_DURATIONS[state.affect.name]||0))state.affect=null;}
+  if(now-lastMemoryAt>=1000){
+   const elapsed=lastMemoryAt?Math.min(2000,now-lastMemoryAt):1000;lastMemoryAt=now;
+   for(const r of publicComponents(world)){const component=publicComponent(world.surfaces.find(s=>s.id===r.id));if(component)memory.noteExposure(component.id,{dwellMs:elapsed});}
+   characterEnergy=memory.recordPace(scrollY-lastPaceScroll,elapsed);lastPaceScroll=scrollY;
+  }
+  const field=document.activeElement,assistantIdleFocus=scenes.snapshot().source==='assistant'&&field?.id==='m-companion-message'&&field.value==='';
+  const typing=Boolean(field?.matches?.('input,textarea,select,[contenteditable="true"]'))&&!assistantIdleFocus;
+  const interrupted=!active||reducedMotion||document.hidden||typing||now<interest.scrollUntil||now<interest.readingUntil||document.getSelection?.()?.isCollapsed===false;
+  if(game&&(interrupted||now-game.started>90000)){stopPlay(interrupted?'visitor-interaction':'play-timeout');return;}
+  if(game?.name==='light'){
+   if(route?.gameId!==game.id){stopPlay('route-cancelled');return;}
+   if(route.elapsed>=route.duration&&Math.hypot(state.x-game.goal.x,state.y-game.goal.y)<7){
+    game.score++;if(game.score>=3){stopPlay('complete');queueGesture('wink',{source:'visitor',expression:'happy'});}else beginLightGoal(now,world);
+   }
+   return;
+  }
+  let current=scenes.snapshot();
+  if(current.status==='playing'){
+   const available=current.targetId===null||world.surfaces.some(r=>r.id===current.targetId&&onScreen(r,world.viewport));
+   if(interrupted||(companion?.isOpen()&&['life','director'].includes(current.source))){clearScene('visitor-interaction');if(game)stopPlay('visitor-interaction');return;}
+   current=scenes.step({nowMs:now,targetAvailable:available});
+   const command=current.command;
+   if(command&&command.id!==sceneCommand){
+    sceneCommand=command.id;interest.attentionId=command.targetId;state.affect={name:command.type==='look'?'focus':command.type==='rest'?'content':'delight',age:0,weight:.75};
+    if(command.type==='travel'){
+     const surface=world.surfaces.find(r=>r.id===command.targetId),selected=surface&&directorPlan(world,surface,command.action);
+     if(!selected)scenes.complete(command.id,{success:false,reason:'no-safe-route'},now);
+     else{const {plan,side}=selected;route={plan,side,sceneCommandId:command.id,elapsed:0,element:surface.element,version:world.version,documentRect:{left:surface.left+scrollX,top:surface.top+scrollY,width:surface.width,height:surface.height}};state.mode=plan.kind;state.targetId=surface.id;nextChoice=Infinity;}
+    }else if(command.type==='gesture'){
+     if(!queueIntent({name:command.gesture,expression:command.expression,source:current.source,sceneId:current.id,sceneCommandId:command.id,queuedAt:state.clock}))scenes.complete(command.id,{success:false,reason:'gesture-unavailable'},now);
+    }
+   }
+   if(command?.type==='travel'){
+    if(completedSceneRoute===command.id){completedSceneRoute=null;scenes.complete(command.id,{},now);}
+    else if(sceneCommand===command.id&&!route)scenes.complete(command.id,{success:false,reason:'route-cancelled'},now);
+   }
+   if(command?.type==='gesture'&&completedSceneGesture===command.id){completedSceneGesture=null;scenes.complete(command.id,{},now);}
+   current=scenes.snapshot();
+   if(current.status!=='playing'){
+    if(current.status==='complete'){
+     if(sceneMeta?.stableId)memory.noteVisit(sceneMeta.stableId,{action:sceneMeta.action||'inspect'});
+    }else{if(sceneMeta?.decision)directorLastExecution={...sceneMeta.decision,at:state.clock,status:'cancelled'};clearScene(current.reason||'execution-failed');}
+    if(route?.sceneCommandId)route=null;sceneMeta=null;sceneCommand=null;nextChoice=now+1400;nextSceneAt=now+17000;state.affect=null;
+    if(game)stopPlay(current.status);
+   }
+  }else if(!game&&now>=nextSceneAt&&!state.gesture&&!state.expressionHold&&!pendingGesture&&!director?.getStatus().pending&&(!route||(!route.explicit&&(route.free||state.phase==='hold')))&&brainState.spontaneousAllowed){
+   nextSceneAt=now+17000;beginCharacterScene({source:'life'});
+  }
+ }
  function currentSection(world){
   const ranked=world.surfaces.map(r=>({r,area:Math.max(0,Math.min(r.right,world.viewport.width)-Math.max(r.left,0))*Math.max(0,Math.min(r.bottom,world.viewport.height)-Math.max(r.top,world.viewport.headerBottom))})).sort((a,b)=>b.area-a.area);
   return ranked[0]?.r.element.closest('section[id]')?.id||'home';
  }
  function queueIntent(incoming){
+  if(!incoming.sceneId&&(incoming.source==='visitor'||incoming.source==='assistant')){stopPlay('visitor-action');clearScene('visitor-action');}
   if(!active||reducedMotion||(avatar&&!gestureViewportFits(metrics,viewport())))return false;
   if(incoming.source==='visitor'||incoming.source==='assistant'){if(directorActivity)directorLastExecution={...directorActivity,at:state.clock,status:'cancelled'};directorActivity=null;director?.update({snapshot:directorSnapshot,busy:true});}
   pendingGesture=selectGestureIntent(pendingGesture,incoming,state.gesture||state.expressionHold);
@@ -324,8 +438,8 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  }
  function updateGesture(dt,world,now){
   let completed=false;
-  if(state.gesture){state.gesture.age+=dt;if(state.gesture.age>=GESTURE_DURATIONS[state.gesture.name]){state.gesture=null;completed=true;}}
-  if(state.expressionHold){state.expressionHold.age+=dt;if(state.expressionHold.age>=2.2){state.expressionHold=null;completed=true;}}
+  if(state.gesture){state.gesture.age+=dt;if(state.gesture.age>=GESTURE_DURATIONS[state.gesture.name]){completedSceneGesture=state.gesture.sceneCommandId||null;state.gesture=null;completed=true;}}
+  if(state.expressionHold){state.expressionHold.age+=dt;if(state.expressionHold.age>=(state.expressionHold.duration||2.2)){state.expressionHold=null;completed=true;}}
   if(completed){state.emotionUntil=now+600;if(!pendingGesture){route=null;nextChoice=now+1200;}}
   if(gestureIntentExpired(pendingGesture,state.clock))pendingGesture=null;
   const playing=Boolean(state.gesture||state.expressionHold);
@@ -333,8 +447,8 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(pendingGesture&&!playing&&gestureReady({state,actor:actorRect(state,metrics),viewport:world.viewport,escaping:route?.escape})){
    const intent=pendingGesture;pendingGesture=null;
    if(intent.directorDecision)rememberDirector(intent.directorDecision);
-   if(intent.name)state.gesture={name:intent.name,source:intent.source,expression:intent.expression,age:0,side:life.random()<.5?-1:1};
-   else state.expressionHold={source:intent.source,age:0};
+   if(intent.name)state.gesture={name:intent.name,source:intent.source,expression:intent.expression,age:0,sceneId:intent.sceneId,sceneCommandId:intent.sceneCommandId,side:life.random()<.5?-1:1};
+   else{state.expressionHold={source:intent.source,age:0,sceneId:intent.sceneId,duration:intent.affect?AFFECT_DURATIONS[intent.affect]:2.2};if(intent.affect)state.affect={name:intent.affect,age:0,weight:1};}
    state.vx=state.vy=0;
    state.emotion=intent.expression||({wave:'happy',curious:'curious',surprised:'surprised',shy:'neutral'}[intent.name]);
    state.emotionUntil=Infinity;
@@ -344,7 +458,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   const input=document.activeElement,typing=Boolean(input?.matches?.('input,textarea,select,[contenteditable="true"]'));
   brainState=brain.observe({nowMs:now,section:currentSection(world),scrolling:now<interest.scrollUntil,reading:now<interest.readingUntil||document.getSelection()?.isCollapsed===false,engaged:Boolean(companion?.isOpen()||typing),reducedMotion,hidden:document.hidden,active});
   lastLife=life.step(dt,{mode:state.mode==='float'?'float':'swim',reducedMotion,manualFace:now<state.emotionUntil||(!brainState.spontaneousAllowed&&!life.pending)});
-  if(lastLife.action&&!isExplicitGesture(pendingGesture)&&!state.gesture&&!state.expressionHold&&!director?.getStatus().pending&&!directorActivity){
+  if(lastLife.action&&!isExplicitGesture(pendingGesture)&&!state.gesture&&!state.expressionHold&&!director?.getStatus().pending&&!directorActivity&&scenes.snapshot().status!=='playing'&&!game){
    state.emotion=lastLife.action.expression||'neutral';state.emotionUntil=now+1900;
    const gesture=lastLife.action.mood==='welcoming'?(life.random()<.35?'playful':'wave'):lastLife.action.mode==='curious'?(life.random()<.35?'nod':'curious'):lastLife.action.mode==='shy'?(life.random()<.4?'wink':'shy'):lastLife.action.mood==='playful'?'playful':({knock:'surprised'}[lastLife.action.mode]);
    if(gesture)queueGesture(gesture,{source:'life',expression:lastLife.action.expression});
@@ -364,9 +478,9 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   renderFrame={...spatial,bounds};
   avatar.setSpatialFrame(spatial);
   const target=world.surfaces.find(s=>s.id===interest.attentionId)||world.surfaces.find(s=>s.id===state.targetId);
-  const gaze=lastLife?.attention==='pointer'?lastLife.gaze:target?{x:bound((target.left+target.width*.5-(state.x+(f.left+f.right)/2))/260,-1,1),y:bound(((state.y+(f.top+f.bottom)*.4)-(target.top+Math.min(100,target.height*.3)))/220,-1,1)}:lastLife?.gaze||{x:0,y:0};
+  const gaze=game?.name==='light'&&game.goal?{x:bound((game.goal.x-state.x)/260,-1,1),y:bound((state.y-game.goal.y)/220,-1,1)}:lastLife?.attention==='pointer'&&scenes.snapshot().status!=='playing'?lastLife.gaze:target?{x:bound((target.left+target.width*.5-(state.x+(f.left+f.right)/2))/260,-1,1),y:bound(((state.y+(f.top+f.bottom)*.4)-(target.top+Math.min(100,target.height*.3)))/220,-1,1)}:lastLife?.gaze||{x:0,y:0};
   if(frozen)avatar.render();
-  else avatar.update(dt,{mode:state.mode,activity:state.mode==='perch'&&state.phase==='hold'?'perch':state.mode,emotion:reducedMotion?'neutral':state.emotion,vx:state.vx,vy:state.vy,clock:state.clock,gesture:state.gesture,reducedMotion,locomotion:{ax:state.ax,ay:state.ay,heading:state.heading,turn:state.turn,travel:state.travel,leanX:state.leanX,leanY:state.leanY},attention:gaze,nearCard:Boolean(target),depth:state.depth});
+  else avatar.update(dt,{mode:state.mode,activity:state.mode==='perch'&&state.phase==='hold'?'perch':state.mode,emotion:reducedMotion?'neutral':state.emotion,vx:state.vx,vy:state.vy,clock:state.clock,gesture:state.gesture,affect:state.affect,characterEnergy:characterEnergy,reducedMotion,locomotion:{ax:state.ax,ay:state.ay,heading:state.heading,turn:state.turn,travel:state.travel,leanX:state.leanX,leanY:state.leanY},attention:gaze,nearCard:Boolean(target),depth:state.depth});
   layer.dataset.depth=state.depth<0?'behind':'front';layer.dataset.worldAction=state.mode;layer.dataset.phase=state.phase;
   layer.dataset.worldTarget=state.targetId||'corridor';layer.dataset.occluders=String(world.surfaces.filter(r=>overlap(bounds,r)).length);
   layer.dataset.lifeMood=lastLife?.mood||'resting';layer.dataset.gesture=state.gesture?.name||'none';
@@ -375,14 +489,14 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   frameId=null;if(disposed||!active||!avatar||document.hidden||frozen)return;
   const started=performance.now(),dt=bound((now-(lastFrame||now))/1000,0,.05);lastFrame=now;
   metrics=avatar.getMetrics();state.clock+=dt;
-  const world=worldSnapshot(now);updateLife(dt,world,now);updateDirector(now,world);
+  const world=worldSnapshot(now);updateLife(dt,world,now);updateCharacter(dt,now,world);updateDirector(now,world);
   if(reducedMotion){Object.assign(state,clampActor({x:world.viewport.width-metrics.footprint.right-12,y:world.viewport.height-metrics.footprint.bottom-66},world.viewport),{vx:0,vy:0,mode:'rest',phase:'hold'});}
   else{
    const point=advanceRoute(dt,now,world),dx=point.x-state.x,dy=point.y-state.y;
    const perchHold=state.mode==='perch'&&point.phase==='hold'&&!point.portalHold;
    const attached=perchHold&&(route?.attached||Math.hypot(point.x-state.x,point.y-state.y)<3);
    if(route)route.attached=Boolean(attached);
-   const maxSpeed=state.mode==='peek'?110:state.mode==='perch'?120:150;
+   const maxSpeed=(state.mode==='peek'?110:state.mode==='perch'?120:150)*(.84+.16*characterEnergy);
    if(attached){const previous={x:state.x,y:state.y};Object.assign(state,advanceLocomotion({...state,vx:0,vy:0},{x:state.x,y:state.y},dt));state.vx=(point.x-previous.x)/Math.max(.008,dt);state.vy=(point.y-previous.y)/Math.max(.008,dt);state.x=point.x;state.y=point.y;}
    else{
     Object.assign(state,advanceLocomotion(state,point,dt,{maxSpeed,maxAcceleration:340,arrivalRadius:72}));
@@ -405,6 +519,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   toggle.setAttribute('aria-label',active?'Pause M':'Resume M');toggle.setAttribute('aria-pressed',String(active));
   if(persist)try{localStorage.setItem('m-world-enabled',active?'yes':'no');}catch{}
   companion?.refreshMotionControl?.();
+  if(!active){stopPlay('paused');clearScene('paused');}
   if(!active)director?.update({snapshot:directorSnapshot,hidden:true});
   if(!active){if(frameId!==null)cancelAnimationFrame(frameId);frameId=null;life.setEnabled(false);}
   else{life.setEnabled(!reducedMotion);lastFrame=0;if(!avatar)load();else if(frozen)renderCurrent(worldSnapshot());else schedule();}
@@ -413,7 +528,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(loading||avatar)return loading;
   loading=(async()=>{
    try{
-    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=26');
+    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=27');
     avatar=await mountMWorld3D(host,{onProgress(percent){layer.dataset.loadProgress=String(percent);if(active)toggle.textContent='M · '+percent+'%';}});
     metrics=avatar.getMetrics();cache.dirty=true;cache.lastRead=0;
     const world=worldSnapshot();
@@ -434,7 +549,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  }
  toggle.addEventListener('click',()=>{if(layer.dataset.error&&!avatar){delete layer.dataset.error;active=true;layer.hidden=false;load();}else setActive(!active);});
  window.addEventListener('scroll',()=>{interest.scrollUntil=performance.now()+650;life.signal('scroll',{delta:bound((scrollY-(cache.lastScroll??scrollY))/160,-1,1)});cache.lastScroll=scrollY;if(reducedMotion)schedule();},{passive:true});
- window.addEventListener('resize',()=>{invalidate();route=null;nextChoice=0;},{passive:true});
+ window.addEventListener('resize',()=>{stopPlay('layout-change');clearScene('layout-change');invalidate();route=null;nextChoice=0;},{passive:true});
  window.visualViewport?.addEventListener('resize',invalidate,{passive:true});
  document.addEventListener('load',event=>{if(event.target?.tagName==='IMG')invalidate();},true);
  document.fonts?.ready.then(invalidate);
@@ -450,12 +565,12 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  const resizeObserver=new ResizeObserver(invalidate);if(document.querySelector('main'))resizeObserver.observe(document.querySelector('main'));
  const mutationObserver=new MutationObserver(records=>{if(records.some(r=>!ownNode(r.target instanceof Element?r.target:r.target.parentElement)))invalidate();});
  mutationObserver.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','style']});
- document.addEventListener('pointerover',event=>{if(!ownNode(event.target)&&event.target.closest?.('p,h1,h2,h3,li,.card-body'))interest.readingUntil=performance.now()+1800;},{passive:true});
+ document.addEventListener('pointerover',event=>{if(performance.now()<interest.hoverGuardUntil)return;if(!ownNode(event.target)&&event.target.closest?.('p,h1,h2,h3,li,.card-body'))interest.readingUntil=performance.now()+1800;},{passive:true});
  document.addEventListener('focusin',event=>{if(!ownNode(event.target))interest.readingUntil=performance.now()+1400;});
- document.addEventListener('visibilitychange',()=>{if(document.hidden)director?.update({snapshot:directorSnapshot,hidden:true});if(document.hidden){if(frameId!==null)cancelAnimationFrame(frameId);frameId=null;}else{lastFrame=0;schedule();}});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){stopPlay('hidden');clearScene('hidden');}if(document.hidden)director?.update({snapshot:directorSnapshot,hidden:true});if(document.hidden){if(frameId!==null)cancelAnimationFrame(frameId);frameId=null;}else{lastFrame=0;schedule();}});
  function refreshMotionPreference(){
   reducedMotion=motionPreference.matches&&!motionOptIn;
-  if(reducedMotion){pendingGesture=null;state.gesture=null;state.expressionHold=null;state.emotionUntil=0;}
+  if(reducedMotion){stopPlay('reduced-motion');clearScene('reduced-motion');pendingGesture=null;state.gesture=null;state.expressionHold=null;state.emotionUntil=0;}
   life.setEnabled(active&&!reducedMotion);route=null;directorActivity=null;nextChoice=0;companion?.refreshMotionControl?.();director?.update({snapshot:directorSnapshot,reducedMotion,hidden:!active});invalidate();schedule();
  }
  function enableMotion(){
@@ -464,8 +579,9 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  }
  motionPreference.addEventListener('change',()=>{motionOptIn=false;try{sessionStorage.removeItem('m-world-motion-allowed');}catch{}refreshMotionPreference();});
  document.addEventListener('pointerover',event=>{
-  if(ownNode(event.target)||!active||reducedMotion)return;
+  if(ownNode(event.target)||!active||reducedMotion||performance.now()<interest.hoverGuardUntil)return;
   const surface=cache.documents.find(r=>r.element.contains(event.target));
+  if(surface)interest.userAttentionUntil=performance.now()+6000;
   if(surface&&interest.attentionId!==surface.id){interest.attentionId=surface.id;directorEvent='pointer-interest';directorNextRead=0;}
  },{passive:true});
  window.addEventListener('pointermove',event=>{
@@ -483,7 +599,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  function snapshot(){
   if(avatar)metrics=avatar.getMetrics();
   const world=worldSnapshot();
-  return {ready:Boolean(avatar),active,error:layer.dataset.error||null,state:{...state,gesture:state.gesture?{...state.gesture}:null,expressionHold:state.expressionHold?{...state.expressionHold}:null},acting:{attached:Boolean(route?.attached),externalPortal:Boolean(route?.plan?.externalPortal)},brain:brain.snapshot(),companion:companion?.snapshot(),pendingGesture:pendingGesture?.name||null,pendingIntent:pendingGesture?{...pendingGesture}:null,preferences:{reducedMotion,systemReducedMotion:motionPreference.matches,motionOptIn},staging:route?.gestureStage?{escape:route.escape,target:{...route.target},egress:{...route.egress}}:null,metrics,actor:actorRect(renderFrame?{x:renderFrame.actor.left,y:renderFrame.actor.top}:state,metrics),
+  return {ready:Boolean(avatar),active,error:layer.dataset.error||null,state:{...state,gesture:state.gesture?{...state.gesture}:null,expressionHold:state.expressionHold?{...state.expressionHold}:null},acting:{attached:Boolean(route?.attached),externalPortal:Boolean(route?.plan?.externalPortal)},brain:brain.snapshot(),companion:companion?.snapshot(),pendingGesture:pendingGesture?.name||null,pendingIntent:pendingGesture?{...pendingGesture}:null,preferences:{reducedMotion,systemReducedMotion:motionPreference.matches,motionOptIn},character:{scene:scenes.snapshot(),game:game?{...game}:null,memory:memory.snapshot()},staging:route?.gestureStage?{escape:route.escape,target:{...route.target},egress:{...route.egress}}:null,metrics,actor:actorRect(renderFrame?{x:renderFrame.actor.left,y:renderFrame.actor.top}:state,metrics),
    surfaces:world.surfaces.map(({element,...r})=>r),protectedRects:world.protectedRects,director:{...director?.getStatus(),perception:directorSnapshot,activity:directorActivity,lastExecution:directorLastExecution},renderer:avatar?.getDiagnostics(),life:lastLife,stats:{...stats},frozen};
  }
  if(debugEnabled)window.MWorld={
@@ -503,10 +619,11 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
    return {...snapshot(),plan:{available:plan.available,kind:plan.kind,requestedKind:kind,duration:plan.duration,portal:plan.portal,phase:point.phase}};
   },
   async playAction({selector='.card',index=0,kind='peek'}={}){
+   stopPlay('diagnostic-action');clearScene('diagnostic-action');
    if(!avatar)await load();if(!avatar)throw new Error('Original M is not ready');
    metrics=avatar.getMetrics();frozen=false;cache.dirty=true;cache.lastRead=0;const world=worldSnapshot(),element=document.querySelectorAll(selector)[index];
    if(!element)throw new Error('Unknown diagnostic component');
-   startRoute(performance.now(),world,kind,element);lastFrame=0;setActive(true,false);schedule();
+   startRoute(performance.now(),world,kind,element);if(route)route.explicit=true;lastFrame=0;setActive(true,false);schedule();
    return {...snapshot(),plan:{available:Boolean(route&&!route.free),kind:route?.plan?.kind||'float',requestedKind:kind,targetId:state.targetId}};
   },
   setDepth(value){
@@ -516,11 +633,11 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   resume(){frozen=false;nextChoice=0;schedule();},
   playGesture:queueGesture,
   setActive,
-  dispose(){disposed=true;if(frameId!==null)cancelAnimationFrame(frameId);resizeObserver.disconnect();mutationObserver.disconnect();for(const type of ['transitionrun','transitionend','transitioncancel'])document.removeEventListener(type,geometryTransition,true);director?.dispose();observer?.dispose();companion?.destroy();avatar?.dispose();layer.remove();toggle.remove();}
+  dispose(){disposed=true;if(frameId!==null)cancelAnimationFrame(frameId);resizeObserver.disconnect();mutationObserver.disconnect();for(const type of ['transitionrun','transitionend','transitioncancel'])document.removeEventListener(type,geometryTransition,true);stopPlay('disposed');clearScene('disposed');playDock.remove();playLight.remove();director?.dispose();observer?.dispose();companion?.destroy();avatar?.dispose();layer.remove();toggle.remove();}
  };
  observer=createWorldObserver({getComponents:()=>directorComponents});
  director=createWorldDirector({endpoint:M_WORLD_CONFIG.directorEndpoint||'',onIntent:applyDirectorIntent,onStatus:()=>companion?.refresh()});
- companion=createMCompanion({getDirectorStatus:()=>director.getStatus(),onDirectorEnabled:enabled=>{director.setEnabled(enabled);if(!enabled)directorActivity=null;updateDirector(performance.now(),worldSnapshot(),true);},endpoint:M_WORLD_CONFIG.assistantEndpoint,onGesture:queueGesture,onExpression:queueExpression,getMotionStatus:()=>({active,reducedMotion}),onEnableMotion:enableMotion,getContext:()=>({section:brain.snapshot().section||'home',language:navigator.language?.startsWith('pt')?'pt':'en'}),onSection:name=>{document.getElementById(name)?.scrollIntoView({behavior:reducedMotion?'instant':'smooth',block:'start'});},onEngagement:()=>{invalidate();}});
+ companion=createMCompanion({onAffect:name=>M_AFFECTS.includes(name)&&queueIntent({name:null,affect:name,source:'visitor',expression:'neutral',queuedAt:state.clock}),onScene:()=>beginCharacterScene(),onGame:startPlay,onResetMemory:()=>memory.clear(),onContextResponse:(id,reply)=>{const world=worldSnapshot(),target=world.surfaces.find(r=>publicComponent(r)?.id===id);if(target){stopPlay('context-response');return beginCharacterScene({source:'assistant',targetId:target.id,action:'inspect',gesture:reply.gesture==='none'?'nod':reply.gesture,expression:reply.expression});}return false;},getDirectorStatus:()=>director.getStatus(),onDirectorEnabled:enabled=>{director.setEnabled(enabled);if(!enabled)directorActivity=null;updateDirector(performance.now(),worldSnapshot(),true);},endpoint:M_WORLD_CONFIG.assistantEndpoint,onGesture:queueGesture,onExpression:queueExpression,getMotionStatus:()=>({active,reducedMotion}),onEnableMotion:enableMotion,getContext:activeChatContext,onSection:name=>{document.getElementById(name)?.scrollIntoView({behavior:reducedMotion?'instant':'smooth',block:'start'});},onEngagement:open=>{if(!open)interest.hoverGuardUntil=performance.now()+250;invalidate();}});
  try{if(localStorage.getItem('m-world-enabled')==='no')active=false;}catch{}
  life.setEnabled(active&&!reducedMotion);setActive(active,false);
 })();

@@ -46,3 +46,34 @@ jobs:
           name: m-v6-chrome-smoke
           path: ${{ env.M_WORLD_ARTIFACT_DIR }}/
           if-no-files-found: ignore
+  intent-and-accessibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      BASE_URL: http://127.0.0.1:4173/
+      M_WORLD_ARTIFACT_DIR: /tmp/m-world-v24
+      M_WORLD_V24_SCOPE: final
+      M_WORLD_V24_SOFTWARE_GPU: '1'
+      M_WORLD_V24_PROFILE: desktop
+      M_WORLD_V24_RECORD: '0'
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned browser driver
+        run: npm install --no-save --ignore-scripts --package-lock=false playwright-core@1.62.1
+      - name: Start isolated website
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/m-world-v24-http.log 2>&1 &
+          sleep 2
+      - name: Validate actual reduced-motion neutral, scene and contextual response
+        run: node m-world-v24-browser.mjs
+      - name: Save V24 native evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m-v24-native-contracts
+          path: /tmp/m-world-v24/
+          if-no-files-found: ignore

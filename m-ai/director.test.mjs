@@ -47,7 +47,7 @@ test('automatic director is disabled by default and health advertises version an
     const env = { OPENAI_API_KEY: MOCK_KEY, AI_AUTOPLAY_ENABLED: flag };
     const handle = handler({ env, quota: { ready: true, reserve() { calls++; } } });
     assert.equal((await handle(request())).status, 503);
-    assert.deepEqual(await (await handle(request(undefined, { path: '/health', method: 'GET' }))).json(), { configured: true, director: { version: 1, enabled: false } });
+    assert.deepEqual(await (await handle(request(undefined, { path: '/health', method: 'GET' }))).json(), { configured: true, director: { version: 1, enabled: false }, contextualChat: { version: 1 } });
   }
   const enabled = await handler()(request(undefined, { path: '/health', method: 'GET' }));
   assert.equal((await enabled.json()).director.enabled, true);

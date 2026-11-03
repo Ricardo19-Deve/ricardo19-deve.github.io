@@ -148,3 +148,26 @@ test('the original four gestures stay prominent while extra gestures have an acc
  assert.equal(actions.childNodes.length,4);assert.deepEqual(actions.childNodes.map(element=>element.textContent),['Wave','Curious','Surprised','Shy']);
  assert.equal(more.tag,'details');assert.equal(Boolean(more.open),false);assert.equal(more.firstChild.tag,'summary');assert.equal(more.firstChild.textContent,'More gestures');assert.deepEqual(more.childNodes[1].childNodes.map(element=>element.textContent),['Playful','Wink','Nod']);
 });
+test('contextual chat negotiates capability and has one animation owner',async t=>{
+ const requests=[],effects=[];
+ const f=companionFixture({getContext:()=>({section:'projects',language:'en',component:'project-epoxy'}),fetchImpl:async(url,init)=>{
+  requests.push({url,init});
+  return {ok:true,json:async()=>init.method==='GET'?{contextualChat:{version:1}}:{...validReply,expression:'curious',gesture:'curious'}};
+ },onExpression:()=>effects.push('expression'),onGesture:()=>effects.push('gesture'),onContextResponse:(id,reply)=>{effects.push({id,gesture:reply.gesture});return true;}});
+ t.after(()=>f.companion.destroy());f.input.value='Explain this project';keydown(f.input);await settle();await settle();
+ assert.equal(requests.length,2);assert.equal(requests[0].init.method,'GET');
+ const sent=JSON.parse(requests[1].init.body);assert.equal(sent.context.component,'project-epoxy');
+ assert.deepEqual(effects,[{id:'project-epoxy',gesture:'curious'}]);
+});
+test('legacy Worker receives the old context and fallback reactions remain available',async t=>{
+ const requests=[],effects=[];
+ const f=companionFixture({getContext:()=>({section:'projects',language:'pt',component:'project-epoxy'}),fetchImpl:async(url,init)=>{requests.push({url,init});return {ok:true,json:async()=>init.method==='GET'?{configured:true}:{...validReply,gesture:'wave'}};},onContextResponse:()=>{effects.push('context');return true;},onExpression:()=>effects.push('expression'),onGesture:()=>effects.push('gesture')});
+ t.after(()=>f.companion.destroy());f.input.value='Explain Epoxy';keydown(f.input);await settle();await settle();
+ assert.deepEqual(JSON.parse(requests[1].init.body).context,{section:'projects',language:'pt'});
+ assert.deepEqual(effects,['expression','gesture']);
+});
+test('optional character controls call local callbacks without consuming an API attempt',()=>{
+ const effects=[],f=companionFixture({onAffect:name=>{effects.push(name);return true;},onGame:name=>{effects.push(name);return false;},onResetMemory:()=>effects.push('clear-memory')});
+ f.gesture('Sleepy').dispatchEvent(new Event('click'));f.gesture('Find M').dispatchEvent(new Event('click'));f.gesture('Reset character memory').dispatchEvent(new Event('click'));
+ assert.deepEqual(effects,['sleepy','hide','clear-memory']);assert.equal(f.requests.length,0);f.companion.destroy();
+});

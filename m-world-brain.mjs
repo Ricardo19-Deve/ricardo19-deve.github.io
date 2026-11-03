@@ -73,7 +73,7 @@ export class MWorldBrain {
    const x=(Math.max(left,0)+Math.min(right,w))*.5,y=(Math.max(top,0)+Math.min(bottom,h))*.5;
    const nearby=1-clamp(Math.hypot(x-ax,y-ay)/diagonal,0,1);
    const context=1-clamp(Math.abs(y-h*.48)/h,0,1);
-   const novelty=visit?.count?Math.max(0,.8-visit.count*.16):1;
+   const novelty=Number.isFinite(r.novelty)?clamp(r.novelty,0,1):visit?.count?Math.max(0,.8-visit.count*.16):1;
    // Seeded variation only resolves close ties. Geometry and attention win.
    const tie=hash(`${this._section}:${r.id}`,this._seed)*.008;
    const score=share*2.4+Math.sqrt(availableArea/(w*h))*1.5+nearby*1.2+
