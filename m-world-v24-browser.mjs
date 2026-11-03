@@ -118,8 +118,10 @@ async function faces(page,name,profile){
  const selections=name==='desktop'?[['focus','Focused'],['content','Content'],['doubt','Unsure'],['sleepy','Sleepy'],['delight','Delighted']]:[['doubt','Unsure'],['sleepy','Sleepy']];
  profile.affects=[];
  for(const [affect,label]of selections){
+  await openTools(page);
   await page.getByRole('button',{name:label,exact:true}).click();
   await page.waitForFunction(affect=>{const a=MWorld.snapshot().renderer.affect;return a?.name===affect&&a.phase==='hold'&&a.envelope>.6;},affect,{timeout:35000});
+  if(['doubt','sleepy'].includes(affect))await page.waitForFunction(name=>{const s=MWorld.snapshot(),b=s.renderer.blink;return s.renderer.affect?.name===name&&s.renderer.affect.phase==='hold'&&Math.max(b.leftClosure,b.rightClosure)<.8&&(name==='doubt'?Math.abs(b.leftClosure-b.rightClosure)>.04:Math.min(b.leftClosure,b.rightClosure)>.15);},affect,{timeout:5000});
   const s=await read(page),a=s.renderer.affect,w=a.weights||{},values=Object.values(w).filter(Number.isFinite),blink=s.renderer.blink;
   check(name+': '+label+' uses bounded original morphs',values.length>=3&&values.every(v=>v>=0&&v<=1.00001)&&values.reduce((x,y)=>x+y,0)<=1.00002&&s.renderer.bones===31&&s.renderer.shaderErrors.length===0,{affect:a,blink});
   if(affect==='doubt')check(name+': Unsure has asymmetric eyelid rest',Math.abs((blink.leftClosure??0)-(blink.rightClosure??0))>.04,{left:blink.leftClosure,right:blink.rightClosure});
@@ -131,7 +133,7 @@ async function faces(page,name,profile){
   profile.affects.push(compact(s));
   await page.waitForFunction(affect=>{const a=MWorld.snapshot().renderer.affect;return a?.name!==affect||['complete','idle'].includes(a?.phase);},affect,{timeout:10000});
  }
- await page.getByRole('button',{name:'Reset face',exact:true}).click();
+ await openTools(page);await page.getByRole('button',{name:'Reset face',exact:true}).click();
  await page.waitForTimeout(350);check(name+': Reset face clears affect ownership',!(await read(page)).state.affect,(await read(page)).renderer.affect);
  await closePanel(page);
 }
@@ -224,6 +226,7 @@ async function motionNeutral(page,name,profile){
  const after=await read(page),weights=after.renderer.blink.expressionWeights,closure=after.renderer.blink;
  profile.motionNeutral={before:compact(before),after:compact(after)};
  check(name+': reduced motion settles actual facial morphs to neutral',Object.values(weights).every(value=>Math.abs(value)<.001)&&Math.abs(closure.leftClosure)<.001&&Math.abs(closure.rightClosure)<.001,{before:{weights:before.renderer.blink.expressionWeights,left:before.renderer.blink.leftClosure,right:before.renderer.blink.rightClosure,frames:before.stats.frames},after:{weights,left:closure.leftClosure,right:closure.rightClosure,frames:after.stats.frames},preferences:after.preferences});
+ check(name+': reduced motion restores front depth and releases surface ownership',after.state.depth===1&&after.state.depthTarget===1&&after.state.targetId===null,{depth:after.state.depth,target:after.state.depthTarget,surface:after.state.targetId});
  await shot(page,name+'-reduced-motion-neutral');
  await page.waitForTimeout(300);const stopped=await read(page);check(name+': reduced motion leaves actual pose and face stationary',Math.hypot(stopped.state.x-after.state.x,stopped.state.y-after.state.y)<.001&&Math.abs(stopped.renderer.blink.leftClosure)<.001&&Math.abs(stopped.renderer.blink.rightClosure)<.001&&Object.values(stopped.renderer.blink.expressionWeights).every(value=>Math.abs(value)<.001),{afterFrame:after.stats.frames,stoppedFrame:stopped.stats.frames,positionAfter:{x:after.state.x,y:after.state.y},positionLater:{x:stopped.state.x,y:stopped.state.y},staticRedrawsPermitted:true});
  await page.emulateMedia({reducedMotion:'no-preference'});await page.waitForFunction(()=>!MWorld.snapshot().preferences.reducedMotion);
@@ -278,7 +281,7 @@ async function profile(browser,name,options){
   page=await context.newPage();page.on('pageerror',error=>result.errors.push(String(error)));page.on('response',response=>{if(response.status()>=400&&response.url().startsWith(new URL(base).origin))result.assetErrors.push({url:response.url(),status:response.status()});});
   const url=new URL(base);url.searchParams.set('m-debug','1');await page.goto(url.href);await page.waitForFunction(()=>window.MWorld?.snapshot().ready,undefined,{timeout:90000});await beginTrace(page);
   const initial=await read(page);result.initial=compact(initial);
-  check(name+': v27 entry point',await page.locator('script[src*="scroll-buddy.js?v=27"]').count()===1);
+  check(name+': v28 entry point',await page.locator('script[src*="scroll-buddy.js?v=28"]').count()===1);
   check(name+': unchanged original actor and full skinning',initial.renderer.bones===31&&initial.renderer.tailBones===10&&initial.renderer.maxInfluences===14&&initial.renderer.skinSets===4&&initial.renderer.detailMaps===10&&initial.renderer.clips.length===6&&initial.renderer.shaderErrors.length===0,{bones:initial.renderer.bones,tail:initial.renderer.tailBones,maxInfluences:initial.renderer.maxInfluences,skinSets:initial.renderer.skinSets,maps:initial.renderer.detailMaps,clips:initial.renderer.clips});
   check(name+': native sharp framebuffer remains bounded',initial.renderer.renderPixels.every(n=>n===(name==='desktop'?544:416))&&await page.locator('.m-world-canvas').evaluate(el=>getComputedStyle(el).filter==='none'),initial.renderer.renderPixels);
   result.performance=await page.evaluate(async()=>{const start=performance.now(),before=MWorld.snapshot().stats.frames,times=[],cpu=[];let last=start;while(performance.now()-start<3000){await new Promise(requestAnimationFrame);const now=performance.now();times.push(now-last);cpu.push(MWorld.snapshot().stats.lastFrameMs);last=now;}const q=a=>[...a].sort((x,y)=>x-y)[Math.floor(a.length*.95)];return {fps:(MWorld.snapshot().stats.frames-before)*1000/(performance.now()-start),frameP95:q(times),cpuP95:q(cpu),heap:performance.memory?.usedJSHeapSize};});

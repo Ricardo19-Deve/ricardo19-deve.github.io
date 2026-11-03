@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createContext,Script} from 'node:vm';
+import {actorRect,bound} from './m-world-spatial.mjs';
 const source=readFileSync(new URL('./scroll-buddy.js',import.meta.url),'utf8').replaceAll('\r\n','\n');
 const begin=source.indexOf('function updateDirectorActivity(now){'),end=source.indexOf('\n function updateDirector(',begin);
 assert.ok(begin>=0&&end>begin);
@@ -167,3 +168,54 @@ test('a perch hold clock starts at physical foot arrival, including a slow appro
  advance(.016,1000,world);assert.equal(route.elapsed,100,'Travel cannot consume the resting hold');
  state.x=20;advance(.016,1016,world);assert.equal(route.elapsed,116,'The full hold begins after real arrival');
 });
+
+function reducedMotionFixture({width,height,gameName}){
+ const metrics={size:200,footprint:{left:0,top:0,right:180,bottom:180,width:180,height:180},neutralFootprint:{left:20,top:30,right:160,bottom:150,width:140,height:120},contact:{x:90,y:170}};
+ const surface={id:'surface-hidden',element:{},left:0,top:100,right:width,bottom:height,width,height:height-100};
+ const protectedRect={left:width-210,top:height-264,right:width,bottom:height,width:210,height:264};
+ const world={viewport:{width,height,headerBottom:64},surfaces:[surface],protectedRects:[protectedRect],version:1};
+ const focusedNode={id:'m-companion-message',value:''},spatialFrames=[],rendered=[],scheduled=[];
+ const scene={id:'scene-hide',status:'playing'},state={x:width-200,y:height-250,vx:40,vy:-25,ax:30,ay:20,heading:1,turn:.4,travel:.8,leanX:.2,leanY:-.3,depth:-.999,depthTarget:-1,mode:'peek',phase:'hold',emotion:'happy',emotionUntil:Infinity,clock:3,targetId:surface.id,gesture:{name:'wink',sceneId:scene.id},expressionHold:null,affect:{name:'delight'}};
+ const context=createContext({
+  state,metrics,world,actorRect,bound,disposed:false,active:true,frozen:false,avatar:{getMetrics:()=>metrics,setSpatialFrame:frame=>spatialFrames.push(frame),update:(_dt,value)=>rendered.push(value)},
+  document:{hidden:false,activeElement:focusedNode},performance:{now:()=>1000},devicePixelRatio:1,
+  frameId:7,lastFrame:980,host:{style:{}},layer:{dataset:{}},renderFrame:null,
+  reducedMotion:false,motionOptIn:false,motionPreference:{matches:true},lastLife:null,characterEnergy:.8,
+  worldSnapshot:()=>world,updateLife:()=>{},updateCharacter:()=>{},updateDirector:()=>{},updateDirectorActivity:()=>{},
+  advanceRoute:()=>assert.fail('Reduced motion cannot advance a route'),schedule:()=>scheduled.push('frame'),
+  stats:{frames:0,lastFrameMs:0,maxFrameMs:0},interest:{attentionId:surface.id},
+  route:{gameId:1,sceneCommandId:'scene-hide:travel'},pendingGesture:{sceneId:scene.id},nextChoice:Infinity,nextSceneAt:0,
+  scenes:{snapshot:()=>({...scene}),cancel:()=>{scene.status='cancelled';}},
+  sceneMeta:null,sceneCommand:'scene-hide:travel',directorActivity:{sceneId:scene.id},directorLastExecution:null,
+  game:{id:1,name:gameName},playDock:{hidden:false},playLight:{hidden:false},
+  companion:{refreshMotionControl:()=>{}},director:{update:()=>{}},directorSnapshot:null,life:{setEnabled:()=>{}},cache:{dirty:false},
+  overlap:(a,b)=>a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top
+ });
+ for(const [name,nextName]of [['clearScene','stopPlay'],['stopPlay','beginCharacterScene'],['initialPosition','startRoute'],['renderCurrent','tick'],['invalidate','setActive']])context[name]=privateControllerFunction(name,nextName).runInContext(context);
+ const refresh=privateControllerFunction('refreshMotionPreference','enableMotion').runInContext(context),tick=privateControllerFunction('tick','schedule').runInContext(context);
+ return {context,world,metrics,focusedNode,spatialFrames,rendered,scheduled,refresh,tick};
+}
+
+for(const profile of [{name:'desktop',width:1280,height:900,gameName:'hide'},{name:'mobile',width:390,height:844,gameName:'light'}]){
+ test('reduced motion restores a visible neutral front rest after a behind-card '+profile.name+' game',()=>{
+  const f=reducedMotionFixture(profile);f.refresh();f.scheduled.length=0;f.tick(1000);
+  const {state,interest}=f.context,lastFrame=f.spatialFrames.at(-1),rendered=f.rendered.at(-1);
+  assert.equal(state.depth,1);assert.equal(state.depthTarget,1);
+  assert.equal(lastFrame.depth,1,'The actual renderer receives front depth on the first static frame');
+  assert.equal(state.targetId,null);assert.equal(interest.attentionId,null);assert.equal(rendered.nearCard,false);
+  assert.equal(f.context.route,null);assert.equal(f.context.game,null);assert.equal(f.context.pendingGesture,null);
+  assert.equal(state.gesture,null);assert.equal(state.expressionHold,null);assert.equal(state.affect,null);
+  assert.equal(state.mode,'rest');assert.equal(state.phase,'hold');assert.equal(state.emotion,'neutral');
+  for(const key of ['vx','vy','ax','ay','turn','travel','leanX','leanY'])assert.equal(state[key],0,key+' settles without residual motion');
+  const body=actorRect(state,{...f.metrics,footprint:f.metrics.neutralFootprint});
+  assert.ok(body.left>=8&&body.right<=profile.width-8&&body.top>64&&body.bottom<=profile.height-8);
+  assert.equal(f.context.overlap(body,f.world.protectedRects[0]),false,'Existing safe staging keeps the neutral body clear of protected text');
+  assert.equal(lastFrame.protectedRects,f.world.protectedRects,'Real text and control protection remains enabled');
+  assert.equal(lastFrame.surfaces.length,1,'The renderer retains the real surface mask');
+  assert.equal(f.context.document.activeElement,f.focusedNode,'Settling never steals focus from the visitor');
+  assert.equal(f.scheduled.length,0,'Reduced motion does not start a continuous animation loop');
+  const position={x:state.x,y:state.y};f.tick(1050);
+  assert.equal(state.x,position.x);assert.equal(state.y,position.y);assert.equal(state.depth,1);
+  assert.equal(f.scheduled.length,0);
+ });
+}
