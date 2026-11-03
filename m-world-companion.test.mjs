@@ -142,6 +142,47 @@ test('AI status honestly reports unavailable, reduced motion and session limits 
  motion.reducedMotion=false;state={...state,attempts:6,reason:'session-limit'};companion.refresh();assert.match(directorStatus.textContent,/request limit/);
  assert.equal(status.textContent,chatStatus);assert.equal(requests.length,0);
 });
+test('autonomous play is presented as independent of optional input and status refresh stays local',t=>{
+ let autonomy={current:{kind:'scene',id:'internal-scene-17',anchorId:'project-epoxy'}},enabledMotion=0,gestures=0;
+ const {companion,requests,input,form,status}=companionFixture({getAutonomyStatus:()=>autonomy,onEnableMotion:()=>{enabledMotion++;return true;},onGesture:()=>{gestures++;return true;}});t.after(()=>companion.destroy());
+ const {panel}=companion.elements,intro=panel.childNodes.find(element=>element.className==='m-companion-intro'),autonomyNote=panel.childNodes.find(element=>element.className==='m-companion-autonomy');
+ assert.match(intro.textContent,/explores and plays on her own/);assert.match(intro.textContent,/optional gesture/);assert.equal(intro.hidden,false);
+ assert.equal(autonomyNote.hidden,false);assert.equal(autonomyNote['aria-live'],'off');
+ const chatStatus=status.textContent;input.value='Unsent private draft';
+ for(const [next,expected]of [
+  [{current:{kind:'scene',id:'internal-scene-17',anchorId:'project-epoxy'}},'M is exploring the page.'],
+  [{active:{kind:'rest',quiet:true,id:'internal-rest-22',anchorId:'project-revmend'}},'M is watching quietly.'],
+  [{current:{kind:'scene',id:'internal-scene-17'},execution:{kind:'game',id:'internal-game-04',componentId:'project-stackout'}},'M is playing on her own.'],
+  [{current:{kind:'affect',id:'internal-affect-03',name:'mischief'}},'M decides where to explore, play and rest.']
+ ]){
+  autonomy=next;for(let i=0;i<4;i++)companion.refresh();
+  assert.equal(autonomyNote.textContent,expected);assert.equal(autonomyNote['aria-live'],'off');assert.equal(autonomyNote.hidden,false);
+  assert.doesNotMatch(autonomyNote.textContent,/internal-|project-|mischief/);
+ }
+ assert.equal(companion.isOpen(),false);assert.equal(input.value,'Unsent private draft');assert.equal(form.submissions,0);
+ assert.equal(status.textContent,chatStatus);assert.equal(requests.length,0);assert.equal(enabledMotion,0);assert.equal(gestures,0);
+ autonomy=null;companion.refresh();assert.equal(autonomyNote.hidden,true);assert.equal(requests.length,0);
+});
+
+test('AI pause remains independent of local autonomous status and respects pause and reduced-motion labels',t=>{
+ let director={enabled:true,available:true,attempts:2,limit:6},motion={active:true,reducedMotion:false},autonomy={current:{kind:'scene',id:'internal-scene-17'}},enabledMotion=0;const changes=[];
+ const {companion,requests,status,enableMotion,motionNote}=companionFixture({getDirectorStatus:()=>director,getMotionStatus:()=>motion,getAutonomyStatus:()=>autonomy,onDirectorEnabled:enabled=>{changes.push(enabled);director={...director,enabled};},onEnableMotion:()=>{enabledMotion++;return true;}});t.after(()=>companion.destroy());
+ const {directorToggle,directorStatus,panel}=companion.elements,autonomyNote=panel.childNodes.find(element=>element.className==='m-companion-autonomy'),chatStatus=status.textContent;
+ assert.equal(autonomyNote.textContent,'M is exploring the page.');
+ directorToggle.dispatchEvent(new Event('click'));
+ assert.deepEqual(changes,[false]);assert.equal(directorToggle.textContent,'Enable AI play');assert.equal(directorToggle['aria-pressed'],'false');
+ assert.equal(directorStatus.textContent,'AI play is paused. Local play continues.');assert.equal(autonomyNote.textContent,'M is exploring the page.');
+ autonomy={execution:{kind:'game',id:'internal-game-04'}};companion.refresh();assert.equal(autonomyNote.textContent,'M is playing on her own.');
+ motion={active:false,reducedMotion:false};companion.refresh();assert.equal(autonomyNote.textContent,'M is paused.');
+ motion={active:true,reducedMotion:true};companion.refresh();assert.equal(autonomyNote.textContent,'M is resting while motion is off.');assert.equal(enableMotion.hidden,false);assert.equal(motionNote.hidden,false);
+ motion={active:false,reducedMotion:true};companion.refresh();assert.equal(autonomyNote.textContent,'M is paused.');
+ motion={active:true,reducedMotion:false};companion.refresh();assert.equal(autonomyNote.textContent,'M is playing on her own.');assert.equal(enableMotion.hidden,true);
+ assert.equal(director.enabled,false);assert.equal(director.attempts,2);assert.equal(directorStatus.textContent,'AI play is paused. Local play continues.');
+ assert.equal(autonomyNote['aria-live'],'off');assert.doesNotMatch(autonomyNote.textContent,/internal-|game-04/);
+ assert.equal(status.textContent,chatStatus);assert.equal(enabledMotion,0);assert.equal(requests.length,0);
+ directorToggle.dispatchEvent(new Event('click'));assert.deepEqual(changes,[false,true]);assert.equal(directorToggle.textContent,'Pause AI play');assert.match(directorStatus.textContent,/2 of 6/);assert.equal(autonomyNote.textContent,'M is playing on her own.');assert.equal(requests.length,0);
+});
+
 test('the original four gestures stay prominent while extra gestures have an accessible disclosure',t=>{
  const {companion}=companionFixture();t.after(()=>companion.destroy());
  const panel=companion.elements.panel,actions=panel.childNodes.find(element=>element.className==='m-companion-actions'),more=companion.elements.moreGestures;

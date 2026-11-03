@@ -87,7 +87,7 @@ function beginSceneFixture(){
   directorPlan:(_world,_surface,kind)=>({plan:{kind},side:1}),
   createScenePlan:value=>({...value,steps:[]}),
   scenes:{snapshot:()=>({id:'scene-8',status:'idle'}),start:(value,options)=>{starts.push({value,options});return true;}},
-  clearScene:()=>assert.fail('No existing scene should be cancelled'),
+  clearScene:()=>assert.fail('No existing scene should be cancelled'),cancelAutonomy:()=>{},
   route:{untouched:true},pendingGesture:{untouched:true},nextChoice:0,sceneCommand:null,
   completedSceneRoute:null,completedSceneGesture:null,sceneMeta:null,directorActivity:null,directorLastExecution:null
  });
@@ -118,7 +118,7 @@ function completionFixture(status='complete'){
  const context=createContext({
   state:{affect:null,clock:4},AFFECT_DURATIONS:{},lastMemoryAt:1000,scrollY:0,lastPaceScroll:0,
   document:{activeElement:null,hidden:false},active:true,reducedMotion:false,interest:{scrollUntil:0,readingUntil:0},
-  game:null,companion:{isOpen:()=>false},onScreen:()=>true,clearScene:()=>{},
+  game:null,companion:{isOpen:()=>false},onScreen:()=>true,clearScene:()=>{},releaseCharacterAffect:()=>{},
   scenes:{snapshot:()=>({...scene}),step:()=>{scene={...scene,status};return {...scene};}},
   memory:{noteVisit:(id,options)=>visits.push({id,action:options.action})},
   sceneMeta:{stableId:'project-visible',action:'peek',decision:null},sceneCommand:null,
@@ -158,7 +158,7 @@ test('a perch hold clock starts at physical foot arrival, including a slow appro
  const element={isConnected:true},surface={id:'surface-1',element,left:0,top:0,width:100,height:100};
  const route={plan:{duration:50000,rect:{left:0,top:0},metrics:{contact:{x:0,y:0}}},elapsed:100,version:1,element};
  const state={x:0,y:0,mode:'perch',depthTarget:1,depth:1,targetId:surface.id};
- const context=createContext({state,route,nextChoice:0,game:null,metrics:{contact:{x:0,y:0}},scrollX:0,scrollY:0,onScreen:()=>true,
+ const context=createContext({state,route,nextChoice:0,game:null,sceneMeta:null,metrics:{contact:{x:0,y:0}},scrollX:0,scrollY:0,onScreen:()=>true,
   clampActor:p=>p,bound:(n,min,max)=>Math.min(max,Math.max(min,n)),
   sampleCardAction:()=>({x:20,y:0,depth:1,phase:'hold'}),
   actorRect:()=>({left:0,right:20,top:0,bottom:20}),resolveDepth:()=>({depth:1,portalClear:true}),
@@ -181,7 +181,7 @@ function reducedMotionFixture({width,height,gameName}){
   document:{hidden:false,activeElement:focusedNode},performance:{now:()=>1000},devicePixelRatio:1,
   frameId:7,lastFrame:980,host:{style:{}},layer:{dataset:{}},renderFrame:null,
   reducedMotion:false,motionOptIn:false,motionPreference:{matches:true},lastLife:null,characterEnergy:.8,
-  worldSnapshot:()=>world,updateLife:()=>{},updateCharacter:()=>{},updateDirector:()=>{},updateDirectorActivity:()=>{},
+  worldSnapshot:()=>world,updateLife:()=>{},updateCharacter:()=>{},updateDirector:()=>{},updateAutonomy:()=>{},updateDirectorActivity:()=>{},
   advanceRoute:()=>assert.fail('Reduced motion cannot advance a route'),schedule:()=>scheduled.push('frame'),
   stats:{frames:0,lastFrameMs:0,maxFrameMs:0},interest:{attentionId:surface.id},
   route:{gameId:1,sceneCommandId:'scene-hide:travel'},pendingGesture:{sceneId:scene.id},nextChoice:Infinity,nextSceneAt:0,
