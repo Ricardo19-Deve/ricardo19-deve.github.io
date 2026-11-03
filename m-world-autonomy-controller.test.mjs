@@ -343,3 +343,21 @@ test('legacy spontaneous V16 actions cannot regain motion ownership',()=>{
  assert.equal(f.context.pendingGesture,null);assert.equal(f.context.state.gesture,null);
  assert.equal(f.context.route,null);assert.equal(f.calls.stages,0);
 });
+
+
+test('a requested diagnostic route preempts autonomous staging before it can replace the perch',async()=>{
+ const f=fixture();startQuiet(f);
+ const from=source.indexOf('async playAction('),to=source.indexOf('\n  setDepth(',from);
+ assert.ok(from>=0&&to>from);
+ const method=new Script('({'+source.slice(from,to).trim().replace(/,$/u,'')+'}).playAction').runInContext(f.context);
+ const element={isConnected:true};f.context.cache={dirty:false,lastRead:1000};
+ f.context.document.querySelectorAll=()=>[element];f.context.avatar.getMetrics=()=>f.metrics;
+ f.context.startRoute=()=>{f.context.route={plan:{kind:'perch'},element};f.context.state.mode='perch';};
+ f.context.setActive=()=>{};f.context.snapshot=()=>({});
+ await method({kind:'perch'});
+ assert.equal(f.context.autoExecution,null);assert.equal(f.context.pendingGesture,null);
+ const requested=f.context.route;assert.equal(requested.explicit,true);
+ f.context.updateGesture(.016,f.world,1100);
+ assert.equal(f.context.route,requested);assert.equal(f.context.state.mode,'perch');
+ assert.equal(f.context.autonomy.snapshot().completedCount,0);
+});

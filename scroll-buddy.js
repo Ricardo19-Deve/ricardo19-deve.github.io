@@ -751,7 +751,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
    return {...snapshot(),plan:{available:plan.available,kind:plan.kind,requestedKind:kind,duration:plan.duration,portal:plan.portal,phase:point.phase}};
   },
   async playAction({selector='.card',index=0,kind='peek'}={}){
-   stopPlay('diagnostic-action');clearScene('diagnostic-action');
+   cancelAutonomy('diagnostic-action');stopPlay('diagnostic-action');clearScene('diagnostic-action');
    if(!avatar)await load();if(!avatar)throw new Error('Original M is not ready');
    metrics=avatar.getMetrics();frozen=false;cache.dirty=true;cache.lastRead=0;const world=worldSnapshot(),element=document.querySelectorAll(selector)[index];
    if(!element)throw new Error('Unknown diagnostic component');

@@ -1,6 +1,6 @@
 {
   "scope": "Separate native Chrome runs. No story progress, arrival, pose, route or clock injection. Original actor unchanged. Provider responses mocked or offline; mobile emulated.",
-  "nodeTests": 421,
+  "nodeTests": 422,
   "desktopChecks": {
     "passed": 19,
     "total": 19
@@ -291,5 +291,13 @@
     "passed": true,
     "checks": 21,
     "scope": "Committed portable command, mobile profile, after header paint fix; real Chrome close/reopen and UI checks. Separate run."
+  },
+  "nativePerchRegression": {
+    "passed": true,
+    "samples": 64,
+    "maxGap": 0.9693136526216222,
+    "originalBones": 31,
+    "storyBeat": "seeking",
+    "scope": "Actual native production startRoute and physical foot contact, no forced pose/clock/arrival. Explicit diagnostic route preempts autonomous owner; real 55px scroll stays attached."
   }
 }
