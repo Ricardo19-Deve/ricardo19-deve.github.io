@@ -8,7 +8,7 @@ Cloudflare Worker remain live. V24 does not change original model assets.
 - One intention expands locally into Look, Travel, React, an offered Perch and
   Rest. The existing spatial planner revalidates every travel step. Routes and
   gestures require real completion acknowledgements; cancellation cannot create
-  a successful visit. Steps are bounded at 35 seconds and scenes at 70 active seconds.
+  a successful visit. Steps are bounded at 35 seconds and scenes at 70 active seconds. The reaction budget includes travel to a safe gesture stage; an expired scene also releases its active gesture ownership.
 - Original-morph blends: Focused, Content, Unsure, Sleepy and Delighted. Blends
   sum to at most one, keep shoulder slots intact and use the original eye HATs.
   Wink has priority. These are combinations of existing art, not newly sculpted
@@ -47,7 +47,7 @@ stayed fixed. Static redraws caused by legitimate layout invalidation are allowe
 
 ## Executed tests
 
-- 319/319 Node tests: model/HTML fingerprint, full skinning, facial layers, 2,700+
+- 320/320 Node tests: model/HTML fingerprint, full skinning, facial layers, 2,700+
   composition frames, scene acknowledgements/timeouts, actual controller VM,
   legacy/new chat contracts, quotas, storage isolation and privacy boundaries.
 - Native Chrome desktop integration: 25/25. A mocked AI decision expanded into a

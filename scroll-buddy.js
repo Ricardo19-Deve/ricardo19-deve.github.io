@@ -401,7 +401,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
    if(current.status!=='playing'){
     if(current.status==='complete'){
      if(sceneMeta?.stableId)memory.noteVisit(sceneMeta.stableId,{action:sceneMeta.action||'inspect'});
-    }else if(sceneMeta?.decision)directorLastExecution={...sceneMeta.decision,at:state.clock,status:'cancelled'};
+    }else{if(sceneMeta?.decision)directorLastExecution={...sceneMeta.decision,at:state.clock,status:'cancelled'};clearScene(current.reason||'execution-failed');}
     if(route?.sceneCommandId)route=null;sceneMeta=null;sceneCommand=null;nextChoice=now+1400;nextSceneAt=now+17000;state.affect=null;
     if(game)stopPlay(current.status);
    }

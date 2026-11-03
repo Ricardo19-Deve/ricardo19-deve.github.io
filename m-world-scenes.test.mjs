@@ -92,3 +92,10 @@ test('acknowledgement timestamps cannot bypass a route deadline or scene active 
  assert.equal(player.complete(current.command.id,{},40_000),false);
  assert.equal(player.snapshot().reason,'step-timeout');
 });
+test('reaction budget includes safe staging before the actual gesture finishes',()=>{
+ const player=createScenePlayer();player.start(createScenePlan({targetId:'card-1',action:'inspect',gesture:'curious'}),{nowMs:0});
+ const reaction=player.step({nowMs:700});assert.equal(reaction.command.type,'gesture');
+ assert.equal(player.step({nowMs:18000}).status,'playing','A valid long approach may precede the gesture');
+ assert.equal(player.complete(reaction.command.id,{},22000),true);
+ assert.equal(player.snapshot().stage,'rest');
+});

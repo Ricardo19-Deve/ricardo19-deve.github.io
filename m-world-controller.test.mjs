@@ -117,7 +117,7 @@ function completionFixture(status='complete'){
  const context=createContext({
   state:{affect:null,clock:4},AFFECT_DURATIONS:{},lastMemoryAt:1000,scrollY:0,lastPaceScroll:0,
   document:{activeElement:null,hidden:false},active:true,reducedMotion:false,interest:{scrollUntil:0,readingUntil:0},
-  game:null,companion:{isOpen:()=>false},onScreen:()=>true,
+  game:null,companion:{isOpen:()=>false},onScreen:()=>true,clearScene:()=>{},
   scenes:{snapshot:()=>({...scene}),step:()=>{scene={...scene,status};return {...scene};}},
   memory:{noteVisit:(id,options)=>visits.push({id,action:options.action})},
   sceneMeta:{stableId:'project-visible',action:'peek',decision:null},sceneCommand:null,

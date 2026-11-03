@@ -80,7 +80,7 @@ export function createScenePlayer(){
   if(elapsedMs>=SCENE_MAX_ACTIVE_MS){cancel('scene-timeout');return snapshot();}
   const next=command();
   if(next.type==='look'||next.type==='rest'){if(stepMs>=next.durationMs)advance();}
-  else if(stepMs>=(next.type==='gesture'?10_000:SCENE_STEP_TIMEOUT_MS))cancel('step-timeout');
+  else if(stepMs>=SCENE_STEP_TIMEOUT_MS)cancel('step-timeout');
   return snapshot();
  }
  function complete(commandId,{success=true,reason:failure='execution-failed'}={},nowMs=lastAt){
