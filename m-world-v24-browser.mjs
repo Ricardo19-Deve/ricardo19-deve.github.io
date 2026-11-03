@@ -22,15 +22,58 @@ const {chromium}=loadDriver();
 const base=process.env.BASE_URL||'http://127.0.0.1:4183/';
 const out=process.env.M_WORLD_ARTIFACT_DIR||path.resolve('../work/M_V24_Validation');
 const scope=process.env.M_WORLD_V24_SCOPE||'all',onlyProfile=process.env.M_WORLD_V24_PROFILE||'';
+const softwareGPU=process.env.M_WORLD_V24_SOFTWARE_GPU==='1';
 const runAI=process.env.M_WORLD_V24_AI==='1',record=process.env.M_WORLD_V24_RECORD!=='0';
 const memoryKey='m-world-character-memory-v24',quotaKey='m-world-director-session-v1',enabledKey='m-world-director-enabled-v1';
 const sentinel='V24_PRIVATE_FORM_VALUE_93741';
-const report={url:base,scope:'Native Chrome and original V6 actor. All director/chat/health replies are explicitly mocked. No real OpenAI call; no forced scene arrival, pose or clock.',checks:[],profiles:[],artifacts:[],manualChecks:[{name:'Physical phone, Safari, real hidden-tab and physical IME',status:'not_verified'}],passed:false};
+const report={url:base,softwareGPU,scope:softwareGPU?'Actual Chrome software-GPU harness. Original V6 load and warm FPS use real draws. Only intermediate raster draws are suppressed during logical native-RAF observations; screenshots re-enable real GPU drawing. This mode is not realtime artistic/FPS validation. All API replies are mocked; no forced clock, pose or arrival.':'Native Chrome and original V6 actor. All director/chat/health replies are explicitly mocked. No real OpenAI call; no forced scene arrival, pose or clock.',gpuCheckpoints:[],checks:[],profiles:[],artifacts:[],manualChecks:[{name:'Physical phone, Safari, real hidden-tab and physical IME',status:'not_verified'}],passed:false};
 mkdirSync(out,{recursive:true});
+if(softwareGPU)report.manualChecks.push({name:'Realtime artistic/FPS validation in software-GPU observation mode',status:'not_verified',reason:'The warm performance record is unsuppressed. Intermediate raster draws are skipped afterwards; native artistic evidence is a separate run.'});
 const check=(name,passed,details)=>report.checks.push({name,passed:Boolean(passed),...(details===undefined?{}:{details})});
 const read=page=>page.evaluate(()=>MWorld.snapshot());
 function compact(s){return {ready:s.ready,active:s.active,frozen:s.frozen,state:{mode:s.state.mode,phase:s.state.phase,targetId:s.state.targetId,gesture:s.state.gesture,affect:s.state.affect,x:s.state.x,y:s.state.y,depth:s.state.depth},character:s.character,renderer:{gesture:s.renderer?.gesture,affect:s.renderer?.affect,expression:s.renderer?.expression,blink:s.renderer?.blink,bones:s.renderer?.bones,maxInfluences:s.renderer?.maxInfluences,detailMaps:s.renderer?.detailMaps,shaderErrors:s.renderer?.shaderErrors},director:{enabled:s.director?.enabled,source:s.director?.source,attempts:s.director?.attempts,lastExecution:s.director?.lastExecution},stats:s.stats};}
-async function shot(page,name){const file=path.join(out,name+'.png');await page.screenshot({path:file,scale:'css'});report.artifacts.push(file);return file;}
+/** Test-only adaptation for slow CI software rasterization; clocks and CPU updates stay real. */
+function installSoftwareRasterObserver(){
+ const native=HTMLCanvasElement.prototype.getContext,wrapped=new WeakSet();
+ globalThis.__v24RasterSuppressed=false;
+ globalThis.__v24RasterStats={contexts:0,actualDrawCalls:0,skippedDrawCalls:0};
+ HTMLCanvasElement.prototype.getContext=function(...args){
+  const gl=native.apply(this,args);
+  if(!gl||typeof gl.drawElements!=='function'||wrapped.has(gl))return gl;
+  wrapped.add(gl);globalThis.__v24RasterStats.contexts++;
+  for(const name of ['drawElements','drawArrays','drawElementsInstanced','drawArraysInstanced']){
+   if(typeof gl[name]!=='function')continue;
+   const draw=gl[name].bind(gl);
+   gl[name]=(...values)=>{
+    if(globalThis.__v24RasterSuppressed){globalThis.__v24RasterStats.skippedDrawCalls++;return;}
+    globalThis.__v24RasterStats.actualDrawCalls++;return draw(...values);
+   };
+  }
+  return gl;
+ };
+}
+async function shot(page,name){
+ const file=path.join(out,name+(softwareGPU?'-software-gpu':'')+'.png');let checkpoint=null;
+ try{
+  if(softwareGPU)checkpoint=await page.evaluate(async()=>{
+   globalThis.__v24RasterSuppressed=false;
+   const before=globalThis.__v24RasterStats.actualDrawCalls,active=Boolean(globalThis.MWorld?.snapshot().active);
+   // Request a paint through the public controller, without resuming a paused M.
+   if(active)MWorld.setActive(true,false);
+   await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);
+   return {active,before,...globalThis.__v24RasterStats};
+  });
+  await page.screenshot({path:file,scale:'css'});report.artifacts.push(file);
+  if(softwareGPU){
+   const after=await page.evaluate(()=>({...globalThis.__v24RasterStats}));
+   report.gpuCheckpoints.push({name,file,active:checkpoint.active,actualDrawCalls:after.actualDrawCalls-checkpoint.before,stats:after});
+   if(checkpoint.active&&after.actualDrawCalls<=checkpoint.before)throw new Error('Active M checkpoint produced no actual GPU draw.');
+  }
+  return file;
+ }finally{
+  if(softwareGPU)await page.evaluate(()=>{globalThis.__v24RasterSuppressed=true;}).catch(()=>{});
+ }
+}
 async function openPanel(page){if(!await page.locator('.m-companion').isVisible())await page.getByRole('button',{name:'Talk to M',exact:true}).click();}
 async function closePanel(page){if(await page.locator('.m-companion').isVisible())await page.getByRole('button',{name:'Close',exact:true}).click();}
 async function openTools(page){await openPanel(page);const details=page.locator('.m-companion-character');if(!await details.evaluate(el=>el.open))await details.locator('summary').click();}
@@ -48,7 +91,7 @@ async function beginTrace(page){
  });
 }
 async function startVideo(page){
- if(!record||!await page.evaluate(()=>Boolean(document.querySelector('.m-world-canvas')?.captureStream&&globalThis.MediaRecorder)))return false;
+ if(softwareGPU||!record||!await page.evaluate(()=>Boolean(document.querySelector('.m-world-canvas')?.captureStream&&globalThis.MediaRecorder)))return false;
  await page.evaluate(()=>{
   const stream=document.querySelector('.m-world-canvas').captureStream(30),chunks=[];
   const recorder=new MediaRecorder(stream,{mimeType:MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':'video/webm'});
@@ -166,6 +209,7 @@ async function memory(page,name,profile){
  const before=await page.evaluate(({memoryKey,quotaKey})=>({memory:JSON.parse(sessionStorage.getItem(memoryKey)),quota:sessionStorage.getItem(quotaKey)}),{memoryKey,quotaKey});
  check(name+': public component memory is bounded without chat values',before.memory?.components.length>0&&before.memory.components.length<=24&&!JSON.stringify(before.memory).includes(sentinel)&&!JSON.stringify(before.memory).includes('Keyboard check'),before.memory);
  await page.reload();await page.waitForFunction(()=>window.MWorld?.snapshot().ready,undefined,{timeout:90000});
+ if(softwareGPU)await page.evaluate(()=>{globalThis.__v24RasterSuppressed=true;});
  const after=await page.evaluate(({memoryKey,quotaKey})=>({memory:JSON.parse(sessionStorage.getItem(memoryKey)),quota:sessionStorage.getItem(quotaKey)}),{memoryKey,quotaKey});
  check(name+': reload preserves session familiarity and separate AI accounting',before.memory.components.every(a=>after.memory.components.some(b=>b.id===a.id&&b.visits>=a.visits))&&after.quota===before.quota,{before:before.memory,after:after.memory,quotaUnchanged:before.quota===after.quota});
  await openTools(page);await page.getByRole('button',{name:'Reset character memory',exact:true}).click();
@@ -208,7 +252,8 @@ async function automaticScene(page,name,profile){
  check('desktop: no extra API calls are needed for scene steps',profile.decisions.length===1,{decisions:profile.decisions.length});
 }
 async function profile(browser,name,options){
- const context=await browser.newContext({...options,reducedMotion:'no-preference'}),result={name,errors:[],assetErrors:[],blocked:[],chats:[],decisions:[],health:0};
+ const context=await browser.newContext({...options,reducedMotion:'no-preference'}),result={name,softwareGPU,errors:[],assetErrors:[],blocked:[],chats:[],decisions:[],health:0};
+ if(softwareGPU)await context.addInitScript(installSoftwareRasterObserver);
  await context.addInitScript(({enabledKey,quotaKey,sentinel})=>{
   if(sessionStorage.getItem(enabledKey)===null)sessionStorage.setItem(enabledKey,'false');
   if(sessionStorage.getItem(quotaKey)===null)sessionStorage.setItem(quotaKey,JSON.stringify({attempts:2,lastAt:Date.now()-120000,contexts:[]}));
@@ -238,6 +283,10 @@ async function profile(browser,name,options){
   check(name+': native sharp framebuffer remains bounded',initial.renderer.renderPixels.every(n=>n===(name==='desktop'?544:416))&&await page.locator('.m-world-canvas').evaluate(el=>getComputedStyle(el).filter==='none'),initial.renderer.renderPixels);
   result.performance=await page.evaluate(async()=>{const start=performance.now(),before=MWorld.snapshot().stats.frames,times=[],cpu=[];let last=start;while(performance.now()-start<3000){await new Promise(requestAnimationFrame);const now=performance.now();times.push(now-last);cpu.push(MWorld.snapshot().stats.lastFrameMs);last=now;}const q=a=>[...a].sort((x,y)=>x-y)[Math.floor(a.length*.95)];return {fps:(MWorld.snapshot().stats.frames-before)*1000/(performance.now()-start),frameP95:q(times),cpuP95:q(cpu),heap:performance.memory?.usedJSHeapSize};});
   check(name+': actual native render continues',result.performance.fps>0&&result.performance.cpuP95<50,result.performance);
+  if(softwareGPU){
+   result.unsuppressedWarmRaster=await page.evaluate(()=>({...globalThis.__v24RasterStats,suppressed:globalThis.__v24RasterSuppressed}));
+   await page.evaluate(()=>{globalThis.__v24RasterSuppressed=true;});
+  }
   if(scope==='motion'||scope==='final')await motionNeutral(page,name,result);
   if(scope==='all'||scope==='faces')await faces(page,name,result);
   if(name==='desktop'&&(scope==='all'||scope==='integration'||scope==='final'||scope==='scene'))await scene(page,name,result);
@@ -249,6 +298,7 @@ async function profile(browser,name,options){
   check(name+': UI and original portfolio have no horizontal overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2));
   check(name+': no JS, assets or unmocked API requests failed',result.errors.length===0&&result.assetErrors.length===0&&result.blocked.length===0,{errors:result.errors,assets:result.assetErrors,blocked:result.blocked});
   result.final=compact(await read(page));result.trace=await page.evaluate(()=>globalThis.__v24Trace);
+  if(softwareGPU)result.finalRaster=await page.evaluate(()=>({...globalThis.__v24RasterStats,suppressed:globalThis.__v24RasterSuppressed}));
  }catch(error){result.error=String(error.stack||error);check(name+': V24 browser execution',false,{error:String(error.message||error)});if(page)try{await shot(page,name+'-failure');result.failure=compact(await read(page));result.trace=await page.evaluate(()=>globalThis.__v24Trace);}catch{}}
  finally{if(page)try{await page.evaluate(()=>{globalThis.__v24TraceRunning=false;});}catch{}await context.close();report.profiles.push(result);}
 }
@@ -257,4 +307,4 @@ try{
  browser=await chromium.launch({headless:true,executablePath:chromeExecutable()});report.browserVersion=browser.version();
  for(const [name,options]of [['desktop',{viewport:{width:1280,height:900},deviceScaleFactor:1}],['mobile',{viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true}]])if(!onlyProfile||onlyProfile===name)await profile(browser,name,options);
 }catch(error){report.error=String(error.stack||error);check('Chrome launch',false,{error:String(error.message||error)});}
-finally{if(browser)await browser.close();report.finishedAt=new Date().toISOString();report.passed=report.checks.length>0&&report.checks.every(item=>item.passed);writeFileSync(path.join(out,'v24-browser-report-'+scope+(onlyProfile?'-'+onlyProfile:'')+'.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({passed:report.passed,checks:report.checks.length,failed:report.checks.filter(x=>!x.passed),scope,onlyProfile,out}));if(!report.passed)process.exitCode=1;}
+finally{if(browser)await browser.close();report.finishedAt=new Date().toISOString();report.passed=report.checks.length>0&&report.checks.every(item=>item.passed);writeFileSync(path.join(out,'v24-browser-report-'+scope+(onlyProfile?'-'+onlyProfile:'')+(softwareGPU?'-software-gpu':'')+'.json'),JSON.stringify(report,null,2));console.log(JSON.stringify({passed:report.passed,checks:report.checks.length,failed:report.checks.filter(x=>!x.passed),scope,onlyProfile,softwareGPU,out}));if(!report.passed)process.exitCode=1;}

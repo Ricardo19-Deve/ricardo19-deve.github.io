@@ -53,6 +53,7 @@ jobs:
       BASE_URL: http://127.0.0.1:4173/
       M_WORLD_ARTIFACT_DIR: /tmp/m-world-v24
       M_WORLD_V24_SCOPE: final
+      M_WORLD_V24_SOFTWARE_GPU: '1'
       M_WORLD_V24_PROFILE: desktop
       M_WORLD_V24_RECORD: '0'
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'

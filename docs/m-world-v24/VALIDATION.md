@@ -73,7 +73,7 @@ sets, ten restored detail maps and six source clips. Source GLB SHA-256 remains
 Warm desktop-GPU measurements: about 60 FPS; desktop CPU p95 3.2 ms/frame p95 18 ms,
 mobile emulation CPU p95 2.7 ms/frame p95 17.5 ms. They are not physical-phone or
 thermal measurements. New CI checks exercise the actual reduced-motion, scene and
-context contracts with mocked provider responses.
+context contracts with mocked provider responses. On the GPU-less runner, a software-observation mode suppresses intermediate raster draws and performs real GPU checkpoints at captures. Its warm GPU rate remains reported separately; it is not the native artistic/performance pass above.
 
 ## Captures and preview
 
