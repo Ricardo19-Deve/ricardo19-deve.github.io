@@ -171,3 +171,31 @@ test('optional character controls call local callbacks without consuming an API 
  f.gesture('Sleepy').dispatchEvent(new Event('click'));f.gesture('Find M').dispatchEvent(new Event('click'));f.gesture('Reset character memory').dispatchEvent(new Event('click'));
  assert.deepEqual(effects,['sleepy','hide','clear-memory']);assert.equal(f.requests.length,0);f.companion.destroy();
 });
+
+for(const label of ['Sleepy','Wave'])test('compact '+label+' presentation makes room for M and preserves the draft and keyboard return',()=>{
+ const f=companionFixture({onAffect:()=>true,onGesture:()=>true});
+ f.document.defaultView={matchMedia:query=>({matches:query==='(max-width: 720px)'})};
+ f.companion.elements.toggle.dispatchEvent(new Event('click'));f.input.value='Unsent private draft';
+ f.gesture(label).dispatchEvent(new Event('click'));
+ assert.equal(f.companion.isOpen(),false);
+ assert.equal(f.document.activeElement.className,'m-companion-toggle');
+ assert.equal(f.input.value,'Unsent private draft');assert.equal(f.requests.length,0);
+ f.companion.elements.toggle.dispatchEvent(new Event('click'));assert.equal(f.input.value,'Unsent private draft');f.companion.destroy();
+});
+test('desktop controls stay open and compact rejected expressions keep motion controls available',()=>{
+ const desktop=companionFixture({onAffect:()=>true});desktop.document.defaultView={matchMedia:()=>({matches:false})};
+ desktop.companion.elements.toggle.dispatchEvent(new Event('click'));desktop.gesture('Sleepy').dispatchEvent(new Event('click'));assert.equal(desktop.companion.isOpen(),true);desktop.companion.destroy();
+ const mobile=companionFixture({onAffect:()=>false});mobile.document.defaultView={matchMedia:()=>({matches:true})};
+ mobile.companion.elements.toggle.dispatchEvent(new Event('click'));mobile.gesture('Sleepy').dispatchEvent(new Event('click'));assert.equal(mobile.companion.isOpen(),true);assert.equal(mobile.requests.length,0);mobile.companion.destroy();
+});
+
+test('compact expression presentation preserves an in-flight chat and never steals focus on its reply',async()=>{
+ const f=companionFixture({onAffect:()=>true});f.document.defaultView={matchMedia:()=>({matches:true})};
+ f.companion.elements.toggle.dispatchEvent(new Event('click'));f.input.value='Explain this project';keydown(f.input);
+ assert.equal(f.companion.snapshot().pending,true);f.gesture('Sleepy').dispatchEvent(new Event('click'));
+ assert.equal(f.companion.isOpen(),false);assert.equal(f.requests[0].options.signal.aborted,false);
+ f.requests[0].reply(validReply);await settle();
+ assert.equal(f.companion.snapshot().messages,2);assert.equal(f.companion.snapshot().pending,false);
+ assert.equal(f.document.activeElement.className,'m-companion-toggle');assert.equal(f.requests.length,1);
+ f.companion.elements.toggle.dispatchEvent(new Event('click'));assert.equal(f.log.childNodes.length,2);f.companion.destroy();
+});

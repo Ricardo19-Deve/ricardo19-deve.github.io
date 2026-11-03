@@ -1,4 +1,4 @@
-import {getContextComponent,contextualChatRequest} from './m-world-context.mjs?v=27';
+import {getContextComponent,contextualChatRequest} from './m-world-context.mjs?v=28';
 /** Explicit chat, local gestures and automatic AI-play controls. No persistent chat storage. */
 export const M_ASSISTANT_GESTURES=Object.freeze(['wave','curious','surprised','shy']);
 export const M_LOCAL_GESTURES=Object.freeze([...M_ASSISTANT_GESTURES,'playful','wink','nod']);
@@ -27,14 +27,14 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  const motionNote=make('p','m-companion-intro','Reduced motion is on. M stays still until you enable motion.');motionNote.hidden=true;
  const status=make('p','m-companion-status',target?'AI chat is ready.':'Local gestures are ready. AI chat is not connected yet.');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
  const actions=make('div','m-companion-actions'),moreGestures=make('details','m-companion-more-gestures'),moreSummary=make('summary','','More gestures'),moreActions=make('div','m-companion-more-actions');moreGestures.append(moreSummary,moreActions);
- for(const name of M_LOCAL_GESTURES){const el=button({wave:'Wave',curious:'Curious',surprised:'Surprised',shy:'Shy',playful:'Playful',wink:'Wink',nod:'Nod'}[name]);(M_ASSISTANT_GESTURES.includes(name)?actions:moreActions).append(el);el.addEventListener('click',()=>{refreshMotionControl();const accepted=onGesture(name,{source:'visitor'}),motion=refreshMotionControl();status.textContent=accepted?'Gesture requested. M will respond from a safe resting place.':!motion.active?'Resume M to try a gesture.':motion.reducedMotion?'Motion is off. Enable M motion to try a gesture.':'M cannot perform this gesture yet. Please try again.';});}
+ for(const name of M_LOCAL_GESTURES){const el=button({wave:'Wave',curious:'Curious',surprised:'Surprised',shy:'Shy',playful:'Playful',wink:'Wink',nod:'Nod'}[name]);(M_ASSISTANT_GESTURES.includes(name)?actions:moreActions).append(el);el.addEventListener('click',()=>{refreshMotionControl();const accepted=onGesture(name,{source:'visitor'}),motion=refreshMotionControl();status.textContent=accepted?'Gesture requested. M will respond from a safe resting place.':!motion.active?'Resume M to try a gesture.':motion.reducedMotion?'Motion is off. Enable M motion to try a gesture.':'M cannot perform this gesture yet. Please try again.';makeRoomForCharacter(accepted);});}
  const directorControls=make('div','m-companion-director'),directorHeader=make('div','m-companion-director-header'),directorTitle=make('span','m-companion-director-title','AI play'),directorToggle=button('Pause AI play','m-companion-director-toggle'),directorStatus=make('p','m-companion-director-status');
  directorToggle.setAttribute('aria-pressed','true');directorStatus.setAttribute('role','status');directorStatus.setAttribute('aria-live','polite');directorHeader.append(directorTitle,directorToggle);directorControls.append(directorHeader,directorStatus);
  const autoPrivacy=make('details','m-companion-auto-privacy'),autoSummary=make('summary','m-companion-privacy','AI shares public summaries'),autoPrivacyNote=make('p','m-companion-privacy','AI play occasionally sends public component headings, types, coarse positions, safe action choices and recent actions to OpenAI, with up to 6 requests per tab. Form values and chat drafts stay private. Pause AI play any time.');autoPrivacy.append(autoSummary,autoPrivacyNote);const options=make('div','m-companion-options');options.append(moreGestures,autoPrivacy);
  const character=make('details','m-companion-character'),characterSummary=make('summary','','Expressions & play'),moods=make('div','m-companion-character-actions');
  character.append(characterSummary,moods);options.append(character);
  for(const [name,label]of [['focus','Focused'],['content','Content'],['doubt','Unsure'],['sleepy','Sleepy'],['delight','Delighted'],['neutral','Reset face']]){
-  const el=button(label);moods.append(el);el.addEventListener('click',()=>{status.textContent=onAffect(name)?'Expression requested.':'Enable M motion to try an expression.';});
+  const el=button(label);moods.append(el);el.addEventListener('click',()=>{const accepted=onAffect(name);status.textContent=accepted?'Expression requested.':'Enable M motion to try an expression.';makeRoomForCharacter(accepted);});
  }
  const explore=button('Explore this card'),hideGame=button('Find M'),lightGame=button('Follow a light'),resetMemory=button('Reset character memory');
  moods.append(explore,hideGame,lightGame,resetMemory);
@@ -68,7 +68,8 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
   return state;
  }
  function refresh(){const motion=refreshMotionControl();refreshDirectorControl();const c=getContextComponent(getContext()?.component);contextRow.hidden=!c||!target;if(c)contextLabel.textContent='About: '+c.title;return motion;}
- function setOpen(value){refresh();open=Boolean(value);panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));onEngagement(open);if(open)(target?input:close).focus();else{pending?.abort();toggle.focus();}}
+ function makeRoomForCharacter(accepted){if(accepted&&document.defaultView?.matchMedia?.('(max-width: 720px)')?.matches)setOpen(false,{cancelPending:false});}
+ function setOpen(value,{cancelPending=true}={}){refresh();open=Boolean(value);panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));onEngagement(open);if(open)(target?input:close).focus();else{if(cancelPending)pending?.abort();toggle.focus();}}
  function append(role,text){const row=make('p','m-companion-message '+role);row.textContent=text;log.append(row);while(log.childNodes.length>12)log.firstChild.remove();log.scrollTop=log.scrollHeight;}
  listen(directorToggle,'click',()=>{const state=getDirectorStatus()||{};onDirectorEnabled(state.enabled===false);refresh();});
  listen(enableMotion,'click',()=>{const accepted=onEnableMotion(),motion=refreshMotionControl();status.textContent=!motion.active?'Resume M to try a gesture.':accepted&&!motion.reducedMotion?'M motion enabled for this tab.':'Motion is still off. Please try again.';});

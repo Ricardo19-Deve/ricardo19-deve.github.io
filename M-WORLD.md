@@ -1,6 +1,6 @@
 # M World V24 — Intent scenes, contextual chat and optional play
 
-Prepared on feat/m-intent-scenes-v24; the published V23 remains intact.
+Published through PR #7 on 3 November 2026 (merge 8cc84d42).
 V24 connects a local scene sequencer, five blends of the existing facial morphs,
 component-aware chat, optional Find M / Follow a light play and bounded tab memory.
 One AI decision can lead to a whole local scene without additional AI calls.
@@ -12,7 +12,9 @@ its reset cannot clear chat or AI budgets. Optional play never captures page lin
 Voice is reserved for a following phase.
 
 See [V24 validation and preview](docs/m-world-v24/VALIDATION.md).
-This new version and contextual Worker still require explicit release approval.
+The existing Worker was updated after explicit approval; one real contextual
+Epoxy request returned HTTP 200. See [visibility follow-up](docs/m-world-v24/VISIBILITY_FIX.md)
+for two issues found during public visual validation and their prepared corrections.
 
 ---
 

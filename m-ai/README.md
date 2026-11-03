@@ -168,7 +168,12 @@ Responses are grounded by a curated snapshot of already public portfolio facts, 
 Official references: [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs), [OpenAI API authentication](https://developers.openai.com/api/reference/overview), [gpt-5-mini model](https://developers.openai.com/api/docs/models/gpt-5-mini), [Cloudflare Wrangler configuration](https://developers.cloudflare.com/workers/wrangler/configuration/), [SQLite Durable Object transactions](https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/), [Cloudflare secrets](https://developers.cloudflare.com/workers/configuration/secrets/), [Cloudflare Request signals and redirect modes](https://developers.cloudflare.com/workers/runtime-apis/request/).
 
 
-## V24 contextual chat (prepared, not deployed)
+## V24 contextual chat (published 3 November 2026)
+
+The V24 Worker was explicitly approved and deployed as version
+`ee7eab6d-aaa6-427f-bcea-788ef0d86c2b`, preserving the existing true automatic-AI
+override, secret and quota namespace. Its health reports contextual-chat version 1.
+One real Epoxy request returned a correctly grounded four-field HTTP 200 response.
 
 The public four-field chat response is unchanged. A new request may add the
 optional field context.component, containing a stable ID from the fixed public

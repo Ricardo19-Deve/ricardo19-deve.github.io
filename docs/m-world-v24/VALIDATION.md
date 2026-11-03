@@ -1,7 +1,9 @@
 # M World V24 — Validation and review
 
-Status: implemented on feat/m-intent-scenes-v24; not published. V23 and its
-Cloudflare Worker remain live. V24 does not change original model assets.
+This is the pre-publication validation record for feat/m-intent-scenes-v24.
+V24 was subsequently approved and published through PR #7 on 3 November 2026
+(merge 8cc84d42), including the compatible Worker. Original model assets are unchanged.
+[Public visibility follow-up](VISIBILITY_FIX.md) records the issues found after release.
 
 ## Implemented behavior
 
@@ -101,14 +103,15 @@ sample, not an entire scene. Chrome decoded 101 frames at 544x544.
    deployment, the current public Worker receives the compatible legacy request.
 6. Check reduced motion, pause, navigation and ordinary links independently.
 
-## Remaining limits and release gate
+## Remaining limits and historical release gate
 
 Physical phones, Safari/iOS, physical IME and actual background-tab checks remain
 unverified. Subtle blends remain limited by the original morph art. Voice is a
 following phase. No new Blender rig, GLB clips or realistic facial sculpture was
 created. Unknown catalogue components receive section-level context.
 
-Release needs explicit approval under the owner's AGENTS.md. Deploy the compatible
+The release required explicit approval under the owner's AGENTS.md; that approval
+was received on 3 November 2026 and the following V24 procedure was completed. Deploy the compatible
 Worker first with its existing true AI flag/secret/quota singleton, validate one
 real contextual response, then merge the reviewed PR and validate GitHub Pages.
 The earlier V23 approval does not authorize this new deployment.

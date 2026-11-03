@@ -1,17 +1,17 @@
-import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=27';
-import {createSessionMemory} from './m-world-memory.mjs?v=27';
-import {getContextComponent,matchContextComponent} from './m-world-context.mjs?v=27';
-import {M_AFFECTS,AFFECT_DURATIONS} from './m-world-affect.mjs?v=27';
-import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=27';
-import {createWorldObserver} from './m-world-observer.mjs?v=27';
-import {createWorldDirector} from './m-world-director.mjs?v=27';
-import {advanceLocomotion} from './m-world-locomotion.mjs?v=27';
+import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=28';
+import {createSessionMemory} from './m-world-memory.mjs?v=28';
+import {getContextComponent,matchContextComponent} from './m-world-context.mjs?v=28';
+import {M_AFFECTS,AFFECT_DURATIONS} from './m-world-affect.mjs?v=28';
+import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=28';
+import {createWorldObserver} from './m-world-observer.mjs?v=28';
+import {createWorldDirector} from './m-world-director.mjs?v=28';
+import {advanceLocomotion} from './m-world-locomotion.mjs?v=28';
 import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
-import {MWorldBrain} from './m-world-brain.mjs?v=27';
-import {M_GESTURES,GESTURE_DURATIONS} from './m-world-acting.mjs?v=27';
-import {createMCompanion} from './m-world-companion.mjs?v=27';
-import {M_WORLD_CONFIG} from './m-world-config.mjs?v=27';
-import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=27';
+import {MWorldBrain} from './m-world-brain.mjs?v=28';
+import {M_GESTURES,GESTURE_DURATIONS} from './m-world-acting.mjs?v=28';
+import {createMCompanion} from './m-world-companion.mjs?v=28';
+import {M_WORLD_CONFIG} from './m-world-config.mjs?v=28';
+import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=28';
 
 (() => {
  'use strict';
@@ -490,7 +490,11 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   const started=performance.now(),dt=bound((now-(lastFrame||now))/1000,0,.05);lastFrame=now;
   metrics=avatar.getMetrics();state.clock+=dt;
   const world=worldSnapshot(now);updateLife(dt,world,now);updateCharacter(dt,now,world);updateDirector(now,world);
-  if(reducedMotion){Object.assign(state,clampActor({x:world.viewport.width-metrics.footprint.right-12,y:world.viewport.height-metrics.footprint.bottom-66},world.viewport),{vx:0,vy:0,mode:'rest',phase:'hold'});}
+  if(reducedMotion){
+   const preferred={x:world.viewport.width-metrics.footprint.right-12,y:world.viewport.height-metrics.footprint.bottom-66};
+   Object.assign(state,initialPosition(world,preferred),{vx:0,vy:0,ax:0,ay:0,turn:0,travel:0,leanX:0,leanY:0,depth:1,depthTarget:1,mode:'rest',phase:'hold',emotion:'neutral',affect:null,targetId:null});
+   interest.attentionId=null;
+  }
   else{
    const point=advanceRoute(dt,now,world),dx=point.x-state.x,dy=point.y-state.y;
    const perchHold=state.mode==='perch'&&point.phase==='hold'&&!point.portalHold;
@@ -528,7 +532,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(loading||avatar)return loading;
   loading=(async()=>{
    try{
-    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=27');
+    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=28');
     avatar=await mountMWorld3D(host,{onProgress(percent){layer.dataset.loadProgress=String(percent);if(active)toggle.textContent='M · '+percent+'%';}});
     metrics=avatar.getMetrics();cache.dirty=true;cache.lastRead=0;
     const world=worldSnapshot();
