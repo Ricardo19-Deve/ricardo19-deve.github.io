@@ -1,4 +1,4 @@
-# M V26 â€” Persistent character continuity
+# M V26 — Persistent character continuity
 
 Prepared on feat/m-character-continuity-v26 from published V25 main 4da82fb4.
 This is a pre-publication record; the PR tracks later approval and deployment.
@@ -54,7 +54,7 @@ prepared and compiled, not deployed in this record.
 
 ## Executed checks
 
-- Full Node suite: 421/421 pass, including persistence, backup/corruption/future
+- Full Node suite: 422/422 pass, including persistence, backup/corruption/future
   version handling, receipts, actual controller acknowledgement, missing targets,
   reset isolation, legacy/new APIs and stale-response rejection.
 - Native Chrome desktop: 19/19 checks passed.
@@ -87,6 +87,13 @@ is retained under work/M_V26_Character_Validation/.
 
 Visual review found scrolled story text appearing above the sticky dialog header.
 The header now covers its padding; fresh screenshots were reviewed after the fix.
+
+The first hosted legacy render check found a queued autonomous gesture replacing
+an explicit diagnostic perch route. An actual-controller test reproduced it before
+the fix. playAction now releases the autonomous owner first. Native Chrome then
+reached physical foot contact and stayed attached across a real 55px page scroll:
+64 contact samples, maximum gap 0.97px. The diagnostic did not award a discovery.
+The untouched adventure code path is unchanged by this diagnostic handoff fix.
 
 ## Native reproduction
 

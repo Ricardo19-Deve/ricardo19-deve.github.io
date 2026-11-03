@@ -1,4 +1,4 @@
-# M V26 â€” Progress checkpoint
+# M V26 — Progress checkpoint
 
 Status: implementation in progress; not published.
 Repository: Ricardo19-Deve/ricardo19-deve.github.io
@@ -33,7 +33,7 @@ The original app connection attempt failed. After the owner resumed the chat, th
 - Persistent profile, authored chapter, fixed visit receipts, backup/forget/reset and bounded journal implemented.
 - Durable goals use the existing single owner and only actual acknowledged completions advance the chapter. Mobile layouts can establish a validated quiet hover region when no mapped perch is visible.
 - Optional story UI, authored identity and capability-negotiated character chat/director implemented. Legacy Worker requests remain compatible. Uniform browser cache v30 applied.
-- Full Node suite passed 421/421. Six actual-controller integration tests verify receipts, failure, reopen, semantic targets and reset isolation.
+- Full Node suite passed 422/422. Six actual-controller integration tests verify receipts, failure, reopen, semantic targets and reset isolation.
 - Native desktop checks 19/19; corrected mobile 21/21 (separate runs). The original 39/40 record's one failure was a trace collection boundary which omitted real warm-up score zero; no product progress/deadline was changed.
 - Actual browser AI transport 6/6 passed with mocked provider responses. No paid request.
 - Native 28-second adventure and 12-second return previews succeeded; both decoded in Chrome. Full browser close/reopen restores M's experience and does not store the unsent chat draft.
@@ -42,7 +42,7 @@ The original app connection attempt failed. After the owner resumed the chat, th
 
 ## Next steps
 
-1. The committed native harness passed mobile 21/21 after the header fix. Complete final diff review/staging, then create the PR.
+1. PR #10 exists: https://github.com/Ricardo19-Deve/ricardo19-deve.github.io/pull/10. Do not create a duplicate. The first hosted legacy render found a stale autonomous diagnostic handoff; a reproduced regression and native foot-contact/scroll check passed after the fix. Await all checks on the latest PR head.
 2. Commit and push this feature branch, prepare PR and await its hosted checks. Do not merge or deploy without explicit owner approval.
 3. Once the PR and evidence are ready, record the exact head/URL here and wait for owner publication approval. Do not make unrelated changes while waiting.
 4. After approved publication, perform a bounded real provider check of the new persona/context and public source/native browser verification. Preserve current Cloudflare secret and limits.
