@@ -1,6 +1,6 @@
 {
   "scope": "Separate native Chrome runs. No story progress, arrival, pose, route or clock injection. Original actor unchanged. Provider responses mocked or offline; mobile emulated.",
-  "nodeTests": 422,
+  "nodeTests": 431,
   "desktopChecks": {
     "passed": 19,
     "total": 19
@@ -299,5 +299,27 @@
     "originalBones": 31,
     "storyBeat": "seeking",
     "scope": "Actual native production startRoute and physical foot contact, no forced pose/clock/arrival. Explicit diagnostic route preempts autonomous owner; real 55px scroll stays attached."
+  },
+  "softwareClockRegression": {
+    "passed": true,
+    "checks": [
+      {
+        "name": "real delayed transport race recovers with fresh sample",
+        "passed": true,
+        "calls": 2,
+        "races": 1
+      },
+      {
+        "name": "drawing is restored after observation",
+        "passed": true
+      },
+      {
+        "name": "real clock resumes after observation",
+        "passed": true,
+        "elapsed": 69
+      }
+    ],
+    "scope": "Separate test harness regression, not native actor movement or FPS evidence. Actual Playwright clock race injected via 200ms host transport delay; no product or deadline change.",
+    "unitTests": 9
   }
 }

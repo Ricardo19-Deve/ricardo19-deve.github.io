@@ -33,17 +33,19 @@ The original app connection attempt failed. After the owner resumed the chat, th
 - Persistent profile, authored chapter, fixed visit receipts, backup/forget/reset and bounded journal implemented.
 - Durable goals use the existing single owner and only actual acknowledged completions advance the chapter. Mobile layouts can establish a validated quiet hover region when no mapped perch is visible.
 - Optional story UI, authored identity and capability-negotiated character chat/director implemented. Legacy Worker requests remain compatible. Uniform browser cache v30 applied.
-- Full Node suite passed 422/422. Six actual-controller integration tests verify receipts, failure, reopen, semantic targets and reset isolation.
+- Full Node suite passed 431/431. Six actual-controller integration tests verify receipts, failure, reopen, semantic targets and reset isolation.
 - Native desktop checks 19/19; corrected mobile 21/21 (separate runs). The original 39/40 record's one failure was a trace collection boundary which omitted real warm-up score zero; no product progress/deadline was changed.
 - Actual browser AI transport 6/6 passed with mocked provider responses. No paid request.
 - Native 28-second adventure and 12-second return previews succeeded; both decoded in Chrome. Full browser close/reopen restores M's experience and does not store the unsent chat draft.
 - Worker dry-run passed with cached Wrangler 4.135.0. Source config defaults autoplay=false; any approved deployment MUST preserve live enabled=true, the model, secret, bindings and quotas.
 - Visual review fixed a sticky header paint issue. Current screenshots and videos are in docs/m-world-v26/; raw evidence remains outside the repository under ../work/.
 
+- A subsequent legacy CI failure was a software-clock timestamp transport race. The test-only helper now has bounded retries, unconditional state cleanup and nine regression tests. Native observations and product motion budgets are unchanged. Real Chrome reproduced and recovered from that exact race (3/3).
+
 ## Next steps
 
-1. PR #10 exists: https://github.com/Ricardo19-Deve/ricardo19-deve.github.io/pull/10. Do not create a duplicate. The first hosted legacy render found a stale autonomous diagnostic handoff; a reproduced regression and native foot-contact/scroll check passed after the fix. Await all checks on the latest PR head.
-2. Commit and push this feature branch, prepare PR and await its hosted checks. Do not merge or deploy without explicit owner approval.
+1. PR #10 exists: https://github.com/Ricardo19-Deve/ricardo19-deve.github.io/pull/10. Do not create a duplicate. The hosted legacy render exposed two diagnosed issues: a stale diagnostic handoff (fixed and native-contact validated), then a clock transport race (test-only fix and actual Chrome reproduction passed). Await all checks on the latest PR head.
+2. Keep the existing PR updated and await its hosted checks. Do not merge or deploy without explicit owner approval.
 3. Once the PR and evidence are ready, record the exact head/URL here and wait for owner publication approval. Do not make unrelated changes while waiting.
 4. After approved publication, perform a bounded real provider check of the new persona/context and public source/native browser verification. Preserve current Cloudflare secret and limits.
 5. Further shared-world history, additional chapters and deeper changing preferences are later milestones; this first chapter is not the entire long-term character vision.

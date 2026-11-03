@@ -2,6 +2,7 @@ import {createRequire} from 'node:module';
 import {existsSync,mkdirSync,writeFileSync} from 'node:fs';
 import {homedir,tmpdir} from 'node:os';
 import path from 'node:path';
+import {observeBrowserClock} from './m-world-browser-clock.mjs';
 
 const require=createRequire(import.meta.url);
 function loadDriver(){
@@ -114,19 +115,7 @@ async function pixelEvidence(page,label,selector,artifactPaths){
 // rasterizing every intermediate frame. Actual GPU loading, warm cadence and
 // all screenshot/pixel checks still run with drawing enabled.
 async function observeClock(page,limitMs,evaluator,arg){
- if(!softwareClock)return page.evaluate(evaluator,arg);
- await page.evaluate(()=>{window.__mSmokeSkipDraw=true;});
- await page.clock.pauseAt(new Date(await page.evaluate(()=>Date.now())+50));
- let settled=false,result,error;
- const pending=page.evaluate(evaluator,arg).then(value=>{settled=true;result=value;},reason=>{settled=true;error=reason;});
- try{
-  for(let elapsed=0;!settled&&elapsed<=limitMs+500;elapsed+=100)await page.clock.runFor(100);
-  await pending;if(error)throw error;return result;
- }finally{
-  await page.evaluate(()=>{window.__mSmokeSkipDraw=false;});
-  await page.clock.runFor(34);
-  await page.clock.resume();
- }
+ return observeBrowserClock(page,limitMs,evaluator,arg,{softwareClock});
 }
 async function exerciseLivePerch(page){
  const url=new URL(base);url.searchParams.set('m-debug','1');

@@ -54,7 +54,7 @@ prepared and compiled, not deployed in this record.
 
 ## Executed checks
 
-- Full Node suite: 422/422 pass, including persistence, backup/corruption/future
+- Full Node suite: 431/431 pass, including persistence, backup/corruption/future
   version handling, receipts, actual controller acknowledgement, missing targets,
   reset isolation, legacy/new APIs and stale-response rejection.
 - Native Chrome desktop: 19/19 checks passed.
@@ -94,6 +94,14 @@ the fix. playAction now releases the autonomous owner first. Native Chrome then
 reached physical foot contact and stayed attached across a real 55px page scroll:
 64 contact samples, maximum gap 0.97px. The diagnostic did not award a discovery.
 The untouched adventure code path is unchanged by this diagnostic handoff fix.
+
+The next hosted failure was isolated to the software-clock test harness: the
+50 ms future timestamp had already elapsed during the transport call. A bounded
+three-attempt resample now handles only that exact race and always restores
+drawing and resumes even after a rejected pause. Native observations, product
+RAF and motion budgets are unchanged. Nine harness regressions pass. A real
+Chrome check injected 200 ms of transport delay, reproduced the actual error,
+recovered on the second attempt and confirmed drawing/real-time recovery (3/3).
 
 ## Native reproduction
 
