@@ -1,0 +1,319 @@
+{
+  "scope": "Native Chrome, actual drawing/RAF, no action commands during autonomous observations. All AI responses mocked or offline. Original V6 asset unchanged. Desktop/remote checks from final full run; mobile from corrected settled-capture repeat. These are separate runs.",
+  "nodeTests": 368,
+  "desktopAndRemoteChecks": {
+    "passed": 49,
+    "total": 49
+  },
+  "mobileChecks": {
+    "passed": 33,
+    "total": 33
+  },
+  "firstFinalRun": {
+    "passed": 79,
+    "total": 80,
+    "diagnostic": "Calm capture timed out then sampled a body moving at 109 px/s. Original record retained; product not changed. Corrected capture waits three settled, visible and text-clear samples, permits real quiet facial holds, and does not force a pose."
+  },
+  "profiles": [
+    {
+      "name": "desktop-offline",
+      "cadence": {
+        "wallMs": 4006.699999988079,
+        "frames": 241,
+        "fps": 60.149250006418505,
+        "rafP95": 17.80000001192093,
+        "cpuP95": 3,
+        "samples": 241,
+        "drawSamples": 241,
+        "minRenderCalls": 12,
+        "heapBytes": 190016347,
+        "scope": "Warm native Chrome, actual drawing, no recording or forced update."
+      },
+      "observations": [
+        {
+          "stage": "hands-off-hero",
+          "wallMs": 71007,
+          "frames": 4201,
+          "distance": 1784.5831672034972,
+          "affects": [
+            "focus",
+            "content",
+            "delight",
+            "anticipation",
+            "mischief"
+          ],
+          "decisions": 6,
+          "sceneCount": 2,
+          "games": [
+            {
+              "id": 1,
+              "name": "hide",
+              "autonomous": true,
+              "autonomyId": "autonomy-3",
+              "score": 0,
+              "started": 26556.600000023842,
+              "found": false,
+              "searchUntil": 33748.9
+            },
+            {
+              "id": 2,
+              "name": "light",
+              "autonomous": true,
+              "autonomyId": "autonomy-6",
+              "score": 1,
+              "started": 68567.19999998808,
+              "found": false,
+              "searchUntil": 0,
+              "goal": {
+                "x": 503.99999999999994,
+                "y": 108.1628413413954
+              },
+              "anticipated": true
+            }
+          ],
+          "completedScenes": 2
+        },
+        {
+          "stage": "hands-off-projects",
+          "wallMs": 71338,
+          "frames": 4201,
+          "distance": 4032.7556974368276,
+          "affects": [
+            "calm",
+            "anticipation",
+            "delight",
+            "focus",
+            "content"
+          ],
+          "decisions": 5,
+          "sceneCount": 3,
+          "games": [
+            {
+              "id": 3,
+              "name": "light",
+              "autonomous": true,
+              "autonomyId": "autonomy-8",
+              "score": 2,
+              "started": 103039.90000003576,
+              "found": false,
+              "searchUntil": 0,
+              "goal": {
+                "x": 624.7034697264432,
+                "y": 657.0619310976743
+              },
+              "anticipated": true
+            }
+          ],
+          "completedScenes": 2
+        }
+      ],
+      "errors": [],
+      "assetErrors": [],
+      "mocked": 0,
+      "directRequests": 0
+    },
+    {
+      "name": "mobile-offline",
+      "cadence": {
+        "wallMs": 4013.900000035763,
+        "frames": 241,
+        "fps": 60.04135628636806,
+        "rafP95": 18,
+        "cpuP95": 3.300000011920929,
+        "samples": 241,
+        "drawSamples": 241,
+        "minRenderCalls": 12,
+        "heapBytes": 165052595,
+        "scope": "Warm native Chrome, actual drawing, no recording or forced update."
+      },
+      "observations": [
+        {
+          "stage": "hands-off-hero",
+          "wallMs": 71159,
+          "frames": 4204,
+          "distance": 1465.545190112125,
+          "affects": [
+            "delight",
+            "proud",
+            "anticipation",
+            "focus"
+          ],
+          "decisions": 7,
+          "sceneCount": 0,
+          "games": [
+            {
+              "id": 1,
+              "name": "light",
+              "autonomous": true,
+              "autonomyId": "autonomy-1",
+              "score": 2,
+              "started": 5900.699999988079,
+              "found": false,
+              "searchUntil": 0,
+              "goal": {
+                "x": 90.99999999999999,
+                "y": 32.37085596791506
+              },
+              "anticipated": true
+            },
+            {
+              "id": 2,
+              "name": "light",
+              "autonomous": true,
+              "autonomyId": "autonomy-3",
+              "score": 2,
+              "started": 28160.19999998808,
+              "found": false,
+              "searchUntil": 0,
+              "goal": {
+                "x": 164.17000000000002,
+                "y": 34.43014625667817
+              },
+              "anticipated": true
+            },
+            {
+              "id": 3,
+              "name": "light",
+              "autonomous": true,
+              "autonomyId": "autonomy-6",
+              "score": 2,
+              "started": 62226.19999998808,
+              "found": false,
+              "searchUntil": 0,
+              "goal": {
+                "x": 188.56,
+                "y": 34.43014625667817
+              },
+              "anticipated": true
+            }
+          ],
+          "completedScenes": 0
+        },
+        {
+          "stage": "hands-off-projects",
+          "wallMs": 72299,
+          "frames": 4201,
+          "distance": 3355.2773608208067,
+          "affects": [
+            "anticipation",
+            "mischief",
+            "content",
+            "focus",
+            "delight"
+          ],
+          "decisions": 4,
+          "sceneCount": 2,
+          "games": [
+            {
+              "id": 4,
+              "name": "hide",
+              "autonomous": true,
+              "autonomyId": "autonomy-8",
+              "score": 0,
+              "started": 86116.69999998808,
+              "found": false,
+              "searchUntil": 100205.9
+            },
+            {
+              "id": 5,
+              "name": "light",
+              "autonomous": true,
+              "autonomyId": "autonomy-11",
+              "score": 2,
+              "started": 141179.10000002384,
+              "found": false,
+              "searchUntil": 0,
+              "goal": {
+                "x": 188.56,
+                "y": 221.80514625667817
+              },
+              "anticipated": true
+            }
+          ],
+          "completedScenes": 2
+        }
+      ],
+      "errors": [],
+      "assetErrors": [],
+      "mocked": 0,
+      "directRequests": 0
+    },
+    {
+      "name": "desktop-remote",
+      "cadence": {
+        "wallMs": 4004.399999976158,
+        "frames": 241,
+        "fps": 60.1837978227537,
+        "rafP95": 17.900000035762787,
+        "cpuP95": 3.400000035762787,
+        "samples": 241,
+        "drawSamples": 241,
+        "minRenderCalls": 12,
+        "heapBytes": 158155056,
+        "scope": "Warm native Chrome, actual drawing, no recording or forced update."
+      },
+      "observations": [
+        {
+          "stage": "hands-off-hero",
+          "wallMs": 71082,
+          "frames": 4206,
+          "distance": 3016.549241795236,
+          "affects": [
+            "anticipation",
+            "mischief",
+            "focus",
+            "content",
+            "delight",
+            "proud"
+          ],
+          "decisions": 5,
+          "sceneCount": 1,
+          "games": [
+            {
+              "id": 1,
+              "name": "light",
+              "autonomous": true,
+              "autonomyId": "autonomy-1",
+              "score": 2,
+              "started": 22201.30000001192,
+              "found": false,
+              "searchUntil": 0,
+              "goal": {
+                "x": 1019.04,
+                "y": 108.1628413413954
+              },
+              "anticipated": true
+            },
+            {
+              "id": 2,
+              "name": "light",
+              "autonomous": true,
+              "autonomyId": "autonomy-5",
+              "score": 0,
+              "started": 73358.60000002384,
+              "found": false,
+              "searchUntil": 0,
+              "goal": {
+                "x": 632.76,
+                "y": 519.8371586586046
+              },
+              "anticipated": true
+            }
+          ],
+          "completedScenes": 1
+        }
+      ],
+      "errors": [],
+      "assetErrors": [],
+      "mocked": 1,
+      "directRequests": 2
+    }
+  ],
+  "explicitTapRegression": {
+    "scope": "Separate final native Chrome mouse/touch check after restoring explicit tap reactions. No autonomous zero-input path changed. All provider calls blocked.",
+    "passed": 19,
+    "total": 19,
+    "paidAttempts": 0,
+    "errors": []
+  }
+}

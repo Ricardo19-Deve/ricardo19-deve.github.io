@@ -1,3 +1,15 @@
+# M World V25 — Autonomous initiative
+
+Implemented on feat/m-autonomous-life-v25; publication pending owner approval.
+M chooses exploration, self-play, observation and rest without visitor commands.
+Internal energy and bounded utility memory drive varied intentions; the existing
+OpenAI director remains an occasional higher-level guide with unchanged budgets.
+Original V6 geometry, rig, textures and materials are preserved.
+
+See [V25 behavior, native evidence and preview](docs/m-world-v25/VALIDATION.md).
+
+---
+
 # M World V24 — Intent scenes, contextual chat and optional play
 
 Published through PR #7 on 3 November 2026 (merge 8cc84d42).
@@ -14,7 +26,8 @@ Voice is reserved for a following phase.
 See [V24 validation and preview](docs/m-world-v24/VALIDATION.md).
 The existing Worker was updated after explicit approval; one real contextual
 Epoxy request returned HTTP 200. See [visibility follow-up](docs/m-world-v24/VISIBILITY_FIX.md)
-for two issues found during public visual validation and their prepared corrections.
+for the two visibility issues corrected and published through PR #8 on 3 November 2026
+(merge 61736e53).
 
 ---
 

@@ -1,4 +1,4 @@
-import { validateDirectorInput, validateDirectorReply } from './m-world-director-protocol.mjs?v=28';
+import { validateDirectorInput, validateDirectorReply } from './m-world-director-protocol.mjs?v=29';
 
 export const DIRECTOR_SESSION_LIMIT = 6;
 export const DIRECTOR_MIN_INTERVAL = 65_000;

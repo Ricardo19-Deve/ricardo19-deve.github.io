@@ -149,7 +149,7 @@ async function scene(page,name,profile,source='visitor'){
  while(Date.now()<until){
   const row=await page.evaluate(()=>{const s=MWorld.snapshot();return {scene:s.character.scene,gesture:s.renderer.gesture};});
   if(row.scene.id===id&&['complete','cancelled'].includes(row.scene.status))break;
-  if(row.scene.id===id&&!captured.has(row.scene.stage)&&((row.scene.stage==='travel'&&row.scene.elapsedMs>2000)||(row.scene.stage==='react'&&row.gesture.phase==='action'))){captured.add(row.scene.stage);await shot(page,name+'-scene-'+row.scene.stage);}
+  if(!softwareGPU&&row.scene.id===id&&!captured.has(row.scene.stage)&&((row.scene.stage==='travel'&&row.scene.elapsedMs>2000)||(row.scene.stage==='react'&&row.gesture.phase==='action'))){captured.add(row.scene.stage);await shot(page,name+'-scene-'+row.scene.stage);}
   await page.waitForTimeout(250);
  }
  const end=await read(page);profile.sceneEnd=compact(end);
@@ -281,7 +281,7 @@ async function profile(browser,name,options){
   page=await context.newPage();page.on('pageerror',error=>result.errors.push(String(error)));page.on('response',response=>{if(response.status()>=400&&response.url().startsWith(new URL(base).origin))result.assetErrors.push({url:response.url(),status:response.status()});});
   const url=new URL(base);url.searchParams.set('m-debug','1');await page.goto(url.href);await page.waitForFunction(()=>window.MWorld?.snapshot().ready,undefined,{timeout:90000});await beginTrace(page);
   const initial=await read(page);result.initial=compact(initial);
-  check(name+': v28 entry point',await page.locator('script[src*="scroll-buddy.js?v=28"]').count()===1);
+  check(name+': v29 entry point',await page.locator('script[src*="scroll-buddy.js?v=29"]').count()===1);
   check(name+': unchanged original actor and full skinning',initial.renderer.bones===31&&initial.renderer.tailBones===10&&initial.renderer.maxInfluences===14&&initial.renderer.skinSets===4&&initial.renderer.detailMaps===10&&initial.renderer.clips.length===6&&initial.renderer.shaderErrors.length===0,{bones:initial.renderer.bones,tail:initial.renderer.tailBones,maxInfluences:initial.renderer.maxInfluences,skinSets:initial.renderer.skinSets,maps:initial.renderer.detailMaps,clips:initial.renderer.clips});
   check(name+': native sharp framebuffer remains bounded',initial.renderer.renderPixels.every(n=>n===(name==='desktop'?544:416))&&await page.locator('.m-world-canvas').evaluate(el=>getComputedStyle(el).filter==='none'),initial.renderer.renderPixels);
   result.performance=await page.evaluate(async()=>{const start=performance.now(),before=MWorld.snapshot().stats.frames,times=[],cpu=[];let last=start;while(performance.now()-start<3000){await new Promise(requestAnimationFrame);const now=performance.now();times.push(now-last);cpu.push(MWorld.snapshot().stats.lastFrameMs);last=now;}const q=a=>[...a].sort((x,y)=>x-y)[Math.floor(a.length*.95)];return {fps:(MWorld.snapshot().stats.frames-before)*1000/(performance.now()-start),frameP95:q(times),cpuP95:q(cpu),heap:performance.memory?.usedJSHeapSize};});
