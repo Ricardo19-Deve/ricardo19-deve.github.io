@@ -1,20 +1,20 @@
-import {createCharacter,characterReceiptId} from './m-world-character.mjs?v=31';
-import {createAutonomy} from './m-world-autonomy.mjs?v=31';
-import {planBallFlight,sampleBallFlight} from './m-world-ball.mjs?v=31';
-import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=31';
-import {createSessionMemory} from './m-world-memory.mjs?v=31';
-import {getContextComponent,matchContextComponent} from './m-world-context.mjs?v=31';
-import {M_AFFECTS,AFFECT_DURATIONS} from './m-world-affect.mjs?v=31';
-import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=31';
-import {createWorldObserver} from './m-world-observer.mjs?v=31';
-import {createWorldDirector} from './m-world-director.mjs?v=31';
-import {advanceLocomotion} from './m-world-locomotion.mjs?v=31';
+import {createCharacter,characterReceiptId} from './m-world-character.mjs?v=32';
+import {createAutonomy} from './m-world-autonomy.mjs?v=32';
+import {planBallFlight,sampleBallFlight} from './m-world-ball.mjs?v=32';
+import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=32';
+import {createSessionMemory} from './m-world-memory.mjs?v=32';
+import {getContextComponent,matchContextComponent} from './m-world-context.mjs?v=32';
+import {M_AFFECTS,AFFECT_DURATIONS} from './m-world-affect.mjs?v=32';
+import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=32';
+import {createWorldObserver} from './m-world-observer.mjs?v=32';
+import {createWorldDirector} from './m-world-director.mjs?v=32';
+import {advanceLocomotion} from './m-world-locomotion.mjs?v=32';
 import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
-import {MWorldBrain} from './m-world-brain.mjs?v=31';
-import {M_GESTURES,GESTURE_DURATIONS,PAW_CONTACT_PROGRESS} from './m-world-acting.mjs?v=31';
-import {createMCompanion} from './m-world-companion.mjs?v=31';
-import {M_WORLD_CONFIG} from './m-world-config.mjs?v=31';
-import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=31';
+import {MWorldBrain} from './m-world-brain.mjs?v=32';
+import {M_GESTURES,GESTURE_DURATIONS,PAW_CONTACT_PROGRESS} from './m-world-acting.mjs?v=32';
+import {createMCompanion} from './m-world-companion.mjs?v=32';
+import {M_WORLD_CONFIG} from './m-world-config.mjs?v=32';
+import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=32';
 
 (() => {
  'use strict';
@@ -405,7 +405,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   const records=publicComponents(world),targets=records.map(record=>{
    const surface=world.surfaces.find(r=>r.id===record.id),known=directorComponents.find(r=>r.id===record.id),component=publicComponent(surface);
    const visible=Math.max(0,Math.min(surface.right,world.viewport.width)-Math.max(0,surface.left))*Math.max(0,Math.min(surface.bottom,world.viewport.height)-Math.max(world.viewport.headerBottom,surface.top));
-   return {id:record.id,stableId:component?.id||record.id,kind:record.kind,actions:known?.actions||['inspect'],novelty:memory.score(component?.id||record.id),visibleShare:visible/Math.max(1,surface.width*surface.height),distance:Math.hypot((surface.left+surface.right)/2-state.x,(surface.top+surface.bottom)/2-state.y)};
+   return {id:record.id,stableId:component?.id||record.id,kind:record.kind,actions:known?.actions||['inspect'],novelty:memory.score(component?.id||record.id),attention:now<interest.userAttentionUntil&&interest.attentionId===record.id?1:0,visibleShare:visible/Math.max(1,surface.width*surface.height),distance:Math.hypot((surface.left+surface.right)/2-state.x,(surface.top+surface.bottom)/2-state.y)};
   });
   const corridor=!externalBusy&&chooseCorridorTarget({viewport:world.viewport,metrics,position:state,protectedRects:world.protectedRects,surfaces:world.surfaces,depth:1,recent:recentCorridors});
   const characterGoal=externalBusy||now<interest.readingUntil?null:currentCharacterGoal(targets,world);
@@ -718,7 +718,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(loading||avatar)return loading;
   loading=(async()=>{
    try{
-    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=31');
+    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=32');
     avatar=await mountMWorld3D(host,{onProgress(percent){layer.dataset.loadProgress=String(percent);if(active)toggle.textContent='M · '+percent+'%';}});
     metrics=avatar.getMetrics();cache.dirty=true;cache.lastRead=0;
     const world=worldSnapshot();
@@ -756,7 +756,12 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  const mutationObserver=new MutationObserver(records=>{if(records.some(r=>!ownNode(r.target instanceof Element?r.target:r.target.parentElement)))invalidate();});
  mutationObserver.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','class','style']});
  document.addEventListener('pointerover',event=>{if(performance.now()<interest.hoverGuardUntil)return;if(!ownNode(event.target)&&event.target.closest?.('p,h1,h2,h3,li,.card-body'))interest.readingUntil=performance.now()+1800;},{passive:true});
- document.addEventListener('focusin',event=>{if(!ownNode(event.target))interest.readingUntil=performance.now()+1400;});
+ document.addEventListener('focusin',event=>{
+  if(ownNode(event.target))return;
+  const now=performance.now();interest.readingUntil=now+1400;
+  const surface=cache.documents.find(r=>r.element.contains(event.target));
+  if(surface){interest.attentionId=surface.id;interest.userAttentionUntil=now+5000;directorEvent='pointer-interest';directorNextRead=0;}
+ });
  document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAutonomy('hidden');stopPlay('hidden');clearScene('hidden');}if(document.hidden)director?.update({snapshot:directorSnapshot,hidden:true});if(document.hidden){if(frameId!==null)cancelAnimationFrame(frameId);frameId=null;}else{lastFrame=0;schedule();}});
  function refreshMotionPreference(){
   reducedMotion=motionPreference.matches&&!motionOptIn;
