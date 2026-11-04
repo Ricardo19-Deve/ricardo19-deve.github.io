@@ -7,14 +7,14 @@ import {preserveFullSkinning} from './m-lab/swim-v3/threejs/full-skinning.js';
 import {createFacialV6} from './m-lab/interactions/facial-v6.mjs?blink=v30';
 import {createMotionV8,motionPose,canonicalBoneName} from './m-lab/interactions/motion-v8.mjs?rig=v16';
 import {performanceStagePoseV15} from './m-lab/interactions/performance-v15.mjs?v16';
-import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=33';
-import {createPresenceDynamics} from './m-world-dynamics.mjs?v=33';
-import {createFacialContinuity} from './m-world-face-continuity.mjs?v=33';
-import {visualDepthMasks} from './m-world-occlusion.mjs?v=33';
-import {createMicroMotion} from './m-world-micro-motion.mjs?v=33';
-import {createRenderQualityGovernor} from './m-world-quality.mjs?v=33';
-import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=33';
-import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs?v=33';
+import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=35';
+import {createPresenceDynamics} from './m-world-dynamics.mjs?v=35';
+import {createFacialContinuity} from './m-world-face-continuity.mjs?v=35';
+import {visualDepthMasks,visualDepthSide} from './m-world-occlusion.mjs?v=35';
+import {createMicroMotion} from './m-world-micro-motion.mjs?v=35';
+import {createRenderQualityGovernor} from './m-world-quality.mjs?v=35';
+import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=35';
+import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs?v=35';
 
 const PART_COUNT=19;
 const EXPECTED_SIZE=16899868;
@@ -379,11 +379,14 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   }
   function setSpatialFrame(frame={}){
    spatialFrame=frame;const actor=normalizeActorRect(frame.actor);depth=num(Number(frame.depth??1),-1,1);
-   const placement=depthLayerPlacement(depth,halfDepth);depthRoot.position.z=placement.bodyZ;
+   // Prevent tail/paws penetrating the visible card plane during a depth transition.
+   // Keep horizontal movement continuous; only Z uses a discrete visual layer.
+   const visualSide=visualDepthSide(depth);
+   const placement=depthLayerPlacement(visualSide,halfDepth);depthRoot.position.z=placement.bodyZ;
    const masks=visualDepthMasks({depth,surfaces:frame.surfaces,protectedRects:frame.protectedRects});
     updateBatch(surfaceBatch,masks.surfaces,actor,placement.surfaceZ);
     updateBatch(protectedBatch,masks.protectedRects,actor,placement.protectedZ,true);
-   return {depthSupported,surfaceRects:surfaceBatch.rectCount,protectedRects:protectedBatch.rectCount};
+   return {depthSupported,visualSide,surfaceRects:surfaceBatch.rectCount,protectedRects:protectedBatch.rectCount};
   }
   function getMetrics(){
    // The frame is fitted once in world units; local CSS metrics simply scale.
@@ -401,7 +404,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     environment:{type:'PMREM RoomEnvironment',intensity:scene.environmentIntensity,toneMapping:'AgX'},
      quality:qualityGovernor.snapshot(),presence:presence.snapshot(),facialContinuity:facialContinuity.snapshot(),microMotion:microMotion.snapshot(),
     framing:{rest:boundsRecord(restBox),envelope:boundsRecord(envelope),framed:boundsRecord(framed),scale:frameFit.scale,samples:frameSamples},
-    occlusion:{supported:depthSupported,depth,worldZ:depthRoot.position.z,surfaceZ:0,protectedZ:depthPlan.protectedZ,surfaceRects:surfaceBatch.rectCount,protectedRects:protectedBatch.rectCount,maskDrawCalls:Number(surfaceBatch.mesh.visible)+Number(protectedBatch.mesh.visible)},
+    occlusion:{supported:depthSupported,depth,visualSide:visualDepthSide(depth),worldZ:depthRoot.position.z,surfaceZ:0,protectedZ:depthPlan.protectedZ,surfaceRects:surfaceBatch.rectCount,protectedRects:protectedBatch.rectCount,maskDrawCalls:Number(surfaceBatch.mesh.visible)+Number(protectedBatch.mesh.visible)},
     render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,points:renderer.info.render.points,lines:renderer.info.render.lines,programs:renderer.info.programs.length,textures:renderer.info.memory.textures,geometries:renderer.info.memory.geometries},
     swimWeight,expression:facial.expression,gesture:{name:lastGesture.name,age:lastGesture.progress*lastGesture.duration,phase:lastGesture.phase,envelope:lastGesture.envelope,lift:lastGesture.lift,contact:lastGesture.contact},affect:{name:lastAffect.name,phase:lastAffect.phase,envelope:lastAffect.envelope,weights:facial.diagnostics().expressionWeights},facialIntensity:facial.intensity,blink:facial.diagnostics(),shaderErrors:[...shaderErrors]};
   }

@@ -1,14 +1,27 @@
 /**
- * V29: distinguish reading protection (spatial/navigation constraint) from
- * actual visible occlusion (the geometry of a card).
- * Behind a card, text-sized boxes MUST NOT cut square holes into M.
- * The card's rounded shape handles depth; while in front, protected text may
- * still mask an unsafe animation frame as a final legibility safeguard.
+ * V30 solid-card occlusion, with no rectangular text clipping.
+ *
+ * The WebGL actor is drawn in one of TWO visual depth layers. Interpolating
+ * its centre through the card plane causes anatomical pieces (paws / tail) to
+ * poke through the DOM card, even while most of M is hidden. The camera is
+ * orthographic, so snapping the Z layer at the crossing boundary does not
+ * change the perceived scale or screen position. X/Y route easing remains
+ * continuous and the card edge itself reveals M naturally.
+ *
+ * Text/control rectangles are used by the spatial planner to avoid covering
+ * legible content. They are NEVER rendered as invisible rectangles into the
+ * WebGL depth buffer: that produced the square text-shaped holes in M.
  */
-export function visualDepthMasks({depth=1,surfaces=[],protectedRects=[]}={}){
- const d=Number.isFinite(depth)?depth:1;
+
+/** The sign, not the fractional progress, owns visual card depth. */
+export function visualDepthSide(depth=1){
+ return Number.isFinite(depth)&&depth<0?-1:1;
+}
+
+/** Only the actual card silhouettes can occlude M, and only from behind. */
+export function visualDepthMasks({depth=1,surfaces=[]}={}){
  return {
-  surfaces:Array.isArray(surfaces)?surfaces:[],
-  protectedRects:d<0?[]:Array.isArray(protectedRects)?protectedRects:[]
+  surfaces:visualDepthSide(depth)<0&&Array.isArray(surfaces)?surfaces:[],
+  protectedRects:[]
  };
 }

@@ -9,8 +9,8 @@ import worker,{visitBody,normalizePath,lisbonDay,constantTimeMatch} from './anal
 test('V29 behind-card M is occluded by the card rather than rectangular text cutouts',()=>{
  const card=[{left:0,top:0,width:200,height:180,radius:20}],text=[{left:30,top:40,width:100,height:30}];
  assert.deepEqual(visualDepthMasks({depth:-1,surfaces:card,protectedRects:text}),{surfaces:card,protectedRects:[]});
- assert.deepEqual(visualDepthMasks({depth:1,surfaces:card,protectedRects:text}),{surfaces:card,protectedRects:text});
- assert.deepEqual(visualDepthMasks({depth:0,surfaces:card,protectedRects:text}),{surfaces:card,protectedRects:text});
+ assert.deepEqual(visualDepthMasks({depth:1,surfaces:card,protectedRects:text}),{surfaces:[],protectedRects:[]});
+ assert.deepEqual(visualDepthMasks({depth:0,surfaces:card,protectedRects:text}),{surfaces:[],protectedRects:[]});
  const renderer=readFileSync(new URL('m-world-3d.mjs',import.meta.url),'utf8');
  assert.match(renderer,/visualDepthMasks\(\{depth,surfaces:frame.surfaces,protectedRects:frame.protectedRects\}\)/);
  assert.match(renderer,/updateBatch\(surfaceBatch,masks.surfaces/);
