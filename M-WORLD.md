@@ -1,3 +1,23 @@
+# M World V29 — Life, conversation and privacy-aware insights
+
+The original V6 M uses rounded **card-only occlusion** when behind portfolio
+components, avoiding rectangular text-mask cutouts. Text remains protected in
+navigation and in front. Added bounded micro-movement, settling and anticipation.
+Public companion UI now has questions and answers, with privacy controls in a
+small disclosure; visitor gesture/expression buttons are not shown by default.
+Developer gesture diagnostics remain opt-in via `?m-debug=1`.
+
+A standalone Cloudflare Worker + D1 database design tracks only aggregated
+daily views and estimated browser-tab sessions. **This is not activated or
+collecting yet**: the owner's D1 database, secret and real Worker URL must be
+configured before the frontend `m-analytics-config.mjs` is enabled. Do not
+confuse this with the existing OpenAI M companion Worker. GitHub Actions passed
+503/503 automated tests; native browser artistic verification is outstanding.
+
+See [V29 setup and verification](docs/m-world-v29/PROGRESS.md).
+
+---
+
 # M World V28 — More natural presence and adaptive performance
 
 Implemented on `feat/m-world-v28-presence-performance`; not published.

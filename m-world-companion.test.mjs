@@ -146,8 +146,8 @@ test('autonomous play is presented as independent of optional input and status r
  let autonomy={current:{kind:'scene',id:'internal-scene-17',anchorId:'project-epoxy'}},enabledMotion=0,gestures=0;
  const {companion,requests,input,form,status}=companionFixture({getAutonomyStatus:()=>autonomy,onEnableMotion:()=>{enabledMotion++;return true;},onGesture:()=>{gestures++;return true;}});t.after(()=>companion.destroy());
  const {panel}=companion.elements,intro=panel.childNodes.find(element=>element.className==='m-companion-body').childNodes.find(element=>element.className==='m-companion-intro'),autonomyNote=panel.childNodes.find(element=>element.className==='m-companion-body').childNodes.find(element=>element.className==='m-companion-autonomy');
- assert.match(intro.textContent,/explores and plays on her own/);assert.match(intro.textContent,/optional gesture/);assert.equal(intro.hidden,false);
- assert.equal(autonomyNote.hidden,false);assert.equal(autonomyNote['aria-live'],'off');
+ assert.match(intro.textContent,/Ask M anything about the projects/);assert.doesNotMatch(intro.textContent,/optional gesture/);assert.equal(intro.hidden,false);
+ assert.equal(autonomyNote.hidden,true,'public chat only displays questions, not action status');assert.equal(autonomyNote['aria-live'],'off');
  const chatStatus=status.textContent;input.value='Unsent private draft';
  for(const [next,expected]of [
   [{current:{kind:'scene',id:'internal-scene-17',anchorId:'project-epoxy'}},'M is exploring the page.'],
@@ -160,7 +160,7 @@ test('autonomous play is presented as independent of optional input and status r
   [{current:{kind:'self-play',play:'ball',id:'internal-ball-1'}},'M is playing with a floating ball.']
  ]){
   autonomy=next;for(let i=0;i<4;i++)companion.refresh();
-  assert.equal(autonomyNote.textContent,expected);assert.equal(autonomyNote['aria-live'],'off');assert.equal(autonomyNote.hidden,false);
+  assert.equal(autonomyNote.textContent,expected);assert.equal(autonomyNote['aria-live'],'off');assert.equal(autonomyNote.hidden,true,'autonomous life stays outside public chat UI');
   assert.doesNotMatch(autonomyNote.textContent,/internal-|project-|mischief/);
  }
  assert.equal(companion.isOpen(),false);assert.equal(input.value,'Unsent private draft');assert.equal(form.submissions,0);
