@@ -1,0 +1,18 @@
+# Production analytics Worker. D1 database created in the owner's Cloudflare account.
+# This UUID is a resource identifier, NOT a credential; ADMIN_TOKEN is a Cloudflare Secret.
+name = "m-portfolio-analytics"
+main = "worker.mjs"
+compatibility_date = "2026-11-01"
+workers_dev = true
+
+[vars]
+PUBLIC_ORIGIN = "https://ricardo19-deve.github.io"
+
+[[d1_databases]]
+binding = "ANALYTICS_DB"
+database_name = "m-portfolio-analytics"
+database_id = "f0049534-9f80-4cf3-adb5-3e9e568e643a"
+migrations_dir = "migrations"
+
+[triggers]
+crons = ["15 2 * * *"]
