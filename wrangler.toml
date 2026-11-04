@@ -1,0 +1,19 @@
+# GitHub Workers Builds fallback when Cloudflare root directory = repository root.
+# The canonical analytics config remains analytics/wrangler.toml.
+# This fallback intentionally deploys the SAME analytics Worker, not the M AI Worker.
+name = "ricardo19-deve-github-io"
+main = "analytics/worker.mjs"
+compatibility_date = "2026-11-01"
+workers_dev = true
+
+[vars]
+PUBLIC_ORIGIN = "https://ricardo19-deve.github.io"
+
+[[d1_databases]]
+binding = "ANALYTICS_DB"
+database_name = "m-portfolio-analytics"
+database_id = "f0049534-9f80-4cf3-adb5-3e9e568e643a"
+migrations_dir = "analytics/migrations"
+
+[triggers]
+crons = ["15 2 * * *"]
