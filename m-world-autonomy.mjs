@@ -20,7 +20,7 @@ function targetsOf(value){
   const visibleShare=clamp(target.visibleShare,.7);
   if(!actions.length||visibleShare<.15)continue;
   targets.set(target.id,{id:target.id,stableId:safeId(target.stableId)?target.stableId:target.id,actions,
-   novelty:clamp(target.novelty,.6),visibleShare,
+   novelty:clamp(target.novelty,.6),attention:clamp(target.attention,0),visibleShare,
    proximity:1/(1+Math.max(0,Math.min(10_000,Number.isFinite(target.distance)?target.distance:500))/500)});
  }
  return [...targets.values()].sort((a,b)=>a.id.localeCompare(b.id,'en'));
@@ -122,15 +122,15 @@ export function createAutonomy({seed=18421}={}){
   if(!reading){
    for(const target of availableTargets){
     if(at<entryFor(target.stableId).cooldownUntil)continue;
-    const {novelty:n,visibleShare:v,proximity:p}=target;
+    const {novelty:n,visibleShare:v,proximity:p,attention:a}=target;
     for(const action of target.actions){
-     if(action==='inspect')add('inspect',.20+.28*n+.16*v+.12*p+.12*energy+.12*curiosity,
+     if(action==='inspect')add('inspect',.20+.28*n+.16*v+.12*p+.12*energy+.12*curiosity+.14*a,
       {kind:'scene',targetId:target.id,action,gesture:'curious',expression:'curious',affect:'focus',quiet:false},target.stableId);
-     if(action==='peek')add('peek',.14+.18*n+.18*v+.10*p+.22*energy+.18*playNeed,
+     if(action==='peek')add('peek',.14+.18*n+.18*v+.10*p+.22*energy+.18*playNeed+.07*a,
       {kind:'scene',targetId:target.id,action,gesture:'playful',expression:'happy',affect:'mischief',play:'hide',quiet:false},target.stableId);
-     if(action==='perch')add('perch',.15+.14*(1-n)+.17*v+.13*p+.31*restNeed+.10*(1-playNeed),
+     if(action==='perch')add('perch',.15+.14*(1-n)+.17*v+.13*p+.31*restNeed+.10*(1-playNeed)+.09*a,
       {kind:'scene',targetId:target.id,action,gesture:'nod',expression:'happy',affect:'content',quiet:false},target.stableId);
-     if(action==='orbit')add('orbit',.12+.22*n+.15*v+.11*p+.25*energy+.15*playNeed,
+     if(action==='orbit')add('orbit',.12+.22*n+.15*v+.11*p+.25*energy+.15*playNeed+.07*a,
       {kind:'scene',targetId:target.id,action,gesture:'curious',expression:'curious',affect:'anticipation',quiet:false},target.stableId);
     }
    }
