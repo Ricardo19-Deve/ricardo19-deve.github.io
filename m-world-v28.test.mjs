@@ -50,6 +50,7 @@ test('V28 dynamics reject non-finite inputs without NaN propagation',()=>{
   {dt:1/30,attention:null}
  ]) {
   const out=p.sample(input);
+  if(input.attention===null||Object.keys(input.attention||{}).length===0)assert.ok(Math.abs(out.attention.x)<=1,'invalid gaze stays bounded');
   for(const n of [out.attention.x,out.attention.y,out.energy,out.tailEnergy,out.tailReactivity,out.tailFlow,out.stageYaw,out.moving])
    assert.ok(Number.isFinite(n));
  }
