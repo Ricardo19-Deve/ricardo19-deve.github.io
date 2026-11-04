@@ -1,7 +1,9 @@
 # M V29 — vida autónoma, perguntas e analytics privado
 
 ## Estado
-**CI:** 503/503 testes Node aprovados no GitHub Actions, incluindo os 10 testes V29 e contratos de produção da M. Validação visual física ainda pendente.\n\nBranch: `feat/m-world-v29-autonomy-chat-analytics`. Ainda não há publicação do Worker D1 nem segredo criado nesta sessão. O serviço analytics permanece **desativado** no site enquanto `m-analytics-config.mjs` tiver o endpoint vazio. Não foram recolhidas visitas por este mecanismo.
+**CI:** 503/503 testes Node aprovados no GitHub Actions, incluindo os 10 testes V29 e contratos de produção da M. Validação visual física ainda pendente.
+
+Branch: `feat/m-world-v29-autonomy-chat-analytics`. A D1, o Worker de analytics e o segredo `ADMIN_TOKEN` foram configurados pelo proprietário. O endpoint `/health` já devolveu `ready: true` em 4 de novembro de 2026. A integração pública foi ativada no GitHub; confirmar a publicação em GitHub Pages e a primeira contagem real no dashboard antes de considerar a recolha verificada.
 
 ## Alterações M
 - Profundidade: por detrás, apenas a geometria real dos cards é usada para o recorte visual. Rectângulos de texto internos mantêm-se como restrições da navegação e como último recurso de leitura quando a M está à frente. Sem modificar o modelo V6.
@@ -13,7 +15,7 @@
 
 Registam-se somente dados agregados: visualizações por dia, sessões estimadas por dia e visualizações por página. D1 guarda hashes de identificadores aleatórios por separador e por dia por até 35 dias (para deduplicação). Não são guardados IPs, User-Agents, referrers, nomes, emails ou mensagens de chat. O cliente respeita sinais Do Not Track e Global Privacy Control. Uma sessão por separador não equivale a uma pessoa única.
 
-### Passos necessários no Cloudflare (ainda por fazer)
+### Histórico dos passos de ativação da Cloudflare (concluídos pelo proprietário)
 
 1. Instalar `wrangler` e autenticar na **conta Cloudflare proprietária**: `npx wrangler login`.
 2. Em `analytics/`, criar D1: `npx wrangler d1 create m-portfolio-analytics --location weur`. Guardar o `database_id` apresentado.
