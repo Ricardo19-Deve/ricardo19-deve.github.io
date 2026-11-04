@@ -1,3 +1,4 @@
+import {validateCharacterContext} from './m-world-character-context.mjs?v=30';
 // Shared, data-only boundary for the optional automatic animation director.
 // These suggestions never grant DOM access, navigation, coordinates or code.
 export const DIRECTOR_ACTIONS = Object.freeze(['peek', 'perch', 'orbit', 'inspect', 'rest']);
@@ -18,7 +19,7 @@ function safeId(value) { return typeof value === 'string' && /^[a-zA-Z0-9][a-zA-
 function title(value) { return typeof value === 'string' && value.trim().length > 0 && value.length <= 80 && !/[\u0000-\u001f\u007f]/u.test(value); }
 
 export function validateDirectorInput(value) {
-  if (!exactKeys(value, ['snapshot'])) return false;
+  if (!(exactKeys(value, ['snapshot']) || (exactKeys(value, ['snapshot','character']) && validateCharacterContext(value.character)))) return false;
   const snapshot = value.snapshot;
   if (!exactKeys(snapshot, ['revision', 'section', 'language', 'event', 'attentionId', 'targets', 'recent'])
     || !safeId(snapshot.revision) || !DIRECTOR_SECTIONS.includes(snapshot.section)
@@ -41,10 +42,11 @@ export function validateDirectorInput(value) {
       && (safeId(item.targetId) || (item.targetId === null && item.action === 'rest')));
 }
 
-function snapshotOf(value) { return value?.snapshot && typeof value.snapshot === 'object' ? value.snapshot : value; }
+function inputOf(value) { return value?.snapshot && typeof value.snapshot === 'object' ? value : {snapshot:value}; }
+function snapshotOf(value) { return inputOf(value).snapshot; }
 export function validateDirectorReply(value, input) {
   const snapshot = snapshotOf(input);
-  if (!validateDirectorInput({ snapshot }) || !exactKeys(value, ['snapshot', 'targetId', 'action', 'gesture', 'expression'])
+  if (!validateDirectorInput(inputOf(input)) || !exactKeys(value, ['snapshot', 'targetId', 'action', 'gesture', 'expression'])
     || value.snapshot !== snapshot.revision || !DIRECTOR_ACTIONS.includes(value.action)
     || !DIRECTOR_GESTURES.includes(value.gesture) || !DIRECTOR_EXPRESSIONS.includes(value.expression)) return false;
   if (value.targetId === null) return value.action === 'rest';
@@ -58,7 +60,7 @@ export function directorRest(input) {
 
 export function createDirectorSchema(input) {
   const snapshot = snapshotOf(input);
-  if (!validateDirectorInput({ snapshot })) throw new TypeError('Invalid director snapshot');
+  if (!validateDirectorInput(inputOf(input))) throw new TypeError('Invalid director snapshot');
   return {
     type: 'object', additionalProperties: false,
     properties: {

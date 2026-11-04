@@ -1,6 +1,18 @@
+# M World V26 — Persistent character continuity
+
+Prepared on feat/m-character-continuity-v26; publication requires owner approval.
+M initiates The Small Light adventure, records genuine discoveries and remembers
+a preferred quiet lookout across browser visits. Optional story UI and negotiated
+AI context share the same bounded state. Original V6 appearance, full skinning,
+spatial protection and current model/secret/quotas are preserved.
+
+See [V26 implementation, native evidence and two previews](docs/m-world-v26/VALIDATION.md).
+
+---
+
 # M World V25 — Autonomous initiative
 
-Implemented on feat/m-autonomous-life-v25; publication pending owner approval.
+Published through PR #9 on 3 November 2026 (merge 4da82fb4).
 M chooses exploration, self-play, observation and rest without visitor commands.
 Internal energy and bounded utility memory drive varied intentions; the existing
 OpenAI director remains an occasional higher-level guide with unchanged budgets.

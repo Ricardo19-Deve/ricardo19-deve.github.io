@@ -90,3 +90,16 @@ body>header.top.glass-nav{z-index:92!important}
 .m-companion-autonomy{margin:0;padding:7px 9px;border-left:2px solid #9edee8;color:#c6e9ef;font-size:11px;line-height:1.4}
 .m-play-light{transition:transform 1.1s cubic-bezier(.22,.61,.36,1)}
 @media(prefers-reduced-motion:reduce){.m-play-light{transition:none}}
+
+/* Story remains an optional quiet disclosure; it never starts a required game. */
+.m-companion-story p{margin:8px 0 0;line-height:1.45}
+.m-companion-story-chapter{font-weight:700;color:#d9c9f2}
+.m-companion-story-goal,.m-companion-story-preference{color:#d9e5ee}
+.m-companion-story-discovery,.m-companion-story-storage{font-size:10px;color:#abc2ce}
+.m-companion-story-journal{margin:9px 0;padding-left:18px;color:#c4d5df}
+.m-companion-story-journal li+li{margin-top:5px}
+.m-companion .m-companion-remember-character{margin-top:9px;min-height:36px;font-size:10px}
+.m-companion .m-companion-remember-character[aria-pressed=true]{border-color:#91bcce;background:#203c4d}
+
+/* Keep scrolled story text below the sticky dialog header, including its padding. */
+.m-companion-header::before{content:"";position:absolute;inset:-20px -20px -5px;z-index:-1;background:#101a2b;pointer-events:none}

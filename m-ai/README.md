@@ -4,6 +4,39 @@ This optional backend connects the portfolio's M character to the OpenAI Respons
 
 The public frontend endpoint points to the deployed Worker. Local scripted interactions still require no API traffic. If an approved rollout enables automatic directing, a limited snapshot of public visible components can also reach the API. The public browser config contains only public endpoint and feature settings. **Never put an OpenAI key in HTML, JavaScript, GitHub Pages, a browser config, a screenshot, or Git.**
 
+## V26 character continuity — prepared, not deployed
+
+The V26 build adds a bounded authored character context for M's fictional identity,
+goal and remembered discovery. It does not add server-side story storage, raw chat
+persistence, a new model, a new API key or an increased request allowance. Character
+state is local encounter data, not verified global history or proof of visitor identity.
+
+The new health response advertises `character: { version: 1 }`. New clients send
+character data only after this capability is present. An older deployed Worker
+continues receiving the exact old request shapes; its absence is not treated as
+an error. Component-aware chat capability remains independent.
+
+- Chat accepts optional `context.character`.
+- Directing accepts optional top-level `character` beside the existing `snapshot`.
+- The four-field chat and five-field director response schemas are unchanged.
+- Both routes use the same authored identity and a strict shared validator in
+  `../m-world-character-context.mjs`.
+- The client includes used character state in its meaningful-context fingerprint
+  and rejects stale responses when that state changes, without resetting quota.
+- Only approved enum values and curated public component IDs cross this boundary;
+  arbitrary diary strings, raw chat memory, visitor IDs and private fields are rejected.
+
+The initial chapter is `small-light`: `seeking` / `follow-light` / no discovery;
+`returning` / `find-lookout` / `little-light`; then `complete` / `explore` or a
+returning-visit `revisit-lookout`, with the quiet-lookout preference. These are
+validated cross-field states, not a request to create or complete an adventure.
+Model phrasing must not invent a completed beat or rewrite M's authored identity.
+
+Offline fixtures cover old/new capability negotiation, invalid private fields,
+character changes during an in-flight response, unchanged model/schema, and the
+same six-attempt / 65-second client allowance plus existing server quota tests.
+Any Worker update or public rollout still requires explicit owner approval.
+
 ## Status and files
 
 Deployed on 2 November 2026 to https://m-portfolio-companion.ricardopacheco-pinheiro.workers.dev with a SQLite Durable Object. The owner configured OPENAI_API_KEY directly as a Cloudflare secret; its value was never inspected. A real portfolio question and a real Chrome greeting both returned HTTP 200; the greeting requested a wave and the original rig performed it. Automated backend tests still use explicitly mocked responses and local SQLite. These tests are distinct from the recorded live checks.
@@ -64,7 +97,7 @@ The initial deployment was explicitly approved. The procedure below is retained 
 
 ## HTTP contract
 
-`GET /health` returns `{ "configured": boolean, "director": { "version": 1, "enabled": boolean }, "contextualChat": { "version": 1 } }` and no key/model/account details. The director reports enabled only when the normal backend configuration is present and `AI_AUTOPLAY_ENABLED` is exactly the string `true`. An old deployed backend without this capability must leave automatic requests disabled.
+`GET /health` returns `{ "configured": boolean, "director": { "version": 1, "enabled": boolean }, "contextualChat": { "version": 1 }, "character": { "version": 1 } }` in the prepared V26 build, and no key/model/account details. The director reports enabled only when the normal backend configuration is present and `AI_AUTOPLAY_ENABLED` is exactly the string `true`. An old deployed backend without this capability must leave automatic requests disabled.
 
 `POST /api/m/respond`, with an allowlisted `Origin` and `Content-Type: application/json`:
 

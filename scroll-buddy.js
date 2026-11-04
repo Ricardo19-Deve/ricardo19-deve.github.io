@@ -1,18 +1,19 @@
-import {createAutonomy} from './m-world-autonomy.mjs?v=29';
-import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=29';
-import {createSessionMemory} from './m-world-memory.mjs?v=29';
-import {getContextComponent,matchContextComponent} from './m-world-context.mjs?v=29';
-import {M_AFFECTS,AFFECT_DURATIONS} from './m-world-affect.mjs?v=29';
-import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=29';
-import {createWorldObserver} from './m-world-observer.mjs?v=29';
-import {createWorldDirector} from './m-world-director.mjs?v=29';
-import {advanceLocomotion} from './m-world-locomotion.mjs?v=29';
+import {createCharacter,characterReceiptId} from './m-world-character.mjs?v=30';
+import {createAutonomy} from './m-world-autonomy.mjs?v=30';
+import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=30';
+import {createSessionMemory} from './m-world-memory.mjs?v=30';
+import {getContextComponent,matchContextComponent} from './m-world-context.mjs?v=30';
+import {M_AFFECTS,AFFECT_DURATIONS} from './m-world-affect.mjs?v=30';
+import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=30';
+import {createWorldObserver} from './m-world-observer.mjs?v=30';
+import {createWorldDirector} from './m-world-director.mjs?v=30';
+import {advanceLocomotion} from './m-world-locomotion.mjs?v=30';
 import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
-import {MWorldBrain} from './m-world-brain.mjs?v=29';
-import {M_GESTURES,GESTURE_DURATIONS} from './m-world-acting.mjs?v=29';
-import {createMCompanion} from './m-world-companion.mjs?v=29';
-import {M_WORLD_CONFIG} from './m-world-config.mjs?v=29';
-import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=29';
+import {MWorldBrain} from './m-world-brain.mjs?v=30';
+import {M_GESTURES,GESTURE_DURATIONS} from './m-world-acting.mjs?v=30';
+import {createMCompanion} from './m-world-companion.mjs?v=30';
+import {M_WORLD_CONFIG} from './m-world-config.mjs?v=30';
+import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=30';
 
 (() => {
  'use strict';
@@ -28,7 +29,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  document.body.append(layer,toggle);
  const life=new MLifeV16({seed:18421,personality:'playful'});
  const brain=new MWorldBrain({seed:18421}),failedPlans=new Map(),recentCorridors=[];
- const memory=createSessionMemory(),scenes=createScenePlayer(),autonomy=createAutonomy({seed:18425});
+ const memory=createSessionMemory(),character=createCharacter(),scenes=createScenePlayer(),autonomy=createAutonomy({seed:18425});
  let autoExecution=null,autonomyNextRead=0,autonomyFatigue=0,autonomyLastRead=0,lastAutonomousGame=null;
  const autoStats={accepted:0,completed:0,failed:0,cancelled:0,events:[]};
  let characterEnergy=memory.snapshot().energy,sceneMeta=null,sceneCommand=null,completedSceneRoute=null,completedSceneGesture=null,nextSceneAt=0,lastMemoryAt=0,lastPaceScroll=scrollY,game=null,gameSerial=0;
@@ -306,7 +307,32 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   const world=worldSnapshot(),records=publicComponents(world);
   const chosen=records.find(r=>r.id===interest.attentionId)||records.find(r=>r.id===state.targetId)||records[0];
   const component=chosen&&publicComponent(world.surfaces.find(r=>r.id===chosen.id));
-  return {section:currentSection(world),language:navigator.language?.startsWith('pt')?'pt':'en',...(component?{component:component.id}:{})};
+  return {section:currentSection(world),language:navigator.language?.startsWith('pt')?'pt':'en',...(component?{component:component.id}:{}),character:character.getContext()};
+ }
+ function currentCharacterGoal(targets,world){
+  const context=character.getContext();
+  if(context.goal==='follow-light')return {id:context.goal,targetId:null};
+  if(!['find-lookout','revisit-lookout'].includes(context.goal))return null;
+  const favorite=character.snapshot().favorite?.stableId;
+  const available=targets.filter(target=>getContextComponent(target.stableId)&&target.actions.includes('perch'));
+  const target=context.goal==='revisit-lookout'?available.find(value=>value.stableId===favorite):available.sort((a,b)=>a.distance-b.distance)[0];
+  if(target)return {id:context.goal,targetId:target.id};
+  // Some responsive layouts have no visible card. A genuine clear hover can be a lookout.
+  const restingPlace='lookout-'+currentSection(world);
+  if(context.goal==='revisit-lookout'&&favorite!==restingPlace)return null;
+  const stage=planGestureStage({position:state,metrics,viewport:world.viewport,surfaces:world.surfaces,protectedRects:world.protectedRects});
+  if(!stage)return null;
+  const body=actorRect({...state,...stage.target},{...metrics,footprint:metrics.neutralFootprint||metrics.footprint});
+  if(body.left<0||body.right>world.viewport.width||body.top<world.viewport.headerBottom+4||body.bottom>world.viewport.height||world.protectedRects.some(r=>overlap(body,r)))return null;
+  return {id:context.goal,targetId:null,restingPlace};
+ }
+ function recordCharacterExperience(owner,success){
+  const goal=owner.decision.characterGoal;
+  if(!goal)return false;
+  return character.record({id:characterReceiptId(owner.characterVisit,owner.decision.id),goal,success,componentId:owner.characterComponent||null,publicComponent:owner.characterPublicComponent||null});
+ }
+ function resetCharacterMemory(){
+  cancelAutonomy('memory-reset');memory.clear();character.reset();autonomy.resetMemory(performance.now());companion?.refresh();
  }
  function setCharacterAffect(name,{weight=.9,owner=null}={}){
   if(M_AFFECTS.includes(name))state.affect={name,age:0,weight,owner};
@@ -317,18 +343,19 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  function noteAutonomy(status,decision,now,reason){
   const key=status==='accepted'?'accepted':status==='complete'?'completed':status==='cancelled'?'cancelled':'failed';
   autoStats[key]=Math.min(1000000,autoStats[key]+1);
-  autoStats.events.push({id:decision.id,kind:decision.kind,action:decision.action,play:decision.play,affect:decision.affect,targetId:decision.targetId,status,at:now,reason});
+  autoStats.events.push({id:decision.id,kind:decision.kind,action:decision.action,play:decision.play,affect:decision.affect,targetId:decision.targetId,characterGoal:decision.characterGoal||null,status,at:now,reason});
   if(autoStats.events.length>16)autoStats.events.shift();
  }
  function finishAutonomy(success,reason,now){
   if(!autoExecution)return;
-  const decision=autoExecution.decision;autoExecution=null;
+  const owner=autoExecution,decision=owner.decision;autoExecution=null;
   if(route?.autonomyId===decision.id)route=null;
   if(pendingGesture?.autonomyId===decision.id)pendingGesture=null;
-  autonomy.complete({success,reason,nowMs:now});
-  if(success&&decision.kind==='scene'&&decision.targetId){directorRecent.push({targetId:decision.targetId,action:decision.action});if(directorRecent.length>6)directorRecent.shift();directorEvent='arrival';}
-  noteAutonomy(success?'complete':'failed',decision,now,reason);
-  releaseCharacterAffect();nextChoice=now+1000;
+  const acknowledged=autonomy.complete({success,reason,nowMs:now});
+  const remembered=acknowledged&&recordCharacterExperience(owner,success);
+  if(success&&acknowledged&&decision.kind==='scene'&&decision.targetId){directorRecent.push({targetId:decision.targetId,action:decision.action});if(directorRecent.length>6)directorRecent.shift();directorEvent='arrival';}
+  noteAutonomy(success&&acknowledged?'complete':'failed',decision,now,acknowledged?reason:'ownership-lost');
+  releaseCharacterAffect();if(remembered&&success&&decision.characterGoal==='follow-light')setCharacterAffect('proud',{weight:1});nextChoice=now+1000;
  }
  function cancelAutonomy(reason='interrupted',now=performance.now()){
   const owned=autoExecution;autoExecution=null;
@@ -346,7 +373,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   autonomy.cancel(reason,now);nextChoice=now+1000;
  }
  function autonomyStatus(){
-  return {...autonomy.snapshot(),...autoStats,events:autoStats.events.map(value=>({...value})),energy:bound(.82-autonomyFatigue+(characterEnergy-.5)*.12,.2,1),execution:autoExecution?{id:autoExecution.decision.id,kind:autoExecution.kind,sceneId:autoExecution.sceneId||null,gameId:autoExecution.gameId||null,started:autoExecution.started}:null};
+  return {...autonomy.snapshot(),...autoStats,events:autoStats.events.map(value=>({...value})),energy:bound(.82-autonomyFatigue+(characterEnergy-.5)*.12,.2,1),execution:autoExecution?{id:autoExecution.decision.id,kind:autoExecution.kind,sceneId:autoExecution.sceneId||null,gameId:autoExecution.gameId||null,started:autoExecution.started,characterGoal:autoExecution.decision.characterGoal||null}:null};
  }
  function updateAutonomy(now,world){
   const field=document.activeElement,typing=Boolean(field?.matches?.('input,textarea,select,[contenteditable="true"]'));
@@ -378,7 +405,8 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
    return {id:record.id,stableId:component?.id||record.id,kind:record.kind,actions:known?.actions||['inspect'],novelty:memory.score(component?.id||record.id),visibleShare:visible/Math.max(1,surface.width*surface.height),distance:Math.hypot((surface.left+surface.right)/2-state.x,(surface.top+surface.bottom)/2-state.y)};
   });
   const corridor=!externalBusy&&chooseCorridorTarget({viewport:world.viewport,metrics,position:state,protectedRects:world.protectedRects,surfaces:world.surfaces,depth:1,recent:recentCorridors});
-  const decision=autonomy.choose({nowMs:now,context:{active,hidden:document.hidden,reducedMotion,typing,selection,scrolling:false,reading:now<interest.readingUntil,busy:externalBusy,section:currentSection(world)},energy:bound(.82-autonomyFatigue+(characterEnergy-.5)*.12,.2,1),remotePending:director?.getStatus().pending,selfPlayAvailable:Boolean(corridor&&Math.hypot(corridor.x-state.x,corridor.y-state.y)>44),targets});
+  const characterGoal=externalBusy||now<interest.readingUntil?null:currentCharacterGoal(targets,world);
+  const decision=autonomy.choose({nowMs:now,goal:characterGoal,context:{active,hidden:document.hidden,reducedMotion,typing,selection,scrolling:false,reading:now<interest.readingUntil,busy:externalBusy,section:currentSection(world)},energy:bound(.82-autonomyFatigue+(characterEnergy-.5)*.12,.2,1),remotePending:director?.getStatus().pending,selfPlayAvailable:Boolean(corridor&&Math.hypot(corridor.x-state.x,corridor.y-state.y)>44),targets});
   if(!decision)return;
   let accepted=false,kind=decision.kind;
   if(decision.kind==='self-play'||decision.play==='hide'){
@@ -391,7 +419,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
    if(quietReady)accepted=queueIntent({name:decision.gesture==='none'?null:decision.gesture,affect:decision.affect,quiet:stationary,source:'life',expression:decision.expression,autonomyId:decision.id,queuedAt:state.clock});
   }
   autonomy.resolve(decision.id,{accepted,nowMs:now});
-  if(accepted){autoExecution={decision,kind,started:now,sceneId:kind==='scene'?scenes.snapshot().id:null,gameId:kind==='game'?game.id:null,visible:false};nextChoice=Infinity;noteAutonomy('accepted',decision,now,decision.reason);}
+  if(accepted){const target=targets.find(value=>value.id===decision.targetId);autoExecution={decision,kind,started:now,sceneId:kind==='scene'?scenes.snapshot().id:null,gameId:kind==='game'?game.id:null,visible:false,characterVisit:character.snapshot().visitId,characterComponent:target?.stableId||(decision.characterGoal?characterGoal?.restingPlace:null)||null,characterPublicComponent:getContextComponent(target?.stableId)?.id||null};nextChoice=Infinity;noteAutonomy('accepted',decision,now,decision.reason);}
   else noteAutonomy('failed',decision,now,'unavailable-action');
  }
  function clearScene(reason='interrupted'){
@@ -632,7 +660,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(loading||avatar)return loading;
   loading=(async()=>{
    try{
-    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=29');
+    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=30');
     avatar=await mountMWorld3D(host,{onProgress(percent){layer.dataset.loadProgress=String(percent);if(active)toggle.textContent='M · '+percent+'%';}});
     metrics=avatar.getMetrics();cache.dirty=true;cache.lastRead=0;
     const world=worldSnapshot();
@@ -703,7 +731,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  function snapshot(){
   if(avatar)metrics=avatar.getMetrics();
   const world=worldSnapshot();
-  return {ready:Boolean(avatar),active,error:layer.dataset.error||null,state:{...state,gesture:state.gesture?{...state.gesture}:null,expressionHold:state.expressionHold?{...state.expressionHold}:null},acting:{attached:Boolean(route?.attached),externalPortal:Boolean(route?.plan?.externalPortal)},brain:brain.snapshot(),companion:companion?.snapshot(),pendingGesture:pendingGesture?.name||null,pendingIntent:pendingGesture?{...pendingGesture}:null,preferences:{reducedMotion,systemReducedMotion:motionPreference.matches,motionOptIn},character:{scene:scenes.snapshot(),game:game?{...game}:null,memory:memory.snapshot(),autonomy:autonomyStatus()},staging:route?.gestureStage?{escape:route.escape,target:{...route.target},egress:{...route.egress}}:null,metrics,actor:actorRect(renderFrame?{x:renderFrame.actor.left,y:renderFrame.actor.top}:state,metrics),
+  return {ready:Boolean(avatar),active,error:layer.dataset.error||null,state:{...state,gesture:state.gesture?{...state.gesture}:null,expressionHold:state.expressionHold?{...state.expressionHold}:null},acting:{attached:Boolean(route?.attached),externalPortal:Boolean(route?.plan?.externalPortal)},brain:brain.snapshot(),companion:companion?.snapshot(),pendingGesture:pendingGesture?.name||null,pendingIntent:pendingGesture?{...pendingGesture}:null,preferences:{reducedMotion,systemReducedMotion:motionPreference.matches,motionOptIn},character:{scene:scenes.snapshot(),game:game?{...game}:null,memory:memory.snapshot(),autonomy:autonomyStatus(),story:character.snapshot()},staging:route?.gestureStage?{escape:route.escape,target:{...route.target},egress:{...route.egress}}:null,metrics,actor:actorRect(renderFrame?{x:renderFrame.actor.left,y:renderFrame.actor.top}:state,metrics),
    surfaces:world.surfaces.map(({element,...r})=>r),protectedRects:world.protectedRects,director:{...director?.getStatus(),perception:directorSnapshot,activity:directorActivity,lastExecution:directorLastExecution},renderer:avatar?.getDiagnostics(),life:lastLife,stats:{...stats},frozen};
  }
  if(debugEnabled)window.MWorld={
@@ -723,7 +751,8 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
    return {...snapshot(),plan:{available:plan.available,kind:plan.kind,requestedKind:kind,duration:plan.duration,portal:plan.portal,phase:point.phase}};
   },
   async playAction({selector='.card',index=0,kind='peek'}={}){
-   stopPlay('diagnostic-action');clearScene('diagnostic-action');
+   // Release queued autonomous gestures before an explicit diagnostic owns the route.
+   cancelAutonomy('diagnostic-action');stopPlay('diagnostic-action');clearScene('diagnostic-action');
    if(!avatar)await load();if(!avatar)throw new Error('Original M is not ready');
    metrics=avatar.getMetrics();frozen=false;cache.dirty=true;cache.lastRead=0;const world=worldSnapshot(),element=document.querySelectorAll(selector)[index];
    if(!element)throw new Error('Unknown diagnostic component');
@@ -740,8 +769,8 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   dispose(){disposed=true;if(frameId!==null)cancelAnimationFrame(frameId);resizeObserver.disconnect();mutationObserver.disconnect();for(const type of ['transitionrun','transitionend','transitioncancel'])document.removeEventListener(type,geometryTransition,true);stopPlay('disposed');clearScene('disposed');playDock.remove();playLight.remove();director?.dispose();observer?.dispose();companion?.destroy();avatar?.dispose();layer.remove();toggle.remove();}
  };
  observer=createWorldObserver({getComponents:()=>directorComponents});
- director=createWorldDirector({endpoint:M_WORLD_CONFIG.directorEndpoint||'',onIntent:applyDirectorIntent,onStatus:()=>companion?.refresh()});
- companion=createMCompanion({getAutonomyStatus:autonomyStatus,onAffect:name=>M_AFFECTS.includes(name)&&queueIntent({name:null,affect:name,source:'visitor',expression:'neutral',queuedAt:state.clock}),onScene:()=>beginCharacterScene(),onGame:startPlay,onResetMemory:()=>{cancelAutonomy('memory-reset');memory.clear();autonomy.resetMemory(performance.now());},onContextResponse:(id,reply)=>{cancelAutonomy('assistant-response');const world=worldSnapshot(),target=world.surfaces.find(r=>publicComponent(r)?.id===id);if(target){stopPlay('context-response');return beginCharacterScene({source:'assistant',targetId:target.id,action:'inspect',gesture:reply.gesture==='none'?'nod':reply.gesture,expression:reply.expression});}return false;},getDirectorStatus:()=>director.getStatus(),onDirectorEnabled:enabled=>{director.setEnabled(enabled);if(!enabled)directorActivity=null;updateDirector(performance.now(),worldSnapshot(),true);},endpoint:M_WORLD_CONFIG.assistantEndpoint,onGesture:queueGesture,onExpression:queueExpression,getMotionStatus:()=>({active,reducedMotion}),onEnableMotion:enableMotion,getContext:activeChatContext,onSection:name=>{document.getElementById(name)?.scrollIntoView({behavior:reducedMotion?'instant':'smooth',block:'start'});},onEngagement:open=>{if(!open)interest.hoverGuardUntil=performance.now()+250;invalidate();}});
+ director=createWorldDirector({getCharacterContext:()=>character.getContext(),endpoint:M_WORLD_CONFIG.directorEndpoint||'',onIntent:applyDirectorIntent,onStatus:()=>companion?.refresh()});
+ companion=createMCompanion({getCharacterStatus:()=>character.snapshot(),onRememberCharacter:value=>character.setRemember(value),getAutonomyStatus:autonomyStatus,onAffect:name=>M_AFFECTS.includes(name)&&queueIntent({name:null,affect:name,source:'visitor',expression:'neutral',queuedAt:state.clock}),onScene:()=>beginCharacterScene(),onGame:startPlay,onResetMemory:resetCharacterMemory,onContextResponse:(id,reply)=>{cancelAutonomy('assistant-response');const world=worldSnapshot(),target=world.surfaces.find(r=>publicComponent(r)?.id===id);if(target){stopPlay('context-response');return beginCharacterScene({source:'assistant',targetId:target.id,action:'inspect',gesture:reply.gesture==='none'?'nod':reply.gesture,expression:reply.expression});}return false;},getDirectorStatus:()=>director.getStatus(),onDirectorEnabled:enabled=>{director.setEnabled(enabled);if(!enabled)directorActivity=null;updateDirector(performance.now(),worldSnapshot(),true);},endpoint:M_WORLD_CONFIG.assistantEndpoint,onGesture:queueGesture,onExpression:queueExpression,getMotionStatus:()=>({active,reducedMotion}),onEnableMotion:enableMotion,getContext:activeChatContext,onSection:name=>{document.getElementById(name)?.scrollIntoView({behavior:reducedMotion?'instant':'smooth',block:'start'});},onEngagement:open=>{if(!open)interest.hoverGuardUntil=performance.now()+250;invalidate();}});
  try{if(localStorage.getItem('m-world-enabled')==='no')active=false;}catch{}
  life.setEnabled(active&&!reducedMotion);setActive(active,false);
 })();

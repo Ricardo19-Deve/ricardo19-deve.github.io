@@ -1,3 +1,4 @@
+import {cloneCharacterContext} from './m-world-character-context.mjs?v=30';
 /** Public, stable component IDs shared by the page and contextual chat. */
 const records=[
  ['portrait-ricardo','Ricardo Pinheiro portrait','portrait','home'],
@@ -30,8 +31,10 @@ export function matchContextComponent({title,kind}={}){
  const label=key(title);
  return M_CONTEXT_COMPONENTS.find(item=>(!kind||item.kind===kind)&&key(item.title)===label)||null;
 }
-export function contextualChatRequest(context,capability=false){
+export function contextualChatRequest(context,capability=false,characterCapability=false){
  const safe={section:context?.section||'home',language:context?.language==='pt'?'pt':'en'};
  if(capability&&getContextComponent(context?.component))safe.component=context.component;
+ const character=characterCapability?cloneCharacterContext(context?.character):null;
+ if(character)safe.character=character;
  return safe;
 }

@@ -37,7 +37,7 @@ function fixture(){
  const calls={stages:0,scheduled:0,lightGoals:0,director:[]};
  const context=createContext({
   actorRect,bound,gestureReady,gestureViewportFits,isExplicitGesture,selectGestureIntent,gestureIntentExpired,
-  createScenePlan,AFFECT_DURATIONS,M_AFFECTS,M_GESTURES,GESTURE_DURATIONS:{curious:2.2,playful:3,wave:2.4},
+  currentCharacterGoal:()=>null,recordCharacterExperience:()=>false,character:{snapshot:()=>({visits:1})},getContextComponent:()=>null,createScenePlan,AFFECT_DURATIONS,M_AFFECTS,M_GESTURES,GESTURE_DURATIONS:{curious:2.2,playful:3,wave:2.4},
   avatar:{},active:true,reducedMotion:false,frozen:false,document:{activeElement:null,hidden:false,getSelection:()=>({isCollapsed:true})},
   navigator:{language:'en'},performance:{now:()=>1000},scrollX:0,scrollY:0,
   state:{x:120,y:120,vx:0,vy:0,depth:1,depthTarget:1,phase:'hold',mode:'rest',clock:0,
@@ -342,4 +342,22 @@ test('legacy spontaneous V16 actions cannot regain motion ownership',()=>{
  assert.ok(f.context.lastLife.action,'The legacy sampler genuinely emitted an action');
  assert.equal(f.context.pendingGesture,null);assert.equal(f.context.state.gesture,null);
  assert.equal(f.context.route,null);assert.equal(f.calls.stages,0);
+});
+
+
+test('a requested diagnostic route preempts autonomous staging before it can replace the perch',async()=>{
+ const f=fixture();startQuiet(f);
+ const from=source.indexOf('async playAction('),to=source.indexOf('\n  setDepth(',from);
+ assert.ok(from>=0&&to>from);
+ const method=new Script('({'+source.slice(from,to).trim().replace(/,$/u,'')+'}).playAction').runInContext(f.context);
+ const element={isConnected:true};f.context.cache={dirty:false,lastRead:1000};
+ f.context.document.querySelectorAll=()=>[element];f.context.avatar.getMetrics=()=>f.metrics;
+ f.context.startRoute=()=>{f.context.route={plan:{kind:'perch'},element};f.context.state.mode='perch';};
+ f.context.setActive=()=>{};f.context.snapshot=()=>({});
+ await method({kind:'perch'});
+ assert.equal(f.context.autoExecution,null);assert.equal(f.context.pendingGesture,null);
+ const requested=f.context.route;assert.equal(requested.explicit,true);
+ f.context.updateGesture(.016,f.world,1100);
+ assert.equal(f.context.route,requested);assert.equal(f.context.state.mode,'perch');
+ assert.equal(f.context.autonomy.snapshot().completedCount,0);
 });

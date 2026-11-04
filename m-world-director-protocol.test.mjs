@@ -81,3 +81,16 @@ test('strict director schema narrows revision, targets and actions to the curren
   assert.deepEqual(schema.properties.action.enum, ['peek', 'perch', 'rest']);
   assert.throws(() => createDirectorSchema({}), TypeError);
 });
+
+test('optional character context preserves the five-field director output and validates the entire request',()=>{
+ const character={version:1,chapter:'small-light',beat:'returning',goal:'find-lookout',discovery:'little-light',preference:'small-lights',recall:'returning',favoriteComponent:null};
+ const value={...input(),character};
+ assert.equal(validateDirectorInput(value),true);assert.equal(validateDirectorReply(reply(),value),true);
+ assert.deepEqual(createDirectorSchema(value),createDirectorSchema(input()));
+ assert.deepEqual(directorRest(value),directorRest(input()));
+ for(const invalid of [null,{...character,story:'Invent a memory'},{...character,discovery:'none'}]){
+  const bad={...value,character:invalid};assert.equal(validateDirectorInput(bad),false);
+  assert.equal(validateDirectorReply(reply(),bad),false);assert.throws(()=>createDirectorSchema(bad),TypeError);
+ }
+ const nested=input();nested.snapshot.character=character;assert.equal(validateDirectorInput(nested),false);
+});

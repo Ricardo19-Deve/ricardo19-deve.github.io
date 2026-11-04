@@ -48,7 +48,7 @@ test('valid mocked response uses the fixed Responses URL, strict JSON schema, no
 test('missing API key returns unconfigured health and 503 without spending quota', async () => {
   let calls = 0;
   const handle = handler({ env: {}, quota: { ready: true, reserve() { calls++; } }, fetchImpl: async () => { throw new Error('must not fetch'); } });
-  assert.deepEqual(await (await handle(new Request('http://local/health'))).json(), { configured: false, director: { version: 1, enabled: false }, contextualChat: { version: 1 } });
+  assert.deepEqual(await (await handle(new Request('http://local/health'))).json(), { configured: false, director: { version: 1, enabled: false }, contextualChat: { version: 1 }, character: { version: 1 } });
   assert.equal((await handle(request())).status, 503);
   assert.equal(calls, 0);
 });
@@ -56,7 +56,7 @@ test('missing API key returns unconfigured health and 503 without spending quota
 test('missing production quota fails closed, never falls back to memory', async () => {
   const handle = handler({ quota: createDurableQuota(undefined) });
   assert.equal((await handle(request())).status, 503);
-  assert.deepEqual(await (await worker.fetch(new Request('http://local/health'), { OPENAI_API_KEY: MOCK_KEY })).json(), { configured: false, director: { version: 1, enabled: false }, contextualChat: { version: 1 } });
+  assert.deepEqual(await (await worker.fetch(new Request('http://local/health'), { OPENAI_API_KEY: MOCK_KEY })).json(), { configured: false, director: { version: 1, enabled: false }, contextualChat: { version: 1 }, character: { version: 1 } });
 });
 
 test('exact origin allowlist rejects missing, spoof-like and null origins before paid fetch', async () => {

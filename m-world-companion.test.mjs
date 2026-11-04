@@ -34,7 +34,7 @@ function companionFixture(options={}){
   options.signal.addEventListener('abort',()=>reject(new Error('Aborted')),{once:true});
  }),...options});
  const find=cls=>elements.find(element=>element.className===cls);
- return {companion,document,requests,enableMotion:find('m-companion-enable-motion'),motionNote:elements.find(element=>element.textContent?.startsWith('Reduced motion is on.')),gesture:label=>elements.find(element=>element.tag==='button'&&element.textContent===label),input:elements.find(element=>element.tag==='textarea'),form:find('m-companion-form'),send:find('m-companion-send'),clear:find('m-companion-clear'),status:find('m-companion-status'),log:find('m-companion-log')};
+ return {companion,document,requests,story:find('m-companion-story'),storyChapter:find('m-companion-story-chapter'),storyGoal:find('m-companion-story-goal'),storyDiscovery:find('m-companion-story-discovery'),storyPreference:find('m-companion-story-preference'),storyJournal:find('m-companion-story-journal'),storyStorage:find('m-companion-story-storage'),rememberCharacter:find('m-companion-remember-character'),enableMotion:find('m-companion-enable-motion'),motionNote:elements.find(element=>element.textContent?.startsWith('Reduced motion is on.')),gesture:label=>elements.find(element=>element.tag==='button'&&element.textContent===label),input:elements.find(element=>element.tag==='textarea'),form:find('m-companion-form'),send:find('m-companion-send'),clear:find('m-companion-clear'),status:find('m-companion-status'),log:find('m-companion-log')};
 }
 function keydown(input,properties={}){
  const event=Object.assign(new Event('keydown',{cancelable:true}),{key:'Enter',shiftKey:false,isComposing:false,keyCode:13,repeat:false},properties);
@@ -239,4 +239,93 @@ test('compact expression presentation preserves an in-flight chat and never stea
  assert.equal(f.companion.snapshot().messages,2);assert.equal(f.companion.snapshot().pending,false);
  assert.equal(f.document.activeElement.className,'m-companion-toggle');assert.equal(f.requests.length,1);
  f.companion.elements.toggle.dispatchEvent(new Event('click'));assert.equal(f.log.childNodes.length,2);f.companion.destroy();
+});
+
+
+const characterContext=(patch={})=>({version:1,chapter:'small-light',beat:'seeking',goal:'follow-light',discovery:'none',preference:'small-lights',recall:'first-visit',favoriteComponent:null,...patch});
+const characterStatus=(patch={})=>({...characterContext(),remember:true,storageAvailable:true,visits:1,journal:[],favorite:null,...patch});
+const journalEntry=(id,patch={})=>({id,atMs:1000,visit:1,componentId:null,publicComponent:null,...patch});
+
+test('M story is an optional quiet disclosure and never requires an input to advance',t=>{
+ let storyState=characterStatus(),actions=0;
+ const f=companionFixture({getCharacterStatus:()=>storyState,onScene:()=>actions++,onGame:()=>actions++,onGesture:()=>actions++});t.after(()=>f.companion.destroy());
+ assert.equal(f.story.hidden,false);assert.equal(Boolean(f.story.open),false);assert.equal(f.story['aria-live'],'off');
+ assert.equal(f.story.firstChild.tag,'summary');assert.equal(f.story.firstChild.textContent,'M’s story');
+ assert.match(f.storyChapter.textContent,/The Small Light/);assert.match(f.storyGoal.textContent,/where that little light goes/);
+ assert.match(f.storyPreference.textContent,/small lights and winding paths/);assert.equal(f.storyJournal.hidden,true);
+ assert.equal(f.rememberCharacter['aria-pressed'],'true');assert.match(f.storyStorage.textContent,/discoveries stay on this device/);assert.match(f.storyStorage.textContent,/Chat stays in this tab/);
+ f.input.value='Private unsent question';const chatStatus=f.status.textContent;
+ for(let i=0;i<20;i++)f.companion.refresh();
+ assert.equal(actions,0);assert.equal(f.requests.length,0);assert.equal(f.form.submissions,0);assert.equal(f.input.value,'Private unsent question');assert.equal(f.status.textContent,chatStatus);
+ storyState=null;f.companion.refresh();assert.equal(f.story.hidden,true);
+});
+
+test('story progress, actual discoveries and preferences update without restarting or rebuilding unchanged content',t=>{
+ let state=characterStatus();const f=companionFixture({getCharacterStatus:()=>state});t.after(()=>f.companion.destroy());
+ state=characterStatus({beat:'returning',goal:'find-lookout',discovery:'little-light',journal:[journalEntry('light-found')]});f.companion.refresh();
+ assert.match(f.storyChapter.textContent,/discovery to remember/);assert.match(f.storyGoal.textContent,/quiet lookout/);assert.equal(f.storyDiscovery.textContent,'Discovery: the little light.');assert.equal(f.storyJournal.childNodes.length,1);assert.equal(f.storyJournal.firstChild.textContent,'I caught the little light.');
+ const first=f.storyJournal.firstChild;for(let i=0;i<5;i++)f.companion.refresh();assert.equal(f.storyJournal.firstChild,first,'An unchanged story must keep the same DOM nodes');
+ state=characterStatus({beat:'complete',goal:'revisit-lookout',discovery:'little-light',preference:'quiet-lookouts',recall:'returning',favoriteComponent:'project-epoxy',journal:[journalEntry('light-found'),journalEntry('lookout-found',{componentId:'stable-private-18',publicComponent:'project-epoxy'})]});f.companion.refresh();
+ assert.match(f.storyChapter.textContent,/adventure remembered/);assert.match(f.storyGoal.textContent,/revisit my favourite lookout/);assert.equal(f.storyPreference.textContent,'My favourite lookout is by Epoxy Platform.');assert.equal(f.storyJournal.childNodes.length,2);assert.match(f.storyJournal.childNodes[1].textContent,/Epoxy Platform/);
+ assert.ok(f.storyJournal.childNodes.every(element=>!element.textContent.includes('stable-private-18')));assert.equal(f.requests.length,0);
+});
+
+test('story never renders unknown journal text, unapproved places or fabricated milestone entries',t=>{
+ let state=characterStatus({beat:'complete',goal:'explore',discovery:'little-light',preference:'quiet-lookouts',journal:[
+  journalEntry('light-found'),
+  journalEntry('<img src=x onerror=alert(1)>'),
+  journalEntry('lookout-found',{publicComponent:'<script>private prompt</script>'}),
+  {...journalEntry('lookout-found'),message:'leaked raw chat'},
+  journalEntry('lookout-revisited',{componentId:'https://unapproved.example'}),
+  journalEntry('lookout-found',{atMs:Infinity}),
+  journalEntry('lookout-found',{visit:-1})
+ ]});
+ const f=companionFixture({getCharacterStatus:()=>state});t.after(()=>f.companion.destroy());
+ assert.equal(f.storyJournal.childNodes.length,1);assert.equal(f.storyJournal.firstChild.textContent,'I caught the little light.');
+ assert.doesNotMatch(f.storyJournal.firstChild.textContent,/private|script|chat|https|img/);
+ state=characterStatus({journal:[journalEntry('light-found'),journalEntry('lookout-found')]});f.companion.refresh();
+ assert.equal(f.storyJournal.childNodes.length,0,'A seeking state cannot claim a discovery from an injected entry');
+ state=characterStatus({beat:'arbitrary-script'});f.companion.refresh();assert.equal(f.story.hidden,true);
+ assert.equal(f.requests.length,0);
+});
+
+test('remember preference and story reset preserve drafts, chat and AI allowance independently of motion',t=>{
+ let state=characterStatus(),director={enabled:false,attempts:3,limit:6};const changes=[];
+ const f=companionFixture({getCharacterStatus:()=>state,getDirectorStatus:()=>director,getMotionStatus:()=>({active:false,reducedMotion:true}),onRememberCharacter:value=>{changes.push(value);state={...state,remember:value,storageAvailable:value};},onResetMemory:()=>{state=characterStatus({remember:state.remember,storageAvailable:state.remember});}});t.after(()=>f.companion.destroy());
+ f.input.value='Unsent private draft';f.rememberCharacter.dispatchEvent(new Event('click'));
+ assert.deepEqual(changes,[false]);assert.equal(f.rememberCharacter['aria-pressed'],'false');assert.match(f.storyStorage.textContent,/last while this page is open/);
+ f.rememberCharacter.dispatchEvent(new Event('click'));assert.deepEqual(changes,[false,true]);assert.equal(f.rememberCharacter['aria-pressed'],'true');
+ state={...state,storageAvailable:false};f.companion.refresh();assert.match(f.storyStorage.textContent,/cannot save it for another visit/);
+ state={...state,beat:'returning',goal:'find-lookout',discovery:'little-light',journal:[journalEntry('light-found')]};f.companion.refresh();
+ f.gesture('Reset character memory').dispatchEvent(new Event('click'));
+ assert.match(f.storyChapter.textContent,/curiosity to follow/);assert.equal(f.storyJournal.childNodes.length,0);
+ assert.equal(f.input.value,'Unsent private draft');assert.equal(f.companion.snapshot().messages,0);assert.equal(f.requests.length,0);assert.equal(director.attempts,3);assert.equal(director.enabled,false);
+});
+
+test('character chat negotiates independently and reuses its capability without persisting conversation',async t=>{
+ const requests=[],context=characterContext();
+ const f=companionFixture({getContext:()=>({section:'home',language:'en',character:context}),fetchImpl:async(url,init)=>{requests.push({url,init});return {ok:true,json:async()=>init.method==='GET'?{character:{version:1}}:validReply};}});t.after(()=>f.companion.destroy());
+ f.input.value='What do you want to discover?';keydown(f.input);await settle();await settle();
+ assert.equal(requests.length,2);assert.equal(requests[0].init.method,'GET');assert.deepEqual(JSON.parse(requests[1].init.body).context,{section:'home',language:'en',character:context});
+ f.input.value='What do you like?';keydown(f.input);await settle();await settle();
+ assert.equal(requests.length,3);assert.equal(requests[2].init.method,'POST');assert.equal(JSON.parse(requests[2].init.body).history.length,2);
+ f.clear.dispatchEvent(new Event('click'));assert.equal(f.companion.snapshot().messages,0);assert.equal(requests.length,3);
+});
+
+test('component and character capabilities are independent and legacy Workers get the exact old body',async t=>{
+ for(const [health,component,character]of [[{configured:true},false,false],[{contextualChat:{version:1}},true,false],[{character:{version:1}},false,true],[{contextualChat:{version:1},character:{version:1}},true,true],[{contextualChat:{version:1},character:{version:2}},true,false]]){
+  const requests=[],context=characterContext();
+  const f=companionFixture({getContext:()=>({section:'projects',language:'pt',component:'project-epoxy',character:context}),fetchImpl:async(url,init)=>{requests.push({url,init});return {ok:true,json:async()=>init.method==='GET'?health:validReply};}});t.after(()=>f.companion.destroy());
+  f.input.value='Tell me your story';keydown(f.input);await settle();await settle();
+  const sent=JSON.parse(requests[1].init.body).context;
+  assert.deepEqual(sent,{section:'projects',language:'pt',...(component?{component:'project-epoxy'}:{}),...(character?{character:context}:{})});
+  assert.equal(requests.length,2);assert.equal(f.companion.snapshot().messages,2);
+ }
+});
+
+test('invalid character context never triggers health or leaks raw history into a request',async t=>{
+ const requests=[];
+ const f=companionFixture({getContext:()=>({section:'home',language:'en',character:{...characterContext(),journal:['private unsent history']}}),fetchImpl:async(url,init)=>{requests.push({url,init});return {ok:true,json:async()=>validReply};}});t.after(()=>f.companion.destroy());
+ f.input.value='Hello';keydown(f.input);await settle();await settle();
+ assert.equal(requests.length,1);assert.equal(requests[0].init.method,'POST');assert.deepEqual(JSON.parse(requests[0].init.body).context,{section:'home',language:'en'});
 });

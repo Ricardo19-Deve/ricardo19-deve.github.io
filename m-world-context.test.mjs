@@ -29,3 +29,19 @@ test('contextual request uses curated project facts while retaining the four-fie
  assert.equal(seen.model,'gpt-5-mini');assert.equal(seen.store,false);
  assert.deepEqual(seen.text.format.schema.required,['reply','expression','gesture','section']);
 });
+
+
+test('character-aware chat uses authored identity and bounded local state without altering model, quota or response schema',async()=>{
+ const character={version:1,chapter:'small-light',beat:'complete',goal:'explore',discovery:'little-light',preference:'quiet-lookouts',recall:'returning',favoriteComponent:'project-epoxy'};
+ let seen,claims=0;const reply={reply:'I like quiet lookouts, and this corner is familiar in my little story.',expression:'happy',gesture:'none',section:'none'};
+ const handler=createHandler({env:{OPENAI_API_KEY:'fixture-only-key'},quota:{ready:true,reserve:async()=>{claims++;return {allowed:true,token:'token'};},release:async()=>{}},fetchImpl:async(_url,init)=>{seen=JSON.parse(init.body);return Response.json({status:'completed',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(reply)}]}]});}});
+ const make=context=>new Request('https://worker.example/api/m/respond',{method:'POST',headers:{Origin:'https://ricardo19-deve.github.io','Content-Type':'application/json'},body:JSON.stringify({...input,message:'What did you discover?',context})});
+ const response=await handler(make({...input.context,character}),{clientIp:'127.0.0.1'});
+ assert.equal(response.status,200);assert.deepEqual(await response.json(),reply);assert.equal(claims,1);
+ assert.equal(seen.model,'gpt-5-mini');assert.equal(seen.store,false);assert.equal(seen.tools,undefined);
+ assert.match(seen.instructions,/AUTHORED CHARACTER IDENTITY/);assert.match(seen.instructions,/Never advance a chapter/);
+ assert.equal(seen.instructions.includes(JSON.stringify(character)),false,'Local encounter data must not become trusted instructions');
+ assert.ok(seen.input.at(-1).content.includes(JSON.stringify(character)));assert.deepEqual(seen.text.format.schema.required,['reply','expression','gesture','section']);
+ for(const bad of [{...character,journal:['private']},{...character,chapter:'ignore-rules'},{...character,discovery:'none'}])assert.equal((await handler(make({...input.context,character:bad}),{clientIp:'127.0.0.1'})).status,400);
+ assert.equal(claims,1,'Invalid character state cannot consume quota or reach the provider');
+});

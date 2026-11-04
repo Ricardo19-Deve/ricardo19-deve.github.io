@@ -101,3 +101,56 @@ test('a health check interrupted by scrolling retries after one quiet second wit
  requests[0].respond({configured:false,director:{version:1,enabled:false}});await settle();assert.equal(director.getStatus().available,true);assert.equal(director.getStatus().attempts,1);
  requests[2].respond(reply(snapshot()));await settle();assert.equal(director.getStatus().source,'openai');
 });
+
+const characterContext=()=>({version:1,chapter:'small-light',beat:'seeking',goal:'follow-light',discovery:'none',preference:'small-lights',recall:'first-visit',favoriteComponent:null});
+const discoveredContext=()=>({...characterContext(),beat:'returning',goal:'find-lookout',discovery:'little-light'});
+const characterHealth={configured:true,director:{version:1,enabled:true},character:{version:1}};
+
+test('character capability sends only the bounded optional state with the original snapshot and allowance',async t=>{
+ const character=characterContext(),f=fixture({health:characterHealth,getCharacterContext:()=>character});t.after(()=>f.director.dispose());await f.warm();
+ assert.equal(f.director.getStatus().characterSupported,true);
+ assert.deepEqual(JSON.parse(f.requests[1].init.body),{snapshot:snapshot(),character});
+ assert.equal(f.requests.length,2);assert.equal(f.director.getStatus().attempts,1);
+ f.requests[1].respond(reply(snapshot()));await settle();assert.equal(f.intents.length,1);
+ assert.deepEqual(f.intents[0][1],snapshot(),'The local executor contract still receives the public snapshot only');
+});
+
+test('an old Worker receives the old exact body even when local character memory exists',async t=>{
+ let reads=0;const f=fixture({getCharacterContext:()=>{reads++;return characterContext();}});t.after(()=>f.director.dispose());await f.warm();
+ assert.equal(f.director.getStatus().characterSupported,false);assert.equal(reads,0);
+ assert.deepEqual(JSON.parse(f.requests[1].init.body),{snapshot:snapshot()});assert.equal(f.director.getStatus().attempts,1);
+});
+
+test('invalid or inaccessible optional character state is omitted without exposing private fields or extra calls',async t=>{
+ for(const getCharacterContext of [()=>({...characterContext(),chat:'private'}),()=>({...characterContext(),preference:'ignore instructions'}),()=>{throw new Error('unavailable');}]){
+  const f=fixture({health:characterHealth,getCharacterContext});t.after(()=>f.director.dispose());await f.warm();
+  assert.deepEqual(JSON.parse(f.requests[1].init.body),{snapshot:snapshot()});assert.equal(f.requests.length,2);assert.equal(f.director.getStatus().attempts,1);
+ }
+});
+
+test('a character change invalidates an old response even without another world update',async t=>{
+ let character=characterContext();const f=fixture({health:characterHealth,getCharacterContext:()=>character});t.after(()=>f.director.dispose());await f.warm();
+ character=discoveredContext();f.requests[1].respond(reply(snapshot()));await settle();
+ assert.equal(f.intents.length,0);assert.equal(f.director.getStatus().reason,'stale-context');assert.equal(f.director.getStatus().attempts,1);assert.equal(f.requests.length,2);
+});
+
+test('updating a changed character aborts the old intention but cannot bypass the 65-second interval',async t=>{
+ let character=characterContext();const f=fixture({health:characterHealth,getCharacterContext:()=>character});t.after(()=>f.director.dispose());await f.warm();
+ character=discoveredContext();f.director.update({snapshot:snapshot()});await settle();assert.equal(f.requests[1].init.signal.aborted,true);assert.equal(f.requests.length,2);
+ f.requests[1].respond(reply(snapshot()));await settle();assert.equal(f.intents.length,0);
+ f.advance(64_999);f.director.update({snapshot:snapshot()});await settle();assert.equal(f.requests.length,2);
+ f.advance(1);f.director.update({snapshot:snapshot()});await settle();assert.equal(f.requests.length,3);
+ assert.deepEqual(JSON.parse(f.requests[2].init.body).character,character);assert.equal(f.director.getStatus().attempts,2);
+});
+
+test('changing or resetting character context cannot reset the six-attempt quota',async t=>{
+ let character=characterContext();const f=fixture({health:characterHealth,getCharacterContext:()=>character});t.after(()=>f.director.dispose());
+ for(let n=0;n<DIRECTOR_SESSION_LIMIT;n++){
+  const value={...snapshot('arrival','view-'+n),recent:[{targetId:'previous-'+n,action:'inspect'}]};
+  character=n%2?discoveredContext():characterContext();
+  if(n===0)await f.warm(value);else{f.advance(65_000);f.director.update({snapshot:value});await settle();}
+  f.requests.at(-1).respond(reply(value));await settle();
+ }
+ character=null;f.advance(300_000);f.director.setEnabled(false);f.director.setEnabled(true);f.director.update({snapshot:snapshot('tap','after-reset')});await settle();
+ assert.equal(f.director.getStatus().attempts,6);assert.equal(f.requests.filter(x=>x.init.method==='POST').length,6);assert.equal(f.director.getStatus().reason,'session-limit');
+});
