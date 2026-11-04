@@ -8,9 +8,10 @@ small disclosure; visitor gesture/expression buttons are not shown by default.
 Developer gesture diagnostics remain opt-in via `?m-debug=1`.
 
 A standalone Cloudflare Worker + D1 database design tracks only aggregated
-daily views and estimated browser-tab sessions. **This is not activated or
-collecting yet**: the owner's D1 database, secret and real Worker URL must be
-configured before the frontend `m-analytics-config.mjs` is enabled. Do not
+daily views and estimated browser-tab sessions. The owner has now configured the separate D1 database, the Worker binding and
+private admin secret; the real Worker returned `/health` with `ready: true`.
+The frontend visit endpoint is configured in `m-analytics-config.mjs`.
+Confirm actual pageview ingestion in the private dashboard after GitHub Pages publishes. Do not
 confuse this with the existing OpenAI M companion Worker. GitHub Actions passed
 503/503 automated tests; native browser artistic verification is outstanding.
 
