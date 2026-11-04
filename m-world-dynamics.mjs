@@ -5,7 +5,7 @@
  * torso and tail energy when user attention or locomotion changes abruptly.
  */
 const finite=(value,fallback=0)=>Number.isFinite(value)?value:fallback;
-const clamp=(value,min=0,max=1)=>Math.min(max,Math.max(min,finite(value,min)));
+const clamp=(value,min=0,max=1)=>Math.min(max,Math.max(min,finite(value,0)));
 const approach=(from,to,dt,halfLife)=>from+(to-from)*(1-Math.pow(.5,dt/halfLife));
 
 export function createPresenceDynamics(){
