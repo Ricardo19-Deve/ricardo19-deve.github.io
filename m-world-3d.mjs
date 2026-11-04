@@ -7,12 +7,14 @@ import {preserveFullSkinning} from './m-lab/swim-v3/threejs/full-skinning.js';
 import {createFacialV6} from './m-lab/interactions/facial-v6.mjs?blink=v30';
 import {createMotionV8,motionPose,canonicalBoneName} from './m-lab/interactions/motion-v8.mjs?rig=v16';
 import {performanceStagePoseV15} from './m-lab/interactions/performance-v15.mjs?v16';
-import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=32';
-import {createPresenceDynamics} from './m-world-dynamics.mjs?v=32';
-import {createFacialContinuity} from './m-world-face-continuity.mjs?v=32';
-import {createRenderQualityGovernor} from './m-world-quality.mjs?v=32';
-import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=32';
-import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs?v=32';
+import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=33';
+import {createPresenceDynamics} from './m-world-dynamics.mjs?v=33';
+import {createFacialContinuity} from './m-world-face-continuity.mjs?v=33';
+import {visualDepthMasks} from './m-world-occlusion.mjs?v=33';
+import {createMicroMotion} from './m-world-micro-motion.mjs?v=33';
+import {createRenderQualityGovernor} from './m-world-quality.mjs?v=33';
+import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=33';
+import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs?v=33';
 
 const PART_COUNT=19;
 const EXPECTED_SIZE=16899868;
@@ -138,7 +140,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   shaderErrors.push(text);throw new Error('M skinning/depth shader compilation failed: '+text);
  };
  let viewportSize=0,pixelRatio=0,disposed=false,environmentTarget=null,clock=0,swimWeight=0,autoBlink=true,depth=1,spatialFrame=null,frameFit=null;
- const presence=createPresenceDynamics(),qualityGovernor=createRenderQualityGovernor();
+ const presence=createPresenceDynamics(),qualityGovernor=createRenderQualityGovernor(),microMotion=createMicroMotion();
  const scene=new THREE.Scene(),camera=new THREE.OrthographicCamera(-WORLD_SPAN/2,WORLD_SPAN/2,WORLD_SPAN/2,-WORLD_SPAN/2,.03,100);
  camera.position.set(0,0,8);camera.lookAt(0,0,0);camera.updateProjectionMatrix();camera.updateMatrixWorld(true);
  const depthRoot=new THREE.Group(),stage=new THREE.Group(),container=new THREE.Group();scene.add(depthRoot);depthRoot.add(stage);stage.add(container);container.add(source);
@@ -378,7 +380,9 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   function setSpatialFrame(frame={}){
    spatialFrame=frame;const actor=normalizeActorRect(frame.actor);depth=num(Number(frame.depth??1),-1,1);
    const placement=depthLayerPlacement(depth,halfDepth);depthRoot.position.z=placement.bodyZ;
-   updateBatch(surfaceBatch,frame.surfaces,actor,placement.surfaceZ);updateBatch(protectedBatch,frame.protectedRects,actor,placement.protectedZ,true);
+   const masks=visualDepthMasks({depth,surfaces:frame.surfaces,protectedRects:frame.protectedRects});
+    updateBatch(surfaceBatch,masks.surfaces,actor,placement.surfaceZ);
+    updateBatch(protectedBatch,masks.protectedRects,actor,placement.protectedZ,true);
    return {depthSupported,surfaceRects:surfaceBatch.rectCount,protectedRects:protectedBatch.rectCount};
   }
   function getMetrics(){
@@ -395,7 +399,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    return {bones:31,rigBones:31,tailBones:motion.tailDiagnostics.connected,maxInfluences:skin.maxUsed,skinSets:skin.sets,
     clips:clips.map(c=>c.name),detailMaps:textures.size,detailSlots,viewportSize,pixelRatio,renderPixels:[canvas.width,canvas.height],
     environment:{type:'PMREM RoomEnvironment',intensity:scene.environmentIntensity,toneMapping:'AgX'},
-     quality:qualityGovernor.snapshot(),presence:presence.snapshot(),facialContinuity:facialContinuity.snapshot(),
+     quality:qualityGovernor.snapshot(),presence:presence.snapshot(),facialContinuity:facialContinuity.snapshot(),microMotion:microMotion.snapshot(),
     framing:{rest:boundsRecord(restBox),envelope:boundsRecord(envelope),framed:boundsRecord(framed),scale:frameFit.scale,samples:frameSamples},
     occlusion:{supported:depthSupported,depth,worldZ:depthRoot.position.z,surfaceZ:0,protectedZ:depthPlan.protectedZ,surfaceRects:surfaceBatch.rectCount,protectedRects:protectedBatch.rectCount,maskDrawCalls:Number(surfaceBatch.mesh.visible)+Number(protectedBatch.mesh.visible)},
     render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,points:renderer.info.render.points,lines:renderer.info.render.lines,programs:renderer.info.programs.length,textures:renderer.info.memory.textures,geometries:renderer.info.memory.geometries},
@@ -412,6 +416,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    const calm=['sleep','think'].includes(state.gesture?.name)||['perch','perched','rest','settle'].includes(activity)||['perch','rest'].includes(state.mode),reduced=Boolean(state.reducedMotion);
    const vx=Number(state.vx??state.velocity?.x)||0,vy=Number(state.vy??state.velocity?.y)||0;
    const dynamics=presence.sample({dt,vx,vy,attention:state.attention||state.gaze||{x:0,y:0},nearCard:state.nearCard,calm,reducedMotion:reduced});
+    const micro=microMotion.sample({dt,vx,vy,aboutToMove:state.phase==='approach'&&Math.hypot(vx,vy)<8,calm,reducedMotion:reduced,gestureActive:Boolean(state.gesture)});
    const target=reduced||calm?0:.8*dynamics.moving;swimWeight+=(target-swimWeight)*(1-Math.exp(-6*dt));if(swimWeight<1e-5)swimWeight=0;
    const mode=motionFor(state.mode||activity);
    lastGesture=sampleGesture({...state.gesture,reducedMotion:reduced});
@@ -429,8 +434,12 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     facial.setExpressionBlend(fade?.weights||null);facial.setRestBlink(fade?.eyelids||null);
    facial.setExpression(expression);if(autoBlink===reduced){autoBlink=!reduced;facial.setAutoBlink(autoBlink);}facial.update(reduced?2:dt,performance.now());
    const extra=performanceStagePoseV15({time:clock,mode,expression,impact:reduced?0:calm?.07:.4,reducedMotion:reduced});
-   stage.rotation.x=num(extra.rx,-.12,.12);stage.rotation.y=num(extra.ry,-.17,.17)+num(dynamics.bodyMotion.rotation.y*.2,-.05,.05)+dynamics.stageYaw;stage.rotation.z=num(extra.rz,-.12,.12);
-   stage.position.x=num(extra.x*.22,-.025,.025);stage.position.y=num(extra.y*.25,-.06,.06);stage.scale.setScalar(1+num(extra.scale,-.03,.03));
+   stage.rotation.x=num(extra.rx+micro.pitch,-.12,.12);
+    stage.rotation.y=num(extra.ry,-.17,.17)+num(dynamics.bodyMotion.rotation.y*.2,-.05,.05)+dynamics.stageYaw;
+    stage.rotation.z=num(extra.rz+micro.roll,-.12,.12);
+   stage.position.x=num(extra.x*.22,-.025,.025);
+    stage.position.y=num(extra.y*.25+micro.lift,-.06,.06);
+    stage.scale.setScalar(1+num(extra.scale+micro.scale,-.03,.03));
    if(!reduced&&dt>0&&qualityGovernor.observe(dt*1000))syncResolution();
    render();
   };
