@@ -4,7 +4,7 @@ The production D1 database already exists:
 
 - D1 name: `m-portfolio-analytics`
 - D1 ID: `f0049534-9f80-4cf3-adb5-3e9e568e643a`
-- Worker name: `m-portfolio-analytics`
+- Worker name (existing Cloudflare service): `ricardo19-deve-github-io`
 - GitHub repository: `Ricardo19-Deve/ricardo19-deve.github.io`
 - Worker root directory: **`analytics`** (not repository root)
 - Runtime binding: `ANALYTICS_DB`
@@ -38,11 +38,11 @@ SELECT name FROM sqlite_master WHERE type = 'table' AND name IN ('daily_sessions
 Go to **Cloudflare Dashboard → Workers & Pages → Create application → GitHub**.
 Authorize the repo if prompted, then select `Ricardo19-Deve/ricardo19-deve.github.io`.
 
-Use these settings:
+Use these settings for the already connected Worker; **do not create another Worker**:
 
 | Setting | Value |
 |---|---|
-| Worker name | `m-portfolio-analytics` |
+| Worker name | `ricardo19-deve-github-io` |
 | Branch | `main` |
 | Root directory | `analytics` |
 | Build command | leave empty |
@@ -51,7 +51,7 @@ Use these settings:
 
 Save and deploy. Workers Builds will find the Wrangler config in `analytics` and bind the existing D1. The Worker name **must** match the Wrangler `name` field. The Worker includes `worker.mjs`, `admin-page.mjs`, the migration files, and the nightly cleanup trigger.
 
-**Important:** create a **new** analytics Worker; do not replace or edit the existing `m-portfolio-companion` AI Worker.
+**Important:** continue using the existing new `ricardo19-deve-github-io` analytics Worker; do not replace or edit the separate `m-portfolio-companion` AI Worker. In Cloudflare **Settings → Builds → Build configuration**, set root directory to `analytics`, build command blank and deploy command `npx wrangler deploy`. In **Settings → Bindings** add a D1 binding named `ANALYTICS_DB` for the existing `m-portfolio-analytics` database.
 
 If the Cloudflare dashboard only offers *Create Worker* (not GitHub), use Workers & Pages → Create application → GitHub to import the repo as a new Workers project, or deploy from a terminal inside `analytics` with `npx wrangler deploy`.
 
