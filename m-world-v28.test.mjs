@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createPresenceDynamics} from './m-world-dynamics.mjs';
+import {createFacialContinuity} from './m-world-face-continuity.mjs';
 import {createRenderQualityGovernor} from './m-world-quality.mjs';
 import {createAutonomy} from './m-world-autonomy.mjs';
 
@@ -56,6 +57,27 @@ test('V28 dynamics reject non-finite inputs without NaN propagation',()=>{
  }
 });
 
+test('V28 original facial channels crossfade between feelings without snapping',()=>{
+ const face=createFacialContinuity();
+ for(let i=0;i<45;i++)face.sample({dt:1/60,weights:{happy:.7},eyelids:{left:.1,right:.1}});
+ const before=face.snapshot();
+ assert.ok(before.weights.happy>.6);
+ const after=face.sample({dt:1/60,weights:{curious:.7},eyelids:{left:.3,right:.3}});
+ assert.ok(after.weights.happy>0&&after.weights.happy<before.weights.happy);
+ assert.ok(after.weights.curious>0&&after.weights.curious<.7);
+ for(let i=0;i<100;i++)face.sample({dt:1/60,weights:{curious:.7},eyelids:{left:.3,right:.3}});
+ assert.ok(face.snapshot().weights.curious>.69);
+ assert.ok(face.snapshot().weights.happy<.001);
+});
+test('V28 facial continuity preserves gesture priority and reduced-motion reset',()=>{
+ const face=createFacialContinuity();
+ face.sample({dt:.06,weights:{happy:.8},eyelids:{left:.4,right:.4}});
+ assert.equal(face.sample({dt:1/60,gestureActive:true,weights:{curious:1}}),null);
+ assert.deepEqual(face.snapshot().weights,{happy:0,curious:0,surprised:0});
+ face.sample({dt:.06,weights:{surprised:.7},eyelids:{left:.2,right:.2}});
+ assert.equal(face.sample({dt:1/60,reducedMotion:true}),null);
+ assert.deepEqual(face.snapshot().eyelids,{left:0,right:0});
+});
 test('V28 adaptive render quality retains HQ until sustained slow frames',()=>{
  const q=createRenderQualityGovernor({maxRatio:2.5,minRatio:1.75});
  for(let i=0;i<80;i++)assert.equal(q.observe(33),false,'not enough evidence to drop before warm-up and hysteresis');
