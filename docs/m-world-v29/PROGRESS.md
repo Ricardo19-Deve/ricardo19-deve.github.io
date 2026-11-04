@@ -1,7 +1,7 @@
 # M V29 — vida autónoma, perguntas e analytics privado
 
 ## Estado
-Branch: `feat/m-world-v29-autonomy-chat-analytics`. Ainda não há publicação do Worker D1 nem segredo criado nesta sessão. O serviço analytics permanece **desativado** no site enquanto `m-analytics-config.mjs` tiver o endpoint vazio. Não foram recolhidas visitas por este mecanismo.
+**CI:** 503/503 testes Node aprovados no GitHub Actions, incluindo os 10 testes V29 e contratos de produção da M. Validação visual física ainda pendente.\n\nBranch: `feat/m-world-v29-autonomy-chat-analytics`. Ainda não há publicação do Worker D1 nem segredo criado nesta sessão. O serviço analytics permanece **desativado** no site enquanto `m-analytics-config.mjs` tiver o endpoint vazio. Não foram recolhidas visitas por este mecanismo.
 
 ## Alterações M
 - Profundidade: por detrás, apenas a geometria real dos cards é usada para o recorte visual. Rectângulos de texto internos mantêm-se como restrições da navegação e como último recurso de leitura quando a M está à frente. Sem modificar o modelo V6.
