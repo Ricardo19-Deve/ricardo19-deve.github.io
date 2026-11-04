@@ -1,5 +1,5 @@
 /** Private dashboard HTML and separate same-origin JS; no public credentials. */
-export const adminHtml=String.raw\`<!doctype html>
+export const adminHtml=String.raw`<!doctype html>
 <html lang="pt-PT"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
 <title>Portfolio · Private analytics</title>
@@ -43,8 +43,8 @@ input{width:100%;padding:13px;border-radius:11px;border:1px solid #60778d;backgr
 </div>
 <p class="notice">Sem IPs, cookies de terceiros ou identificação de pessoas. As sessões são estimativas por separador do navegador, não visitantes únicos.</p>
 </section><p id="error" role="status" aria-live="polite"></p>
-</main><script src="/admin.js" defer></script></body></html>\`;
-export const adminScript=String.raw\`(()=>{'use strict';
+</main><script src="/admin.js" defer></script></body></html>`;
+export const adminScript=String.raw`(()=>{'use strict';
  const $=id=>document.getElementById(id),number=value=>new Intl.NumberFormat('pt-PT').format(value||0);
  let secret='';
  async function load(){
@@ -69,4 +69,4 @@ export const adminScript=String.raw\`(()=>{'use strict';
  $('login-form').addEventListener('submit',event=>{event.preventDefault();secret=$('token').value;load();});
  $('refresh').addEventListener('click',load);
  $('logout').addEventListener('click',()=>{secret='';$('report').hidden=true;$('controls').hidden=true;$('login').hidden=false;$('token').value='';$('error').textContent='';});
-})();\`;
+})();`;
