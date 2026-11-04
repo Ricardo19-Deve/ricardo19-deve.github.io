@@ -1,4 +1,4 @@
-import {validateCharacterContext} from './m-world-character-context.mjs?v=31';
+import {validateCharacterContext} from './m-world-character-context.mjs?v=32';
 // Shared, data-only boundary for the optional automatic animation director.
 // These suggestions never grant DOM access, navigation, coordinates or code.
 export const DIRECTOR_ACTIONS = Object.freeze(['peek', 'perch', 'orbit', 'inspect', 'rest']);
