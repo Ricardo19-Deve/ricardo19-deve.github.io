@@ -36,7 +36,7 @@ Preserve original model/rig/materials, portfolio design/content/navigation and A
 
 ## Executed checks
 
-- Full Node suite 481/481 passed after integration and the two identified ball fixes.
+- Full Node suite 482/482 passed after integration and the two identified ball fixes.
 - Companion unit checks 31/31; isolated production CSS/companion native layout 42/42.
   Long700-character ordinary/unbroken replies have no horizontal overflow.
   Visible log: desktop280 px, mobile240 px,320 x 568 small mobile192 px, simulated keyboard160 px.
@@ -71,3 +71,13 @@ Only then request explicit approval for that concrete new publication. Preserve
 live autoplay=true on any approved Worker rollout (source historical default=false).
 Physical phones/Safari/real keyboard/OS background transitions remain untested.
 The ball is an authored floating prop, not a general rigid-body physics engine.
+
+## PR / hosted follow-up
+
+PR #11 exists; do not create another. First head6ab712e passed all unit/motion and
+intent/accessibility checks; the legacy render exposed one protected paragraph
+pixel. Protected regions now use solid depth quads with unchanged test thresholds,
+rounded cards preserved and a before/after geometry regression. Full Node482/482
+passed. Native targeted mask comparison passed with89,184 protected interior pixels and
+zero differences; latest-head Linux CI remains to be confirmed
+in the newer workspace checkpoint; do not ask publication approval before then.

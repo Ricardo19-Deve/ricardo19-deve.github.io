@@ -105,6 +105,21 @@ test('rounded depth batches cover card interiors with bounded convex triangle ar
  const square=spatialMath.appendRoundedRectTriangles({left:10,top:20,width:50,height:40,radius:0});
  assert.equal(square.length,12);
 });
+
+test('protected text and control regions use a solid quad while card corners stay rounded',()=>{
+ const actor={left:220,top:347,width:272,height:272};
+ const mask={left:300,top:490,width:90,height:55,radius:16};
+ assert.equal(spatialMath.overlappingViewportRect(mask,actor).radius,16,'Card geometry retains its rounded silhouette');
+ const protectedRect=spatialMath.overlappingViewportRect(mask,actor,true);
+ const quad=spatialMath.appendRoundedRectTriangles(protectedRect);
+ assert.equal(quad.length,12,'A protected region has two triangles, avoiding a many-triangle fan junction');
+ const edge=(a,b,p)=>(b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0]);
+ const covered=p=>{
+  for(let i=0;i<quad.length;i+=6){const a=quad.slice(i,i+2),b=quad.slice(i+2,i+4),c=quad.slice(i+4,i+6),sides=[edge(a,b,p),edge(b,c,p),edge(c,a,p)];if(sides.every(x=>x>=0)||sides.every(x=>x<=0))return true;}
+  return false;
+ };
+ for(const point of [[300.25,490.25],[389.75,490.25],[300.25,544.75],[389.75,544.75],[326.75,513.25],[345,517.5]])assert.ok(covered(point),'Protected bounds must cover '+point);
+});
 test('depth endpoints move the whole 3D volume to one side while text remains in front',()=>{
  for(const half of [.1,.5,1.2]){
   const front=spatialMath.depthLayerPlacement(1,half),back=spatialMath.depthLayerPlacement(-1,half);

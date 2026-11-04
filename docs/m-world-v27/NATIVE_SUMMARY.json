@@ -1,6 +1,6 @@
 {
   "scope": "Separate installed native Chrome runs; initial desktop observation uncommanded; later diagnostics and mocked replies labelled. Mobile emulated, no provider calls.",
-  "nodeTests": 481,
+  "nodeTests": 482,
   "chatLayout": {
     "passed": 42,
     "total": 42
@@ -473,5 +473,34 @@
     "decoded": 49,
     "error": null,
     "passed": true
+  },
+  "hostedTextShieldRegression": {
+    "firstRun": "41832773857",
+    "passed": 28,
+    "total": 29,
+    "failedCheck": "Desktop text shield preserves actual paragraph pixels",
+    "devicePixel": [
+      653,
+      1026
+    ],
+    "cssCentre": [
+      326.75,
+      513.25
+    ],
+    "maxDelta": 46,
+    "nativeBaselineReproduced": false,
+    "nativeBaselineChangedProtectedInterior": 0,
+    "diagnosis": "Isolated pinhole strongly suggests fan rasterization. Native baseline did not reproduce Linux; no claim of an exact driver-level proof.",
+    "fix": "Only protected text/control bounds use solid two-triangle quads; card corners remain rounded. Test thresholds/insets unchanged.",
+    "geometryRegression": "Failed before, passed after.",
+    "nativeSolidMask": {
+      "protectedInteriorPixels": 89184,
+      "frontEmptyChanged": 0,
+      "behindEmptyChanged": 0,
+      "maxDelta": 0,
+      "pageErrors": [],
+      "actorMatchesFailingCI": true,
+      "scope": "Targeted fresh native Chrome. Windows baseline did not reproduce the Linux pinhole; original Linux CI still required."
+    }
   }
 }

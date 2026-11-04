@@ -80,7 +80,7 @@ It is not a performance benchmark.
 
 ## Tests and diagnosed issues
 
-- Full Node suite 481/481 passed.
+- Full Node suite 482/482 passed.
 - Chat unit 31/31 and isolated native layout 42/42 passed.
 - Actual ball/controller 31/31, pure ball 12/12 (25,005 safe arc samples),
   acting/affect 23/23, autonomy 29/29 and focused backend 68/68 passed.
@@ -95,6 +95,24 @@ It is not a performance benchmark.
   The original 331 frames were encoded successfully; no browser capture repeated.
 - Wrangler 4.135 dry-run passed 45.28 KiB/gzip 13.07 KiB. No deployment/secret read.
 - Independent read-only reviews found no remaining blocking integration issue.
+
+## Hosted text-shield regression
+
+The first hosted legacy render passed 28/29 checks but exposed one changed pixel
+inside the protected paragraph region (device 653,1026; CSS 326.75,513.25; delta 46).
+The surrounding 11x11 pixels were unchanged. The installed native Chrome baseline
+had zero changed protected-interior pixels, so it did not reproduce the Linux
+raster result; a rounded fan junction is strongly indicated, not proven by that
+native comparison. Original CI and native evidence are retained outside the repo.
+
+Protected text/control bounds now use a solid two-triangle depth quad, while card
+surfaces retain their rounded geometry. This conservatively covers the full safety
+rectangle and removes the many-triangle junction. A geometry regression failed
+before the change (168 versus 12 coordinates) and the full 482-test suite passed
+afterward. Pixel thresholds and protected-interior insets remain unchanged. A fresh targeted native comparison covered 89,184 interior pixels with zero
+front/empty or behind/empty differences and no page errors, using the same actor
+position as the failing CI. The latest exact-head hosted result is tracked in
+the PR and workspace completion report.
 
 ## AI wording, limits and rollout
 

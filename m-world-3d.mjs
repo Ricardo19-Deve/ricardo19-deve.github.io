@@ -59,11 +59,11 @@ export function viewportPointToNDC(x,y,actor){
  const a=normalizeActorRect(actor);if(!a)throw new Error('Invalid actor viewport');
  return {x:2*(x-a.left)/a.width-1,y:1-2*(y-a.top)/a.height};
 }
-export function overlappingViewportRect(rect,actor){
+export function overlappingViewportRect(rect,actor,protectedRegion=false){
  const a=normalizeActorRect(actor);if(!a||!rect)return null;
  const left=Number(rect.left),top=Number(rect.top),width=Number(rect.width??(rect.right-left)),height=Number(rect.height??(rect.bottom-top));
  if(![left,top,width,height].every(Number.isFinite)||width<=0||height<=0||left>=a.left+a.width||top>=a.top+a.height||left+width<=a.left||top+height<=a.top)return null;
- return {left,top,width,height,radius:num(Number(rect.radius)||0,0,Math.min(width,height)/2)};
+ return {left,top,width,height,radius:protectedRegion===true?0:num(Number(rect.radius)||0,0,Math.min(width,height)/2)};
 }
 export function appendRoundedRectTriangles(rect,out=[],perimeter=[]){
  const l=rect.left,t=rect.top,r=l+rect.width,b=t+rect.height,rad=num(rect.radius||0,0,Math.min(rect.width,rect.height)/2);
@@ -346,10 +346,12 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    footPoint.y-=soleGap*frameFit.scale;footPoint.project(camera);
    contact.x=(footPoint.x+1)*viewportSize/2;contact.y=(1-footPoint.y)*viewportSize/2;
   }
-  function updateBatch(batch,rectangles,actor,z){
+  function updateBatch(batch,rectangles,actor,z,protectedRegion=false){
    batch.points.length=0;batch.rectCount=0;
    if(depthSupported&&actor)for(const input of rectangles||[]){
-    const rect=overlappingViewportRect(input,actor);if(!rect)continue;
+    // Text/control regions protect their full bounds. A solid two-triangle
+    // quad also avoids raster pinholes at a rounded fan's central junction.
+    const rect=overlappingViewportRect(input,actor,protectedRegion);if(!rect)continue;
     appendRoundedRectTriangles(rect,batch.points,batch.perimeter);batch.rectCount++;
    }
    const count=batch.points.length/2;batch.vertices=count;batch.mesh.visible=count>0;
@@ -369,7 +371,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   function setSpatialFrame(frame={}){
    spatialFrame=frame;const actor=normalizeActorRect(frame.actor);depth=num(Number(frame.depth??1),-1,1);
    const placement=depthLayerPlacement(depth,halfDepth);depthRoot.position.z=placement.bodyZ;
-   updateBatch(surfaceBatch,frame.surfaces,actor,placement.surfaceZ);updateBatch(protectedBatch,frame.protectedRects,actor,placement.protectedZ);
+   updateBatch(surfaceBatch,frame.surfaces,actor,placement.surfaceZ);updateBatch(protectedBatch,frame.protectedRects,actor,placement.protectedZ,true);
    return {depthSupported,surfaceRects:surfaceBatch.rectCount,protectedRects:protectedBatch.rectCount};
   }
   function getMetrics(){
