@@ -1,6 +1,20 @@
+# M World V27 — Readable conversation and living routines
+
+Prepared on feat/m-living-routines-v27 from published V26 d667748.
+The conversation has a dedicated readable scroll area, with a fixed composer and
+responsive keyboard layout. M can independently choose sleep, thinking, a playful
+hop and a three-tap floating-ball game, using the original actor and rig.
+Existing utility ownership, text/depth protection and API budgets remain in place.
+New backend narration rules distinguish remembered events from the current card.
+
+Not published. Every new merge and Worker deployment requires owner approval.
+See [V27 progress and validation](docs/m-world-v27/PROGRESS.md).
+
+---
+
 # M World V26 — Persistent character continuity
 
-Prepared on feat/m-character-continuity-v26; publication requires owner approval.
+Published through PR #10 on 4 November 2026 (merge d667748).
 M initiates The Small Light adventure, records genuine discoveries and remembers
 a preferred quiet lookout across browser visits. Optional story UI and negotiated
 AI context share the same bounded state. Original V6 appearance, full skinning,

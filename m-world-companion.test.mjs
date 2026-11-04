@@ -15,7 +15,7 @@ test('assistant validates bounded gestures and section hints instead of interpre
 });
 
 class CompanionElement extends EventTarget {
- constructor(tag,document){super();this.tag=tag;this.ownerDocument=document;this.dataset={};this.childNodes=[];this.className='';this.value='';this.disabled=false;this.submissions=0;}
+ constructor(tag,document){super();this.tag=tag;this.ownerDocument=document;this.dataset={};this.childNodes=[];this.className='';this.value='';this.disabled=false;this.submissions=0;const css=new Map();this.style={setProperty:(name,value)=>css.set(name,value),getPropertyValue:name=>css.get(name)||''};}
  setAttribute(name,value){this[name]=value;}
  append(...elements){for(const element of elements){element.parent=this;this.childNodes.push(element);}}
  replaceChildren(...elements){this.childNodes=[];this.append(...elements);}
@@ -26,7 +26,7 @@ class CompanionElement extends EventTarget {
 }
 function companionFixture(options={}){
  const document=new EventTarget(),elements=[],requests=[];
- document.location={href:'https://portfolio.example/'};
+ document.location={href:'https://portfolio.example/'};document.defaultView=options.viewportWindow;
  document.createElement=tag=>{const element=new CompanionElement(tag,document);elements.push(element);return element;};
  document.body=document.createElement('body');
  const companion=createMCompanion({document,endpoint:'https://m-companion-test.invalid/api/m/respond',fetchImpl:(url,options)=>new Promise((resolve,reject)=>{
@@ -145,7 +145,7 @@ test('AI status honestly reports unavailable, reduced motion and session limits 
 test('autonomous play is presented as independent of optional input and status refresh stays local',t=>{
  let autonomy={current:{kind:'scene',id:'internal-scene-17',anchorId:'project-epoxy'}},enabledMotion=0,gestures=0;
  const {companion,requests,input,form,status}=companionFixture({getAutonomyStatus:()=>autonomy,onEnableMotion:()=>{enabledMotion++;return true;},onGesture:()=>{gestures++;return true;}});t.after(()=>companion.destroy());
- const {panel}=companion.elements,intro=panel.childNodes.find(element=>element.className==='m-companion-intro'),autonomyNote=panel.childNodes.find(element=>element.className==='m-companion-autonomy');
+ const {panel}=companion.elements,intro=panel.childNodes.find(element=>element.className==='m-companion-body').childNodes.find(element=>element.className==='m-companion-intro'),autonomyNote=panel.childNodes.find(element=>element.className==='m-companion-body').childNodes.find(element=>element.className==='m-companion-autonomy');
  assert.match(intro.textContent,/explores and plays on her own/);assert.match(intro.textContent,/optional gesture/);assert.equal(intro.hidden,false);
  assert.equal(autonomyNote.hidden,false);assert.equal(autonomyNote['aria-live'],'off');
  const chatStatus=status.textContent;input.value='Unsent private draft';
@@ -153,7 +153,11 @@ test('autonomous play is presented as independent of optional input and status r
   [{current:{kind:'scene',id:'internal-scene-17',anchorId:'project-epoxy'}},'M is exploring the page.'],
   [{active:{kind:'rest',quiet:true,id:'internal-rest-22',anchorId:'project-revmend'}},'M is watching quietly.'],
   [{current:{kind:'scene',id:'internal-scene-17'},execution:{kind:'game',id:'internal-game-04',componentId:'project-stackout'}},'M is playing on her own.'],
-  [{current:{kind:'affect',id:'internal-affect-03',name:'mischief'}},'M decides where to explore, play and rest.']
+  [{current:{kind:'affect',id:'internal-affect-03',name:'mischief'}},'M decides where to explore, play and rest.'],
+  [{current:{kind:'rest',gesture:'sleep',id:'internal-sleep-1'}},'M is having a quiet rest.'],
+  [{current:{kind:'expression',gesture:'hop',id:'internal-hop-1'}},'M is making a playful hop.'],
+  [{current:{kind:'expression',gesture:'think',id:'internal-think-1'}},'M is thinking about her next discovery.'],
+  [{current:{kind:'self-play',play:'ball',id:'internal-ball-1'}},'M is playing with a floating ball.']
  ]){
   autonomy=next;for(let i=0;i<4;i++)companion.refresh();
   assert.equal(autonomyNote.textContent,expected);assert.equal(autonomyNote['aria-live'],'off');assert.equal(autonomyNote.hidden,false);
@@ -167,7 +171,7 @@ test('autonomous play is presented as independent of optional input and status r
 test('AI pause remains independent of local autonomous status and respects pause and reduced-motion labels',t=>{
  let director={enabled:true,available:true,attempts:2,limit:6},motion={active:true,reducedMotion:false},autonomy={current:{kind:'scene',id:'internal-scene-17'}},enabledMotion=0;const changes=[];
  const {companion,requests,status,enableMotion,motionNote}=companionFixture({getDirectorStatus:()=>director,getMotionStatus:()=>motion,getAutonomyStatus:()=>autonomy,onDirectorEnabled:enabled=>{changes.push(enabled);director={...director,enabled};},onEnableMotion:()=>{enabledMotion++;return true;}});t.after(()=>companion.destroy());
- const {directorToggle,directorStatus,panel}=companion.elements,autonomyNote=panel.childNodes.find(element=>element.className==='m-companion-autonomy'),chatStatus=status.textContent;
+ const {directorToggle,directorStatus,panel}=companion.elements,autonomyNote=panel.childNodes.find(element=>element.className==='m-companion-body').childNodes.find(element=>element.className==='m-companion-autonomy'),chatStatus=status.textContent;
  assert.equal(autonomyNote.textContent,'M is exploring the page.');
  directorToggle.dispatchEvent(new Event('click'));
  assert.deepEqual(changes,[false]);assert.equal(directorToggle.textContent,'Enable AI play');assert.equal(directorToggle['aria-pressed'],'false');
@@ -185,9 +189,9 @@ test('AI pause remains independent of local autonomous status and respects pause
 
 test('the original four gestures stay prominent while extra gestures have an accessible disclosure',t=>{
  const {companion}=companionFixture();t.after(()=>companion.destroy());
- const panel=companion.elements.panel,actions=panel.childNodes.find(element=>element.className==='m-companion-actions'),more=companion.elements.moreGestures;
+ const panel=companion.elements.panel,actions=panel.childNodes.find(element=>element.className==='m-companion-body').childNodes.find(element=>element.className==='m-companion-actions'),more=companion.elements.moreGestures;
  assert.equal(actions.childNodes.length,4);assert.deepEqual(actions.childNodes.map(element=>element.textContent),['Wave','Curious','Surprised','Shy']);
- assert.equal(more.tag,'details');assert.equal(Boolean(more.open),false);assert.equal(more.firstChild.tag,'summary');assert.equal(more.firstChild.textContent,'More gestures');assert.deepEqual(more.childNodes[1].childNodes.map(element=>element.textContent),['Playful','Wink','Nod']);
+ assert.equal(more.tag,'details');assert.equal(Boolean(more.open),false);assert.equal(more.firstChild.tag,'summary');assert.equal(more.firstChild.textContent,'More gestures');assert.deepEqual(more.childNodes[1].childNodes.map(element=>element.textContent),['Playful','Wink','Nod','Sleep','Hop','Think']);
 });
 test('contextual chat negotiates capability and has one animation owner',async t=>{
  const requests=[],effects=[];
@@ -328,4 +332,37 @@ test('invalid character context never triggers health or leaks raw history into 
  const f=companionFixture({getContext:()=>({section:'home',language:'en',character:{...characterContext(),journal:['private unsent history']}}),fetchImpl:async(url,init)=>{requests.push({url,init});return {ok:true,json:async()=>validReply};}});t.after(()=>f.companion.destroy());
  f.input.value='Hello';keydown(f.input);await settle();await settle();
  assert.equal(requests.length,1);assert.equal(requests[0].init.method,'POST');assert.deepEqual(JSON.parse(requests[0].init.body).context,{section:'home',language:'en'});
+});
+
+
+test('long replies retain their full text and return to conversation while the composer stays outside the scroller',async t=>{
+ const f=companionFixture();t.after(()=>f.companion.destroy());f.companion.elements.toggle.dispatchEvent(new Event('click'));
+ const body=f.document.body.childNodes.find(el=>el.id==='m-companion').childNodes.find(el=>el.className==='m-companion-body');
+ assert.equal(f.log.parent,body);assert.equal(f.form.parent,f.companion.elements.panel);
+ body.scrollTop=800;f.input.value='Tell me about your world';keydown(f.input);
+ const text='W'.repeat(700);f.requests[0].reply({...validReply,reply:text});await settle();
+ assert.equal(f.log.childNodes.at(-1).textContent,text);assert.equal(body.scrollTop,0);
+ assert.equal(f.log.tabindex,'0');assert.equal(f.input.wrap,'soft');assert.equal(f.companion.isOpen(),true);
+});
+
+test('visual viewport keyboard changes keep a focused composer above the keyboard and listeners are removed on destroy',()=>{
+ const visual=new EventTarget();visual.height=844;visual.offsetTop=0;
+ const view=new EventTarget();view.innerHeight=844;view.visualViewport=visual;
+ const f=companionFixture({viewportWindow:view});const panel=f.companion.elements.panel;
+ f.companion.elements.toggle.dispatchEvent(new Event('click'));
+ visual.height=420;visual.dispatchEvent(new Event('resize'));
+ assert.equal(panel.dataset.keyboardOpen,'true');assert.equal(panel.style.getPropertyValue('--m-companion-visible-height'),'420px');
+ assert.equal(panel.style.getPropertyValue('--m-companion-keyboard-inset'),'424px');
+ visual.offsetTop=50;visual.dispatchEvent(new Event('scroll'));assert.equal(panel.style.getPropertyValue('--m-companion-keyboard-inset'),'374px');
+ f.document.activeElement=f.companion.elements.toggle;visual.dispatchEvent(new Event('resize'));assert.equal(panel.dataset.keyboardOpen,'false');
+ f.companion.destroy();visual.height=300;visual.dispatchEvent(new Event('resize'));assert.equal(panel.style.getPropertyValue('--m-companion-visible-height'),'420px');
+});
+
+
+test('new routines remain optional local controls and never widen the assistant response schema',()=>{
+ const effects=[],f=companionFixture({onGesture:(name,metadata)=>{effects.push([name,metadata.source]);return true;},onAffect:name=>{effects.push(name);return true;},onGame:name=>{effects.push(name);return false;}});
+ for(const label of ['Sleep','Hop','Think'])f.gesture(label).dispatchEvent(new Event('click'));
+ for(const label of ['Pondering','Dozing','Joyful','Floating ball'])f.gesture(label).dispatchEvent(new Event('click'));
+ assert.deepEqual(effects,[['sleep','visitor'],['hop','visitor'],['think','visitor'],'pondering','dozing','joyful','ball']);
+ assert.equal(f.requests.length,0);for(const gesture of ['sleep','hop','think','paw'])assert.equal(validateAssistantReply({...validReply,gesture}),null);f.companion.destroy();
 });

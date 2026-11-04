@@ -1,16 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {M_GESTURES,GESTURE_DURATIONS,GESTURE_PHASES,sampleGesture,createGestureLayer} from './m-world-acting.mjs';
+import {M_GESTURES,GESTURE_DURATIONS,GESTURE_PHASES,PAW_CONTACT_PROGRESS,sampleGesture,createGestureLayer} from './m-world-acting.mjs';
 import {sampleLocomotionPose} from './m-world-locomotion.mjs';
 import {createMotionV8,canonicalBoneName} from './m-lab/interactions/motion-v8.mjs';
 const magnitude=pose=>Math.hypot(...Object.values(pose).flat());
 const difference=(a,b)=>Math.max(0,...new Set([...Object.keys(a),...Object.keys(b)]).values().map(name=>Math.hypot(...[0,1,2].map(i=>(a[name]?.[i]||0)-(b[name]?.[i]||0)))));
 const close=(a,b,epsilon=1e-10)=>assert.ok(Math.abs(a-b)<epsilon,`${a} != ${b}`);
 
-test('seven named original-rig gestures have declared bounded durations and phases',()=>{
- assert.deepEqual(M_GESTURES,['wave','curious','surprised','shy','playful','wink','nod']);
+test('legacy and living-routine gestures have declared bounded durations and phases',()=>{
+ assert.deepEqual(M_GESTURES.slice(0,7),['wave','curious','surprised','shy','playful','wink','nod']);
+ for(const name of ['sleep','hop','think','paw'])assert.ok(M_GESTURES.includes(name));
  assert.ok(Object.isFrozen(M_GESTURES)&&Object.isFrozen(GESTURE_DURATIONS));
- for(const name of M_GESTURES){assert.ok(GESTURE_DURATIONS[name]>1.5&&GESTURE_DURATIONS[name]<4);assert.ok(Object.isFrozen(GESTURE_PHASES[name]));assert.ok(0<GESTURE_PHASES[name][0]&&GESTURE_PHASES[name][0]<GESTURE_PHASES[name][1]&&GESTURE_PHASES[name][1]<1);}
+ for(const name of M_GESTURES){assert.ok(GESTURE_DURATIONS[name]>1.5&&GESTURE_DURATIONS[name]<14);assert.ok(Object.isFrozen(GESTURE_PHASES[name]));assert.ok(0<GESTURE_PHASES[name][0]&&GESTURE_PHASES[name][0]<GESTURE_PHASES[name][1]&&GESTURE_PHASES[name][1]<1);}
  for(const name of ['dance','__proto__',undefined])assert.deepEqual(sampleGesture({name,age:1}).pose,{});
 });
 test('gesture endpoints and invalid/reduced inputs have no additive motion',()=>{
@@ -18,17 +19,17 @@ test('gesture endpoints and invalid/reduced inputs have no additive motion',()=>
   const duration=GESTURE_DURATIONS[name];
   for(const age of [-10,0,duration,duration+3,NaN,Infinity,-Infinity,'1']){
    const result=sampleGesture({name,age});
-   assert.deepEqual(result.pose,{});assert.equal(result.envelope,0);assert.equal(result.expression,'neutral');
+   assert.deepEqual(result.pose,{});assert.equal(result.envelope,0);assert.equal(result.expression,'neutral');assert.equal(result.lift,0);assert.equal(result.contact,0);
   }
   const reduced=sampleGesture({name,age:duration*.4,reducedMotion:true});
-  assert.deepEqual(reduced.pose,{});assert.equal(reduced.envelope,0);
+  assert.deepEqual(reduced.pose,{});assert.equal(reduced.envelope,0);assert.equal(reduced.lift,0);assert.equal(reduced.contact,0);
   // Quintic attack/release avoids an impulse when a sequence starts or ends.
   assert.ok(magnitude(sampleGesture({name,age:.0001}).pose)/.0001<.001);
   assert.ok(magnitude(sampleGesture({name,age:duration-.0001}).pose)/.0001<.001);
  }
 });
 test('every gesture has distinct anticipation, action and recovery with continuous bounded canonical rotations',()=>{
- const allowed=new Set(['Body','Chest','Neck','Head','Arm.L','Arm.R','Forearm.L','Forearm.R','Hand.L','Hand.R','Ear.L','Ear.R','EarTip.L','EarTip.R',...Array.from({length:10},(_,i)=>'Tail.'+String(i+1).padStart(2,'0'))]);
+ const allowed=new Set(['Body','Chest','Neck','Head','Arm.L','Arm.R','Forearm.L','Forearm.R','Hand.L','Hand.R','Leg.L','Leg.R','Foot.L','Foot.R','Ear.L','Ear.R','EarTip.L','EarTip.R',...Array.from({length:10},(_,i)=>'Tail.'+String(i+1).padStart(2,'0'))]);
  for(const name of M_GESTURES)for(const side of [-1,1]){
   const duration=GESTURE_DURATIONS[name],phases=new Set();let previous={},peak=0;
   for(let frame=0;frame<=Math.ceil(duration*240);frame++){
@@ -95,7 +96,7 @@ class Quaternion{
 const THREE={Euler,Quaternion};
 const compare=(a,b)=>{for(const key of ['x','y','z','w'])close(a[key],b[key],1e-9);};
 const fixture=()=>{
- const names=['Head','Chest','Body','Neck','Arm.L','Arm.R','Forearm.L','Forearm.R','Hand.L','Hand.R','Ear.L','Ear.R','EarTip.L','EarTip.R',...Array.from({length:10},(_,i)=>'Tail.'+String(i+1).padStart(2,'0'))];
+ const names=['Head','Chest','Body','Neck','Arm.L','Arm.R','Forearm.L','Forearm.R','Hand.L','Hand.R','Leg.L','Leg.R','Foot.L','Foot.R','Ear.L','Ear.R','EarTip.L','EarTip.R',...Array.from({length:10},(_,i)=>'Tail.'+String(i+1).padStart(2,'0'))];
  const bones=names.map(name=>({name,isBone:true,quaternion:new Quaternion().setFromEuler({x:.12,y:-.07,z:.09})}));
  return {bones,map:new Map(bones.map(b=>[b.name,b])),root:{traverse:f=>bones.forEach(f)}};
 };
@@ -177,5 +178,83 @@ test('wink closure uses independent source-compatible blink controls and release
   assert.equal(peak,1);assert.ok(partial>130);
   for(const age of [0,duration])assert.equal(sampleGesture({name:'wink',side,age}).blink,null);
   assert.equal(sampleGesture({name:'wink',side,age:1,reducedMotion:true}).blink,null);
+ }
+});
+
+test('sleep closes the original lids progressively, holds both shut through breathing and wakes before completion',()=>{
+ const duration=GESTURE_DURATIONS.sleep,at=progress=>sampleGesture({name:'sleep',age:progress*duration});
+ assert.ok(duration>=10&&duration<=14);
+ assert.ok(at(.23).blink.left>0&&at(.23).blink.left<1);
+ assert.ok(at(.23).blink.left>at(.23).blink.right,'the second lid follows the first subtly');
+ for(const progress of [.32,.4,.5,.6,.7]){
+  assert.equal(at(progress).blink.left,1);assert.equal(at(progress).blink.right,1);
+  assert.equal(at(progress).lift,0);assert.equal(at(progress).contact,0);
+ }
+ assert.ok(Math.abs(at(.40).pose.Chest[0]-at(.52).pose.Chest[0])>.01,'sleep must visibly breathe during the closed hold');
+ assert.ok(at(.85).blink.left>0&&at(.85).blink.left<.7);
+ assert.ok(at(.96).pose.Head[0]<at(.6).pose.Head[0]*.2,'head comes back gently as lids reopen');
+ for(const age of [0,duration])assert.equal(sampleGesture({name:'sleep',age}).blink,null);
+});
+
+test('hop separates gathering, push, airborne lift and soft landing without accumulating displacement',()=>{
+ const duration=GESTURE_DURATIONS.hop,at=progress=>sampleGesture({name:'hop',age:progress*duration});
+ assert.ok(at(.18).pose['Leg.L'][0]>.18&&at(.18).pose['Leg.R'][0]>.18);
+ assert.ok(at(.29).pose['Leg.L'][0]<-.1,'both short legs must actively extend into the push');
+ assert.ok(at(.47).lift>.15&&at(.47).lift<=.16);
+ assert.equal(at(.18).lift,0);assert.equal(at(.80).lift,0);
+ assert.ok(at(.78).pose['Leg.L'][0]>.12,'the landing has its own absorption beat');
+ let previous=at(0).lift;
+ for(let i=1;i<=840;i++){
+  const sample=at(i/840);
+  assert.ok(sample.lift>=0&&sample.lift<=.16);
+  assert.ok(Math.abs(sample.lift-previous)/(duration/840)<.42,'root lift velocity must stay bounded');
+  assert.equal(sample.contact,0);previous=sample.lift;
+ }
+ assert.equal(previous,0);
+ for(const progress of [.25,.47,.76]){
+  const epsilon=1e-5,left=at(progress-epsilon).lift,center=at(progress).lift,right=at(progress+epsilon).lift;
+  assert.ok(Math.abs((center-left)-(right-center))<1e-10,'flight joins must not add impulses');
+ }
+});
+
+test('paw provides one bounded side-independent contact cue with a led forearm and delayed recovery',()=>{
+ for(const side of [-1,1]){
+  const duration=GESTURE_DURATIONS.paw,at=progress=>sampleGesture({name:'paw',side,age:progress*duration});
+  const lead=side>0?'L':'R',other=side>0?'R':'L';
+  assert.equal(at(PAW_CONTACT_PROGRESS).contact,1);
+  for(const progress of [.1,.3,.6,.9])assert.equal(at(progress).contact,0);
+  const ready=at(.36).pose,strike=at(PAW_CONTACT_PROGRESS).pose;
+  assert.ok(Math.hypot(...ready['Forearm.'+lead])>Math.hypot(...ready['Forearm.'+other])+.1);
+  assert.ok(Math.abs(strike['Hand.'+lead][2])>.19);
+  let previous=0,rising=true;
+  for(let i=0;i<=1000;i++){
+   const cue=at(i/1000).contact;
+   assert.ok(cue>=0&&cue<=1);
+   if(cue<previous-1e-12)rising=false;
+   if(!rising)assert.ok(cue<=previous+1e-12,'one bat cannot emit another contact pulse');
+   previous=cue;
+  }
+  assert.equal(at(.47).lift,0);
+ }
+});
+
+test('thinking changes attention before a decision and keeps the supporting shoulder quiet',()=>{
+ const duration=GESTURE_DURATIONS.think,at=progress=>sampleGesture({name:'think',age:progress*duration});
+ assert.ok(at(.39).pose.Head[1]>.1&&at(.57).pose.Head[1]<-.07,'M considers two directions');
+ assert.ok(Math.abs(at(.79).pose.Head[1])<.02,'the final nod resolves the searching gaze');
+ assert.ok(at(.79).pose.Head[0]>.08);
+ assert.ok(Math.hypot(...at(.4).pose['Forearm.L'])>Math.hypot(...at(.4).pose['Arm.L'])*3);
+ assert.equal(at(.4).blink,null);assert.equal(at(.4).lift,0);
+});
+
+test('new active performances retain a progressive original ten-bone tail response',()=>{
+ for(const name of ['hop','think','paw']){
+  const roots=[],tips=[],duration=GESTURE_DURATIONS[name];
+  for(let i=1;i<600;i++){
+   const pose=sampleGesture({name,age:duration*i/600}).pose;
+   roots.push(Math.hypot(...pose['Tail.01']));tips.push(Math.hypot(...pose['Tail.10']));
+  }
+  const rootPeak=roots.indexOf(Math.max(...roots)),tipPeak=tips.indexOf(Math.max(...tips));
+  assert.ok(tipPeak>rootPeak+30,`${name} tip must react after its base`);
  }
 });

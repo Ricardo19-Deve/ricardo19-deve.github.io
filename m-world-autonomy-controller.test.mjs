@@ -6,7 +6,8 @@ import {createAutonomy} from './m-world-autonomy.mjs';
 import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs';
 import {AFFECT_DURATIONS,M_AFFECTS} from './m-world-affect.mjs';
 import {actorRect,bound} from './m-world-spatial.mjs';
-import {M_GESTURES} from './m-world-acting.mjs';
+import {M_GESTURES,GESTURE_DURATIONS as AUTHORED_DURATIONS,PAW_CONTACT_PROGRESS} from './m-world-acting.mjs';
+import {planBallFlight,sampleBallFlight} from './m-world-ball.mjs';
 import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
 import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,gestureViewportFits} from './m-world-action-policy.mjs';
 
@@ -25,7 +26,7 @@ const functions=[
  ['noteAutonomy','finishAutonomy'],['finishAutonomy','cancelAutonomy'],
  ['cancelAutonomy','autonomyStatus'],['updateAutonomy','clearScene'],
  ['clearScene','stopPlay'],['stopPlay','beginCharacterScene'],
- ['beginCharacterScene','beginLightGoal'],['startPlay','playStop.addEventListener('],
+ ['beginCharacterScene','beginLightGoal'],['startPlay','queueBallPaw'],['queueBallPaw','renderBall'],['renderBall','playStop.addEventListener('],
  ['queueIntent','queueGesture'],['queueGesture','queueExpression'],['reactToTap','stageGesture'],
  ['stageGesture','updateGesture'],['updateGesture','updateLife'],['updateLife','renderCurrent']
 ].map(([name,next])=>[name,privateControllerFunction(name,next)]);
@@ -37,7 +38,7 @@ function fixture(){
  const calls={stages:0,scheduled:0,lightGoals:0,director:[]};
  const context=createContext({
   actorRect,bound,gestureReady,gestureViewportFits,isExplicitGesture,selectGestureIntent,gestureIntentExpired,
-  currentCharacterGoal:()=>null,recordCharacterExperience:()=>false,character:{snapshot:()=>({visits:1})},getContextComponent:()=>null,createScenePlan,AFFECT_DURATIONS,M_AFFECTS,M_GESTURES,GESTURE_DURATIONS:{curious:2.2,playful:3,wave:2.4},
+  currentCharacterGoal:()=>null,recordCharacterExperience:()=>false,character:{snapshot:()=>({visits:1})},getContextComponent:()=>null,createScenePlan,AFFECT_DURATIONS,M_AFFECTS,M_GESTURES,GESTURE_DURATIONS:{...AUTHORED_DURATIONS,curious:2.2,playful:3,wave:2.4},PAW_CONTACT_PROGRESS,planBallFlight,sampleBallFlight,
   avatar:{},active:true,reducedMotion:false,frozen:false,document:{activeElement:null,hidden:false,getSelection:()=>({isCollapsed:true})},
   navigator:{language:'en'},performance:{now:()=>1000},scrollX:0,scrollY:0,
   state:{x:120,y:120,vx:0,vy:0,depth:1,depthTarget:1,phase:'hold',mode:'rest',clock:0,
@@ -53,7 +54,7 @@ function fixture(){
   scenes:createScenePlayer(),sceneMeta:null,sceneCommand:null,completedSceneRoute:null,completedSceneGesture:null,
   game:null,gameSerial:0,lastAutonomousGame:null,route:null,pendingGesture:null,nextChoice:0,nextSceneAt:0,
   recentCorridors:[],chooseCorridorTarget:()=>null,directorPlan:()=>null,
-  playNext:{},playNote:{},playDock:{hidden:true},playLight:{hidden:true},
+  playNext:{},playNote:{},playDock:{hidden:true},playLight:{hidden:true},playBall:{hidden:true,style:{}},
   schedule:()=>{calls.scheduled++;},life:{manual:()=>{},random:()=>.5},
   planGestureStage:()=>{calls.stages++;return {target:{x:200,y:120},egress:{x:120,y:120},escape:false,reentry:false};},
   overlap:(a,b)=>a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top,
@@ -299,6 +300,7 @@ test('a motionless visitor does not drain the autonomous internal energy',()=>{
 });
 test('without active reading M can reach a safe place for an unprompted quiet performance',()=>{
  const f=fixture();f.context.state.phase='approach';f.context.state.vx=10;
+ f.context.autonomy=createAutonomy({seed:1000});
  f.context.updateAutonomy(1000,f.world);
  assert.ok(f.context.autoExecution);assert.equal(f.context.autoExecution.decision.quiet,true);
  assert.equal(f.context.pendingGesture.quiet,false);assert.ok(f.calls.stages>0);

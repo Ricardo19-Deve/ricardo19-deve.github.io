@@ -7,9 +7,9 @@ import {preserveFullSkinning} from './m-lab/swim-v3/threejs/full-skinning.js';
 import {createFacialV6} from './m-lab/interactions/facial-v6.mjs?blink=v30';
 import {createMotionV8,motionPose,canonicalBoneName} from './m-lab/interactions/motion-v8.mjs?rig=v16';
 import {performanceStagePoseV15} from './m-lab/interactions/performance-v15.mjs?v16';
-import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=30';
-import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=30';
-import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs?v=30';
+import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=31';
+import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=31';
+import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs?v=31';
 
 const PART_COUNT=19;
 const EXPECTED_SIZE=16899868;
@@ -256,6 +256,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   function updateWorld(){scene.updateMatrixWorld(true);for(const mesh of skin.meshes)mesh.skeleton.update();}
   updateWorld();
   const restBox=new THREE.Box3().setFromObject(source),envelope=restBox.clone(),frameSamples=[],posePoints=[];
+  const sourceOrigin=source.position.clone(),characterHeight=restBox.getSize(new THREE.Vector3()).y;
   const boundsRecord=box=>({min:box.min.toArray(),max:box.max.toArray(),size:box.getSize(new THREE.Vector3()).toArray()});
   const feet=[bones.get('Foot.L'),bones.get('Foot.R')].filter(Boolean);
   const rawFoot=new THREE.Vector3();for(const foot of feet)rawFoot.add(foot.getWorldPosition(new THREE.Vector3()));if(feet.length)rawFoot.multiplyScalar(1/feet.length);else rawFoot.set(restBox.getCenter(new THREE.Vector3()).x,restBox.min.y,0);
@@ -275,6 +276,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    const acting=sampleGesture(gesture||{});if(acting.envelope>0)expression=acting.expression;
    mixer.stopAllAction();for(const [name,bone]of bones)bone.quaternion.copy(rest.get(name));
    action.reset().setEffectiveWeight(swimWeight).play();action.paused=true;action.time=time;mixer.update(0);
+   source.position.copy(sourceOrigin);source.position.y+=acting.lift*characterHeight;
    if(energy>0){
     const poses=motionPose({time,modeAge:3,emotionAge,mode,expression,energy,tailEnergy,tailReactivity:1.5,tailFlow:.83,performanceImpact:1,swimWeight});
     for(const [name,angles]of Object.entries(poses)){const bone=bones.get(name);if(!bone)continue;sampleEuler.set(...angles,'XYZ');sampleRotation.setFromEuler(sampleEuler);bone.quaternion.multiply(sampleRotation);}
@@ -313,7 +315,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   // These original-morph combinations add no joint pose or exaggerated targets.
   for(const name of M_AFFECTS)if(AFFECT_DURATIONS[name])sample(2.2,{affect:{name,age:AFFECT_DURATIONS[name]*.45}});
   facial.setGestureBlink(null);facial.setExpressionBlend(null);facial.setRestBlink(null);
-  mixer.stopAllAction();motion.reset();facial.setExpression('neutral');facial.setBlink('left',0);facial.setBlink('right',0);facial.update(2,0);facial.setAutoBlink(true);updateWorld();
+  mixer.stopAllAction();motion.reset();source.position.copy(sourceOrigin);facial.setExpression('neutral');facial.setBlink('left',0);facial.setBlink('right',0);facial.update(2,0);facial.setAutoBlink(true);updateWorld();
   const center=envelope.getCenter(new THREE.Vector3()),projectedBounds=projectedPoseBounds(posePoints,{center});
   const framed=new THREE.Box3(new THREE.Vector3(projectedBounds.min.x,projectedBounds.min.y,projectedBounds.min.z),new THREE.Vector3(projectedBounds.max.x,projectedBounds.max.y,projectedBounds.max.z));
   posePoints.length=0;
@@ -323,6 +325,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   framed.min.y-=.06/provisionalFit.scale;framed.max.y+=.06/provisionalFit.scale;
   frameFit=fitCharacterFrame(framed,viewportSize);
   source.position.sub(center);container.scale.setScalar(frameFit.scale);
+  const neutralSourcePosition=source.position.clone();
   depthRoot.position.x=-frameFit.center.x*frameFit.scale;depthRoot.position.y=-frameFit.center.y*frameFit.scale;updateWorld();
   const halfDepth=Math.max(Math.abs(framed.min.z),Math.abs(framed.max.z))*frameFit.scale,depthPlan=depthLayerPlacement(1,halfDepth);
   depthRoot.position.z=depthPlan.bodyZ;
@@ -374,6 +377,11 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    const fit=fitCharacterFrame(framed,viewportSize);updateContact();
    return {size:viewportSize,footprint:{...fit.footprint},neutralFootprint:localRectFromNDC(neutralNDC,viewportSize),contact:{...contact},depthSupported};
   }
+  function getInteractionPoint(name='Hand.L'){
+   const bone=bones.get(name);if(!bone||!['Hand.L','Hand.R'].includes(name))return null;
+   updateWorld();bone.getWorldPosition(projected).project(camera);
+   return {x:(projected.x+1)*viewportSize/2,y:(1-projected.y)*viewportSize/2};
+  }
   function getDiagnostics(){
    return {bones:31,rigBones:31,tailBones:motion.tailDiagnostics.connected,maxInfluences:skin.maxUsed,skinSets:skin.sets,
     clips:clips.map(c=>c.name),detailMaps:textures.size,detailSlots,viewportSize,pixelRatio,renderPixels:[canvas.width,canvas.height],
@@ -381,7 +389,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     framing:{rest:boundsRecord(restBox),envelope:boundsRecord(envelope),framed:boundsRecord(framed),scale:frameFit.scale,samples:frameSamples},
     occlusion:{supported:depthSupported,depth,worldZ:depthRoot.position.z,surfaceZ:0,protectedZ:depthPlan.protectedZ,surfaceRects:surfaceBatch.rectCount,protectedRects:protectedBatch.rectCount,maskDrawCalls:Number(surfaceBatch.mesh.visible)+Number(protectedBatch.mesh.visible)},
     render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,points:renderer.info.render.points,lines:renderer.info.render.lines,programs:renderer.info.programs.length,textures:renderer.info.memory.textures,geometries:renderer.info.memory.geometries},
-    swimWeight,expression:facial.expression,gesture:{name:lastGesture.name,age:lastGesture.progress*lastGesture.duration,phase:lastGesture.phase,envelope:lastGesture.envelope},affect:{name:lastAffect.name,phase:lastAffect.phase,envelope:lastAffect.envelope,weights:facial.diagnostics().expressionWeights},facialIntensity:facial.intensity,blink:facial.diagnostics(),shaderErrors:[...shaderErrors]};
+    swimWeight,expression:facial.expression,gesture:{name:lastGesture.name,age:lastGesture.progress*lastGesture.duration,phase:lastGesture.phase,envelope:lastGesture.envelope,lift:lastGesture.lift,contact:lastGesture.contact},affect:{name:lastAffect.name,phase:lastAffect.phase,envelope:lastAffect.envelope,weights:facial.diagnostics().expressionWeights},facialIntensity:facial.intensity,blink:facial.diagnostics(),shaderErrors:[...shaderErrors]};
   }
   function render(){
    if(disposed)return;renderer.render(scene,camera);updateContact();
@@ -391,7 +399,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   const update=(dt,state={})=>{
    if(disposed)return;dt=num(dt,0,.06);clock+=dt;
    const activity=typeof state.activity==='string'?state.activity:state.activity?.name||state.activity?.mode||state.mode||'float';
-   const calm=['perch','perched','rest','settle'].includes(activity)||['perch','rest'].includes(state.mode),reduced=Boolean(state.reducedMotion);
+   const calm=['sleep','think'].includes(state.gesture?.name)||['perch','perched','rest','settle'].includes(activity)||['perch','rest'].includes(state.mode),reduced=Boolean(state.reducedMotion);
    const vx=Number(state.vx??state.velocity?.x)||0,vy=Number(state.vy??state.velocity?.y)||0,speed=Math.hypot(vx,vy),moving=THREE.MathUtils.smoothstep(speed,10,220);
    const target=reduced||calm?0:.8*moving;swimWeight+=(target-swimWeight)*(1-Math.exp(-6*dt));if(swimWeight<1e-5)swimWeight=0;
    const mode=motionFor(state.mode||activity);
@@ -405,6 +413,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     swimWeight,bodyMotion:{rotation:{y:num(vx*.001,-.4,.4),z:num(vy*.001,-.4,.4)},velocity:{x:num(vx*.002,-.5,.5),y:num(vy*.002,-.5,.5)}}});
    locomotionLayer.apply(sampleLocomotionPose(state.locomotion||{},{reducedMotion:reduced}));
    gestureLayer.apply(lastGesture.pose);
+   source.position.copy(neutralSourcePosition);source.position.y+=lastGesture.lift*characterHeight;
    facial.setGestureBlink(reduced?{left:0,right:0}:lastGesture.blink);
    facial.setExpressionBlend(lastAffect.envelope>0?lastAffect.weights:null);facial.setRestBlink(lastAffect.envelope>0?lastAffect.eyelids:null);
    facial.setExpression(expression);if(autoBlink===reduced){autoBlink=!reduced;facial.setAutoBlink(autoBlink);}facial.update(reduced?2:dt,performance.now());
@@ -415,7 +424,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   };
   host.prepend(canvas);render();
   const metrics=getMetrics();onReady({...getDiagnostics(),footprint:metrics.footprint,contact:metrics.contact});
-  return {canvas,update,render,setSpatialFrame,getMetrics,getDiagnostics,dispose,ready:true,
+  return {canvas,update,render,setSpatialFrame,getMetrics,getInteractionPoint,getDiagnostics,dispose,ready:true,
    diagnostics:{bones:motion.tailDiagnostics.connected,rigBones:31,maxInfluences:skin.maxUsed,skinSets:skin.sets,clips:clips.map(c=>c.name),detailMaps:textures.size,detailSlots,viewportSize,pixelRatio,depthSupported}};
  }catch(error){dispose();throw error;}
 }

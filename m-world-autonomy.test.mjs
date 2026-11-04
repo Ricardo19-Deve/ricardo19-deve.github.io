@@ -322,3 +322,133 @@ test('invalid character goals preserve the established V25 decision distribution
  const absent=createAutonomy({seed:18425}).choose(facts(1000,{goal:{id:'revisit-lookout',targetId:'removed-card'}}));
  assert.equal(absent.characterGoal,undefined);
 });
+
+const routineFacts=(nowMs=0,extra={})=>facts(nowMs,{routinesAvailable:true,ballPlayAvailable:true,...extra});
+function routineTimeline(seed,durationMs=240_000,extra={}){
+ const ai=createAutonomy({seed}),decisions=[];let execution=null;
+ for(let nowMs=0;nowMs<=durationMs;nowMs+=500){
+  if(execution&&nowMs>=execution.until){assert.equal(ai.complete({success:true,nowMs}),true);execution=null;}
+  const decision=ai.choose(routineFacts(nowMs,extra));if(!decision)continue;
+  decisions.push({nowMs,...decision});accept(ai,decision,nowMs);
+  execution={until:nowMs+(decision.gesture==='sleep'?12_400:decision.kind==='self-play'?15_000:decision.kind==='scene'?7000:5500)};
+ }
+ return {ai,decisions};
+}
+
+test('routine and ball availability are explicit capabilities; omitted and malformed flags preserve V25 exactly',()=>{
+ for(const seed of [0,4,47,18425,91183])for(const value of [undefined,false,0,1,'true',null,{},[]]){
+  const old=createAutonomy({seed}),disabled=createAutonomy({seed});
+  for(const nowMs of [0,1000,10_000,90_000,180_000]){
+   const a=old.choose(facts(nowMs)),b=disabled.choose(facts(nowMs,{routinesAvailable:value,ballPlayAvailable:value}));
+   assert.deepEqual(b,a);assert.deepEqual(disabled.snapshot(),old.snapshot());
+   if(a){accept(old,a,nowMs);accept(disabled,b,nowMs);old.complete({success:true,nowMs});disabled.complete({success:true,nowMs});}
+  }
+ }
+});
+
+test('new routines form varied reproducible intentions and autonomous ball play without visitor or provider input',()=>{
+ const {decisions}=routineTimeline(18425),first=reason=>decisions.find(value=>value.reason===reason);
+ for(const reason of ['sleep','think','hop','ball'])assert.ok(first(reason),reason+' must be naturally available');
+ assert.ok(Math.max(...['sleep','think','hop','ball'].map(reason=>first(reason).nowMs))<=140_000,'all new intentions occur within about two minutes after the initial chapter');
+ assert.deepEqual(routineTimeline(18425).decisions,decisions);
+ const sleep=first('sleep'),think=first('think'),hop=first('hop'),ball=first('ball');
+ assert.equal(sleep.kind,'rest');assert.equal(sleep.gesture,'sleep');assert.equal(sleep.affect,'dozing');assert.equal(sleep.quiet,true);
+ assert.equal(think.kind,'expression');assert.equal(think.gesture,'think');assert.equal(think.affect,'pondering');
+ assert.equal(hop.kind,'expression');assert.equal(hop.gesture,'hop');assert.equal(hop.affect,'joyful');assert.equal(hop.quiet,false);
+ assert.equal(ball.kind,'self-play');assert.equal(ball.play,'ball');assert.equal(ball.gesture,'paw');assert.equal(ball.targetId,null);
+ for(let i=1;i<decisions.length;i++)assert.notEqual(decisions[i].reason,decisions[i-1].reason,'family novelty avoids an immediate repetitive routine');
+ assert.ok(new Set(decisions.map(value=>value.reason)).size>=9,'new routines must not replace all exploration');
+});
+
+test('routine safety gates still cancel actual ownership without counting a nap',()=>{
+ for(const context of [{active:false},{hidden:true},{reducedMotion:true},{typing:true},{selection:true},{scrolling:true}]){
+  const ai=createAutonomy({seed:18425}),choice=ai.choose(routineFacts());accept(ai,choice,0);
+  assert.equal(ai.choose(routineFacts(1000,{context})),null);
+  assert.equal(ai.snapshot().active,null);assert.equal(ai.snapshot().completedCount,0);
+  assert.equal(ai.snapshot().needs.lastSleepAt,null);
+ }
+ for(const extra of [{context:{busy:true}},{remotePending:true}]){
+  const ai=createAutonomy({seed:18425});assert.equal(ai.choose(routineFacts(0,extra)),null);
+  assert.equal(ai.snapshot().current,null);assert.equal(ai.snapshot().needs.lastSleepAt,null);
+ }
+});
+
+test('reading allows quiet thought and sleep but never new hopping or ball motion',()=>{
+ const {decisions}=routineTimeline(18425,240_000,{context:{reading:true}});
+ assert.ok(decisions.some(value=>value.reason==='think'));
+ assert.ok(decisions.some(value=>value.reason==='sleep'));
+ for(const decision of decisions){
+  assert.equal(decision.quiet,true);assert.equal(decision.play,null);assert.equal(decision.targetId,null);
+  assert.equal(decision.action,'rest');assert.ok(['none','think','sleep'].includes(decision.gesture));
+  assert.ok(['rest','expression'].includes(decision.kind));
+ }
+});
+
+test('ball and hopping obey independent availability and exact energy thresholds',()=>{
+ let balls=0,hops=0;
+ for(let index=0;index<200;index++){
+  const seed=index*9973+17;
+  const choose=extra=>createAutonomy({seed}).choose(routineFacts(0,{targets:[],selfPlayAvailable:false,...extra}));
+  assert.notEqual(choose({ballPlayAvailable:false}).play,'ball');
+  assert.notEqual(choose({energy:.3}).play,'ball');
+  assert.notEqual(choose({energy:.4}).gesture,'hop');
+  assert.notEqual(choose({routinesAvailable:false}).gesture,'hop');
+  if(choose({energy:.8}).play==='ball')balls++;
+  if(choose({energy:.8}).gesture==='hop')hops++;
+ }
+ assert.ok(balls>10&&hops>10,'both energetic alternatives can actually win utility selection');
+});
+
+test('nap need grows smoothly and low energy increasingly favors actual sleep across reproducible seeds',()=>{
+ let tired=0,awake=0,urgent=0;
+ for(let index=0;index<200;index++){
+  const seed=index*9973+17;
+  const choose=energy=>createAutonomy({seed}).choose(routineFacts(0,{energy,targets:[],selfPlayAvailable:false,ballPlayAvailable:false}));
+  if(choose(.1).gesture==='sleep')tired++;
+  if(choose(.9).gesture==='sleep')awake++;
+  const ai=createAutonomy({seed});ai.choose(routineFacts(0,{context:{busy:true}}));
+  assert.equal(ai.snapshot().needs.napUrge,0);
+  ai.choose(routineFacts(45_000,{context:{busy:true}}));assert.equal(ai.snapshot().needs.napUrge,.5);
+  if(ai.choose(routineFacts(90_000,{energy:.1,targets:[],selfPlayAvailable:false,ballPlayAvailable:false})).gesture==='sleep')urgent++;
+ }
+ assert.ok(tired>awake+45,'tired creatures choose sleep more frequently than rested ones');
+ assert.ok(urgent>tired+30,'longer wakefulness adds a genuine graded need rather than a fixed schedule');
+});
+
+function queuedNap(){
+ for(let index=0;index<100;index++){
+  const ai=createAutonomy({seed:index*9973+17});
+  ai.choose(routineFacts(0,{context:{busy:true}}));
+  const choice=ai.choose(routineFacts(90_000,{energy:.1,targets:[],selfPlayAvailable:false,ballPlayAvailable:false}));
+  if(choice.gesture==='sleep')return {ai,choice};
+ }
+ assert.fail('No deterministic sleep candidate found');
+}
+test('only successful sleep completion satisfies nap need; attempts, failure, cancellation and memory reset do not',()=>{
+ for(const result of ['proposal','rejected','failed','cancelled','memory-reset','success']){
+  const {ai,choice}=queuedNap();assert.equal(ai.snapshot().needs.napUrge,1);assert.equal(ai.snapshot().needs.lastSleepAt,null);
+  if(result==='rejected')ai.resolve(choice.id,{accepted:false,nowMs:90_100});
+  else if(result==='memory-reset')ai.resetMemory(90_100);
+  else if(result!=='proposal'){
+   accept(ai,choice,90_100);assert.equal(ai.snapshot().needs.napUrge,1);
+   if(result==='cancelled')ai.cancel('visitor-interaction',95_000);
+   else if(result==='failed')ai.complete({success:false,reason:'blocked',nowMs:103_000});
+   else ai.complete({success:true,nowMs:103_000});
+  }
+  assert.equal(ai.snapshot().needs.lastSleepAt,result==='success'?103_000:null,result);
+  assert.equal(ai.snapshot().needs.napUrge,result==='success'?0:1,result);
+ }
+});
+
+test('a real sleep remains available while an unfinished story focuses other active behaviors',()=>{
+ let naps=0,goals=0;
+ for(let index=0;index<200;index++){
+  const ai=createAutonomy({seed:index*9973+17});ai.choose(routineFacts(0,{context:{busy:true}}));
+  const decision=ai.choose(routineFacts(90_000,{energy:.1,goal:{id:'find-lookout',targetId:'card-b'}}));
+  if(decision.gesture==='sleep'){naps++;assert.equal(decision.kind,'rest');assert.equal(decision.characterGoal,undefined);}
+  if(decision.characterGoal)goals++;
+ }
+ assert.ok(naps>40&&goals>40,'a strong story intention cannot suppress the physiological rest alternative');
+ const focused=createAutonomy({seed:18425}).choose(routineFacts(1000,{goal:{id:'follow-light'}}));
+ assert.equal(focused.characterGoal,'follow-light');assert.equal(focused.play,'light');
+});
