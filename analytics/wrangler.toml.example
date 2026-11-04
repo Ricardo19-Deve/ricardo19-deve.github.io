@@ -1,0 +1,16 @@
+name = "m-portfolio-analytics"
+main = "worker.mjs"
+compatibility_date = "2026-11-01"
+workers_dev = true
+
+[vars]
+PUBLIC_ORIGIN = "https://ricardo19-deve.github.io"
+
+[[d1_databases]]
+binding = "ANALYTICS_DB"
+database_name = "m-portfolio-analytics"
+database_id = "REPLACE_WITH_UUID_FROM_WRANGLER_D1_CREATE"
+migrations_dir = "migrations"
+
+[triggers]
+crons = ["15 2 * * *"]
