@@ -9,6 +9,7 @@ import {createMotionV8,motionPose,canonicalBoneName} from './m-lab/interactions/
 import {performanceStagePoseV15} from './m-lab/interactions/performance-v15.mjs?v16';
 import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=32';
 import {createPresenceDynamics} from './m-world-dynamics.mjs?v=32';
+import {createFacialContinuity} from './m-world-face-continuity.mjs?v=32';
 import {createRenderQualityGovernor} from './m-world-quality.mjs?v=32';
 import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=32';
 import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs?v=32';
@@ -253,7 +254,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
 
   const clips=gltf.animations||[],mixer=new THREE.AnimationMixer(source),swim=clips.find(c=>c.name==='M_Swim_V4'),action=swim?mixer.clipAction(swim):null;
   if(!action)throw new Error('The preserved M_Swim_V4 clip is missing.');
-  const motion=createMotionV8(source,THREE),facial=createFacialV6(source,clips);
+  const motion=createMotionV8(source,THREE),facial=createFacialV6(source,clips),facialContinuity=createFacialContinuity();
   if(motion.tailDiagnostics.connected!==10)throw new Error('The ten original tail bones are required.');
   facial.setIntensity(1);facial.setAutoBlink(false);
   const bones=new Map();source.traverse(o=>{if(o.isBone)bones.set(canonicalBoneName(o.name),o);});
@@ -394,7 +395,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    return {bones:31,rigBones:31,tailBones:motion.tailDiagnostics.connected,maxInfluences:skin.maxUsed,skinSets:skin.sets,
     clips:clips.map(c=>c.name),detailMaps:textures.size,detailSlots,viewportSize,pixelRatio,renderPixels:[canvas.width,canvas.height],
     environment:{type:'PMREM RoomEnvironment',intensity:scene.environmentIntensity,toneMapping:'AgX'},
-     quality:qualityGovernor.snapshot(),presence:presence.snapshot(),
+     quality:qualityGovernor.snapshot(),presence:presence.snapshot(),facialContinuity:facialContinuity.snapshot(),
     framing:{rest:boundsRecord(restBox),envelope:boundsRecord(envelope),framed:boundsRecord(framed),scale:frameFit.scale,samples:frameSamples},
     occlusion:{supported:depthSupported,depth,worldZ:depthRoot.position.z,surfaceZ:0,protectedZ:depthPlan.protectedZ,surfaceRects:surfaceBatch.rectCount,protectedRects:protectedBatch.rectCount,maskDrawCalls:Number(surfaceBatch.mesh.visible)+Number(protectedBatch.mesh.visible)},
     render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,points:renderer.info.render.points,lines:renderer.info.render.lines,programs:renderer.info.programs.length,textures:renderer.info.memory.textures,geometries:renderer.info.memory.geometries},
@@ -424,7 +425,8 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    gestureLayer.apply(lastGesture.pose);
    source.position.copy(neutralSourcePosition);source.position.y+=lastGesture.lift*characterHeight;
    facial.setGestureBlink(reduced?{left:0,right:0}:lastGesture.blink);
-   facial.setExpressionBlend(lastAffect.envelope>0?lastAffect.weights:null);facial.setRestBlink(lastAffect.envelope>0?lastAffect.eyelids:null);
+   const fade=facialContinuity.sample({dt,weights:lastAffect.weights,eyelids:lastAffect.eyelids,reducedMotion:reduced,gestureActive:Boolean(lastGesture.name)});
+    facial.setExpressionBlend(fade?.weights||null);facial.setRestBlink(fade?.eyelids||null);
    facial.setExpression(expression);if(autoBlink===reduced){autoBlink=!reduced;facial.setAutoBlink(autoBlink);}facial.update(reduced?2:dt,performance.now());
    const extra=performanceStagePoseV15({time:clock,mode,expression,impact:reduced?0:calm?.07:.4,reducedMotion:reduced});
    stage.rotation.x=num(extra.rx,-.12,.12);stage.rotation.y=num(extra.ry,-.17,.17)+num(dynamics.bodyMotion.rotation.y*.2,-.05,.05)+dynamics.stageYaw;stage.rotation.z=num(extra.rz,-.12,.12);
