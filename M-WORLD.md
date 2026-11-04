@@ -1,3 +1,16 @@
+# M World V28 — More natural presence and adaptive performance
+
+Implemented on `feat/m-world-v28-presence-performance`; not published.
+Movement and gaze now have bounded inertia, so the original ten-bone tail and
+facial attention react more smoothly without altering the Blender V6 actor.
+The renderer keeps V27 detail but can reduce pixel ratio after prolonged slow
+frames and recover after stable fast frames. Visible hover/focus gently informs
+local autonomous card choice without overriding reading, manual controls or
+spatial guards. No new AI calls or changes to model, secrets, Worker, or quotas.
+See [V28 progress and validation limits](docs/m-world-v28/PROGRESS.md).
+
+---
+
 # M World V27 — Readable conversation and living routines
 
 Prepared on feat/m-living-routines-v27 from published V26 d667748.
