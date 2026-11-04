@@ -18,11 +18,15 @@ test('production D1 binding is configured to the supplied real database',()=>{
  assert.match(runtime,/env\.ANALYTICS_DB/);
 });
 
-test('production analytics config cannot expose admin secrets or turn on a guessed endpoint',()=>{
+test('production analytics uses only the verified public Worker URL, without secrets',()=>{
  assert.doesNotMatch(config,/^ADMIN_TOKEN\s*=/m);
  assert.doesNotMatch(config,/^CLOUDFLARE_API_TOKEN\s*=/m);
- assert.match(publicConfig,/PORTFOLIO_ANALYTICS_ENDPOINT=''/);
- assert.doesNotMatch(publicConfig,/workers\.dev\/api\/visit/);
+ assert.match(publicConfig,/PORTFOLIO_ANALYTICS_ENDPOINT='https:\/\/ricardo19-deve-github-io\.ricardopacheco-pinheiro\.workers\.dev\/api\/visit'/);
+ assert.doesNotMatch(publicConfig,/ADMIN_TOKEN\s*=|Authorization\s*:|Bearer [A-Za-z0-9]/);
+ const client=file('m-analytics-client.mjs');
+ assert.match(client,/m-analytics-config\.mjs\?v=34/);
+ assert.match(client,/credentials:'omit'/);
+ assert.match(client,/globalPrivacyControl===true/);
 });
 
 test('D1 migration safely creates three persistent analytics tables',()=>{
