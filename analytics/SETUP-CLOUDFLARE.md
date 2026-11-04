@@ -80,7 +80,7 @@ If `ready` is false, fix D1 binding or `ADMIN_TOKEN` secret before proceeding.
 The public config file [`../m-analytics-config.mjs`](../m-analytics-config.mjs) intentionally currently contains:
 
 ```js
-export const PORTFOLIO_ANALYTICS_ENDPOINT='';
+export const PORTFOLIO_ANALYTICS_ENDPOINT='https://ricardo19-deve-github-io.ricardopacheco-pinheiro.workers.dev/api/visit';
 ```
 
 Once the Worker is deployed, replace the empty string with the real public Worker URL plus `/api/visit`. The exact URL is provided by Cloudflare and must not be guessed. Commit to `main` to publish via GitHub Pages. The `ADMIN_TOKEN` must never be included in frontend code.
