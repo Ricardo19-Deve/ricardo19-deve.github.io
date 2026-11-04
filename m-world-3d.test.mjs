@@ -196,8 +196,10 @@ test('gestures use a reversible layer after base motion and join actual correlat
 test('affect integration is independent of body skinning and yields to every original gesture',()=>{
  assert.match(rendererSource,/import \{M_AFFECTS,AFFECT_DURATIONS,sampleAffect\} from '\.\/m-world-affect.mjs\?v=\d+'/);
  assert.match(rendererSource,/lastAffect=sampleAffect\(\{\.\.\.state.affect,reducedMotion:reduced\|\|Boolean\(lastGesture.name\)\}\)/);
- assert.match(rendererSource,/facial.setExpressionBlend\(lastAffect.envelope>0\?lastAffect.weights:null\)/);
- assert.match(rendererSource,/facial.setRestBlink\(lastAffect.envelope>0\?lastAffect.eyelids:null\)/);
+ assert.match(rendererSource,/facialContinuity.sample\(/);
+ assert.match(rendererSource,/facial.setExpressionBlend\(fade\?\.weights\|\|null\)/);
+ assert.match(rendererSource,/facial.setRestBlink\(fade\?\.eyelids\|\|null\)/);
+ assert.match(rendererSource,/gestureActive:Boolean\(lastGesture.name\)/);
  assert.match(rendererSource,/for\(const name of M_AFFECTS\)if\(AFFECT_DURATIONS\[name\]\)sample/);
- assert.ok(rendererSource.indexOf('facial.setExpressionBlend(lastAffect.envelope')>rendererSource.indexOf('gestureLayer.apply(lastGesture.pose)'));
+ assert.ok(rendererSource.indexOf('facial.setExpressionBlend(fade?.weights||null)')>rendererSource.indexOf('gestureLayer.apply(lastGesture.pose)'));
 });
