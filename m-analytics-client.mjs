@@ -1,6 +1,6 @@
 /** V29 privacy-conscious pageview pings; no IP, UA, referrer, cookies or chat.
  * A short-lived tab session counts once per calendar day; not unique people. */
-import {PORTFOLIO_ANALYTICS_ENDPOINT} from './m-analytics-config.mjs?v=33';
+import {PORTFOLIO_ANALYTICS_ENDPOINT} from './m-analytics-config.mjs?v=34';
 const paths=new Set(['/','/salesforce-mobile.html','/revmend.html','/epoxy-platform.html']);
 export function analyticsUrl(value){
  try{
