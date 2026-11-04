@@ -28,7 +28,7 @@ test('a late completion cannot bypass the bounded ownership timeout',()=>{
 });
 
 function privateControllerFunction(name,nextName){
- const from=source.indexOf('function '+name+'('),to=source.indexOf('\n function '+nextName+'(',from);
+ const from=source.indexOf('function '+name+'('),to=source.indexOf(nextName.startsWith('playStop.')?'\n '+nextName:'\n function '+nextName+'(',from);
  assert.ok(from>=0&&to>from,'The actual '+name+' function must remain testable');
  return new Script('('+source.slice(from,to).trim()+')',{filename:'scroll-buddy.js:'+name});
 }
@@ -187,11 +187,11 @@ function reducedMotionFixture({width,height,gameName}){
   route:{gameId:1,sceneCommandId:'scene-hide:travel'},pendingGesture:{sceneId:scene.id},nextChoice:Infinity,nextSceneAt:0,
   scenes:{snapshot:()=>({...scene}),cancel:()=>{scene.status='cancelled';}},
   sceneMeta:null,sceneCommand:'scene-hide:travel',directorActivity:{sceneId:scene.id},directorLastExecution:null,
-  game:{id:1,name:gameName},playDock:{hidden:false},playLight:{hidden:false},
+  game:{id:1,name:gameName},playDock:{hidden:false},playLight:{hidden:false},playBall:{hidden:true},
   companion:{refreshMotionControl:()=>{}},director:{update:()=>{}},directorSnapshot:null,life:{setEnabled:()=>{}},cache:{dirty:false},
   overlap:(a,b)=>a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top
  });
- for(const [name,nextName]of [['clearScene','stopPlay'],['stopPlay','beginCharacterScene'],['initialPosition','startRoute'],['renderCurrent','tick'],['invalidate','setActive']])context[name]=privateControllerFunction(name,nextName).runInContext(context);
+ for(const [name,nextName]of [['clearScene','stopPlay'],['stopPlay','beginCharacterScene'],['initialPosition','startRoute'],['renderBall','playStop.addEventListener('],['renderCurrent','tick'],['invalidate','setActive']])context[name]=privateControllerFunction(name,nextName).runInContext(context);
  const refresh=privateControllerFunction('refreshMotionPreference','enableMotion').runInContext(context),tick=privateControllerFunction('tick','schedule').runInContext(context);
  return {context,world,metrics,focusedNode,spatialFrames,rendered,scheduled,refresh,tick};
 }

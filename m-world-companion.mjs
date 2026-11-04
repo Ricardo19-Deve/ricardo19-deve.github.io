@@ -1,8 +1,8 @@
-import {getContextComponent,contextualChatRequest} from './m-world-context.mjs?v=30';
-import {validateCharacterContext} from './m-world-character-context.mjs?v=30';
+import {getContextComponent,contextualChatRequest} from './m-world-context.mjs?v=31';
+import {validateCharacterContext} from './m-world-character-context.mjs?v=31';
 /** Explicit chat, local gestures and automatic AI-play controls. No persistent chat storage. */
 export const M_ASSISTANT_GESTURES=Object.freeze(['wave','curious','surprised','shy']);
-export const M_LOCAL_GESTURES=Object.freeze([...M_ASSISTANT_GESTURES,'playful','wink','nod']);
+export const M_LOCAL_GESTURES=Object.freeze([...M_ASSISTANT_GESTURES,'playful','wink','nod','sleep','hop','think']);
 const SECTIONS=['none','about','experience','projects','expertise','contact'];
 export function assistantEndpoint(value,base='https://ricardo19-deve.github.io/'){
  if(!value)return null;
@@ -29,7 +29,7 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  const status=make('p','m-companion-status',target?'AI chat is ready.':'Local gestures are ready. AI chat is not connected yet.');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
  const autonomyNote=make('p','m-companion-autonomy');autonomyNote.setAttribute('aria-live','off');autonomyNote.hidden=true;
  const actions=make('div','m-companion-actions'),moreGestures=make('details','m-companion-more-gestures'),moreSummary=make('summary','','More gestures'),moreActions=make('div','m-companion-more-actions');moreGestures.append(moreSummary,moreActions);
- for(const name of M_LOCAL_GESTURES){const el=button({wave:'Wave',curious:'Curious',surprised:'Surprised',shy:'Shy',playful:'Playful',wink:'Wink',nod:'Nod'}[name]);(M_ASSISTANT_GESTURES.includes(name)?actions:moreActions).append(el);el.addEventListener('click',()=>{refreshMotionControl();const accepted=onGesture(name,{source:'visitor'}),motion=refreshMotionControl();status.textContent=accepted?'Gesture requested. M will respond from a safe resting place.':!motion.active?'Resume M to try a gesture.':motion.reducedMotion?'Motion is off. Enable M motion to try a gesture.':'M cannot perform this gesture yet. Please try again.';makeRoomForCharacter(accepted);});}
+ for(const name of M_LOCAL_GESTURES){const el=button({wave:'Wave',curious:'Curious',surprised:'Surprised',shy:'Shy',playful:'Playful',wink:'Wink',nod:'Nod',sleep:'Sleep',hop:'Hop',think:'Think'}[name]);(M_ASSISTANT_GESTURES.includes(name)?actions:moreActions).append(el);el.addEventListener('click',()=>{refreshMotionControl();const accepted=onGesture(name,{source:'visitor'}),motion=refreshMotionControl();status.textContent=accepted?'Gesture requested. M will respond from a safe resting place.':!motion.active?'Resume M to try a gesture.':motion.reducedMotion?'Motion is off. Enable M motion to try a gesture.':'M cannot perform this gesture yet. Please try again.';makeRoomForCharacter(accepted);});}
  const directorControls=make('div','m-companion-director'),directorHeader=make('div','m-companion-director-header'),directorTitle=make('span','m-companion-director-title','AI play'),directorToggle=button('Pause AI play','m-companion-director-toggle'),directorStatus=make('p','m-companion-director-status');
  directorToggle.setAttribute('aria-pressed','true');directorStatus.setAttribute('role','status');directorStatus.setAttribute('aria-live','polite');directorHeader.append(directorTitle,directorToggle);directorControls.append(directorHeader,directorStatus);
  const autoPrivacy=make('details','m-companion-auto-privacy'),autoSummary=make('summary','m-companion-privacy','AI shares public summaries'),autoPrivacyNote=make('p','m-companion-privacy','AI play occasionally sends public component headings, types, coarse positions, safe action choices, recent actions and M’s discoveries and current intention to OpenAI, with up to 6 requests per tab. Form values and chat drafts stay private. Pause AI play any time.');autoPrivacy.append(autoSummary,autoPrivacyNote);const options=make('div','m-companion-options');options.append(moreGestures,autoPrivacy);
@@ -38,22 +38,22 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  story.append(storySummary,storyChapter,storyGoal,storyDiscovery,storyPreference,storyJournal,rememberCharacter,storyStorage);options.append(story);
  const character=make('details','m-companion-character'),characterSummary=make('summary','','Expressions & play'),moods=make('div','m-companion-character-actions');
  character.append(characterSummary,moods);options.append(character);
- for(const [name,label]of [['focus','Focused'],['content','Content'],['doubt','Unsure'],['sleepy','Sleepy'],['delight','Delighted'],['neutral','Reset face']]){
+ for(const [name,label]of [['focus','Focused'],['content','Content'],['doubt','Unsure'],['sleepy','Sleepy'],['delight','Delighted'],['pondering','Pondering'],['dozing','Dozing'],['joyful','Joyful'],['neutral','Reset face']]){
   const el=button(label);moods.append(el);el.addEventListener('click',()=>{const accepted=onAffect(name);status.textContent=accepted?'Expression requested.':'Enable M motion to try an expression.';makeRoomForCharacter(accepted);});
  }
- const explore=button('Explore this card'),hideGame=button('Find M'),lightGame=button('Follow a light'),resetMemory=button('Reset character memory');
- moods.append(explore,hideGame,lightGame,resetMemory);
+ const explore=button('Explore this card'),hideGame=button('Find M'),lightGame=button('Follow a light'),ballGame=button('Floating ball'),resetMemory=button('Reset character memory');
+ moods.append(explore,hideGame,lightGame,ballGame,resetMemory);
  explore.addEventListener('click',()=>{const accepted=onScene();status.textContent=accepted?'M is exploring a nearby card.':'There is no safe visible card to explore here.';if(accepted)setOpen(false);});
- for(const [el,name]of [[hideGame,'hide'],[lightGame,'light']])el.addEventListener('click',()=>{const accepted=onGame(name);status.textContent=accepted?'Play started. Use the play controls to stop any time.':'No safe play space here. Try another section with motion enabled.';if(accepted)setOpen(false);});
+ for(const [el,name]of [[hideGame,'hide'],[lightGame,'light'],[ballGame,'ball']])el.addEventListener('click',()=>{const accepted=onGame(name);status.textContent=accepted?'Play started. Use the play controls to stop any time.':'No safe play space here. Try another section with motion enabled.';if(accepted)setOpen(false);});
  resetMemory.addEventListener('click',()=>{onResetMemory();refreshStoryControl();status.textContent='Character memory cleared. Chat and AI request limits are unchanged.';});
  const contextRow=make('div','m-companion-context'),contextLabel=make('span'),explain=button('Explain this card');contextRow.append(contextLabel,explain);contextRow.hidden=true;
  explain.addEventListener('click',()=>{const c=getContextComponent(getContext()?.component);if(!c)return;input.value=(getContext()?.language==='pt'?'Explica este componente: ':'Explain this component: ')+c.title;form.requestSubmit(send);});
- const log=make('div','m-companion-log');log.setAttribute('role','log');log.setAttribute('aria-label','Conversation with M');log.setAttribute('aria-live','polite');log.setAttribute('aria-relevant','additions');
+ const log=make('div','m-companion-log');log.setAttribute('role','log');log.setAttribute('tabindex','0');log.setAttribute('aria-label','Conversation with M');log.setAttribute('aria-live','polite');log.setAttribute('aria-relevant','additions');
  const suggestion=button('Explore projects','m-companion-section');suggestion.hidden=true;
- const form=make('form','m-companion-form'),label=make('label','','Message M'),input=make('textarea');input.id='m-companion-message';input.name='message';input.maxLength=1200;input.rows=2;input.placeholder=target?'Ask about M’s world or Ricardo’s work…':'AI chat will be available once connected';input.disabled=!target;label.htmlFor=input.id;
+ const form=make('form','m-companion-form'),label=make('label','','Message M'),input=make('textarea');input.id='m-companion-message';input.name='message';input.maxLength=1200;input.rows=2;input.wrap='soft';input.placeholder=target?'Ask about M’s world or Ricardo’s work…':'AI chat will be available once connected';input.disabled=!target;label.htmlFor=input.id;
  const send=button('Send','m-companion-send');send.type='submit';send.disabled=!target;
  const clear=button('Clear chat','m-companion-clear'),privacy=make('p','m-companion-privacy',target?'AI chat uses your message, recent chat and public page context. It can also use M’s discoveries and current intention. Chat stays in this tab.':'Gestures run locally. Chat stays disconnected until the server is configured.');
- form.append(label,input,send,clear);form.hidden=!target;clear.hidden=!target;panel.append(header,intro,motionNote,autonomyNote,actions,options,directorControls,status,log,suggestion,contextRow,form,privacy);document.body.append(toggle,panel);
+ form.append(label,input,send,clear);form.hidden=!target;clear.hidden=!target;const conversation=make('div','m-companion-body');conversation.append(intro,motionNote,status,log,suggestion,contextRow,actions,options,directorControls,autonomyNote,privacy);panel.append(header,conversation,form);document.body.append(toggle,panel);
  let history=[],pending=null,destroyed=false,sectionHint='none',open=false,directorUiEnabled=null,contextCapability=null,characterCapability=null,storyKey=null;
  const listen=(el,name,fn)=>{el.addEventListener(name,fn);listeners.push(()=>el.removeEventListener(name,fn));};
  function refreshMotionControl(){const motion=getMotionStatus(),reducedMotion=Boolean(motion?.reducedMotion);enableMotion.hidden=motionNote.hidden=!reducedMotion;intro.hidden=history.length>0||reducedMotion;return {active:motion?.active!==false,reducedMotion};}
@@ -72,7 +72,7 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
   if(directorStatus.textContent!==text)directorStatus.textContent=text;
   return state;
  }
- function refreshAutonomyControl(){const current=getAutonomyStatus();autonomyNote.hidden=!current;if(!current)return;const motion=getMotionStatus(),choice=current.current||current.active;const text=motion?.active===false?'M is paused.':motion?.reducedMotion?'M is resting while motion is off.':current.execution?.kind==='game'?'M is playing on her own.':choice?.kind==='scene'?'M is exploring the page.':choice?.quiet?'M is watching quietly.':'M decides where to explore, play and rest.';if(autonomyNote.textContent!==text)autonomyNote.textContent=text;}
+ function refreshAutonomyControl(){const current=getAutonomyStatus();autonomyNote.hidden=!current;if(!current)return;const motion=getMotionStatus(),choice=current.current||current.active;const text=motion?.active===false?'M is paused.':motion?.reducedMotion?'M is resting while motion is off.':choice?.play==='ball'?'M is playing with a floating ball.':choice?.gesture==='sleep'?'M is having a quiet rest.':choice?.gesture==='hop'?'M is making a playful hop.':choice?.gesture==='think'?'M is thinking about her next discovery.':current.execution?.kind==='game'?'M is playing on her own.':choice?.kind==='scene'?'M is exploring the page.':choice?.quiet?'M is watching quietly.':'M decides where to explore, play and rest.';if(autonomyNote.textContent!==text)autonomyNote.textContent=text;}
  function refreshStoryControl(){
   const snapshot=getCharacterStatus();
   const {version,chapter,beat,goal,discovery,preference,recall,favoriteComponent}=snapshot||{};
@@ -99,17 +99,29 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
   rememberCharacter.textContent='Remember on this device: '+(snapshot.remember?'On':'Off');rememberCharacter.setAttribute('aria-pressed',String(snapshot.remember));
   storyStorage.textContent=!snapshot.remember?'M’s discoveries last while this page is open. Chat stays in this tab.':snapshot.storageAvailable?'M’s discoveries stay on this device. Chat stays in this tab.':'M can keep this adventure going here, but this browser cannot save it for another visit. Chat stays in this tab.';
  }
- function refresh(){refreshAutonomyControl();refreshStoryControl();const motion=refreshMotionControl();refreshDirectorControl();const c=getContextComponent(getContext()?.component);contextRow.hidden=!c||!target;if(c)contextLabel.textContent='About: '+c.title;return motion;}
+ function refresh(){refreshViewport();refreshAutonomyControl();refreshStoryControl();const motion=refreshMotionControl();refreshDirectorControl();const c=getContextComponent(getContext()?.component);contextRow.hidden=!c||!target;if(c)contextLabel.textContent='About: '+c.title;return motion;}
  function makeRoomForCharacter(accepted){if(accepted&&document.defaultView?.matchMedia?.('(max-width: 720px)')?.matches)setOpen(false,{cancelPending:false});}
- function setOpen(value,{cancelPending=true}={}){refresh();open=Boolean(value);panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));onEngagement(open);if(open)(target?input:close).focus();else{if(cancelPending)pending?.abort();toggle.focus();}}
- function append(role,text){const row=make('p','m-companion-message '+role);row.textContent=text;log.append(row);while(log.childNodes.length>12)log.firstChild.remove();log.scrollTop=log.scrollHeight;}
+ function setOpen(value,{cancelPending=true}={}){refresh();open=Boolean(value);panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));onEngagement(open);if(open)(target?input:close).focus();else{if(cancelPending)pending?.abort();toggle.focus();}refreshViewport();}
+ function append(role,text){const row=make('p','m-companion-message '+role);row.textContent=text;log.append(row);while(log.childNodes.length>12)log.firstChild.remove();log.scrollTop=role==='assistant'&&Number.isFinite(row.offsetTop)?row.offsetTop:log.scrollHeight;if(open)conversation.scrollTop=0;}
+ function refreshViewport(){
+  const view=document.defaultView,visual=view?.visualViewport,height=visual?.height||view?.innerHeight;
+  if(!panel.style?.setProperty||!Number.isFinite(height)||height<=0)return;
+  const offset=Number.isFinite(visual?.offsetTop)?visual.offsetTop:0,inset=Math.max(0,(view?.innerHeight||height)-offset-height);
+  const set=(name,value)=>{if(panel.style.getPropertyValue?.(name)!==value)panel.style.setProperty(name,value);};
+  set('--m-companion-visible-height',height+'px');set('--m-companion-keyboard-inset',inset+'px');
+  panel.dataset.keyboardOpen=open&&document.activeElement===input&&inset>100?'true':'false';
+ }
+ const view=document.defaultView,visual=view?.visualViewport;
+ if(view?.addEventListener)listen(view,'resize',refreshViewport);
+ if(visual?.addEventListener){listen(visual,'resize',refreshViewport);listen(visual,'scroll',refreshViewport);}
+ listen(input,'focus',refreshViewport);listen(input,'blur',refreshViewport);
  listen(rememberCharacter,'click',()=>{const current=getCharacterStatus();if(current&&typeof current.remember==='boolean'){onRememberCharacter(!current.remember);refreshStoryControl();}});
  listen(directorToggle,'click',()=>{const state=getDirectorStatus()||{};onDirectorEnabled(state.enabled===false);refresh();});
  listen(enableMotion,'click',()=>{const accepted=onEnableMotion(),motion=refreshMotionControl();status.textContent=!motion.active?'Resume M to try a gesture.':accepted&&!motion.reducedMotion?'M motion enabled for this tab.':'Motion is still off. Please try again.';});
  listen(toggle,'click',()=>setOpen(!open));listen(close,'click',()=>setOpen(false));
  listen(document,'keydown',event=>{if(open&&event.key==='Escape'){event.preventDefault();setOpen(false);}});
  listen(suggestion,'click',()=>{if(sectionHint!=='none'){onSection(sectionHint);setOpen(false);}});
- listen(clear,'click',()=>{pending?.abort();history=[];log.replaceChildren();suggestion.hidden=true;intro.hidden=false;status.textContent=target?'Chat cleared.':'Local gestures are ready.';refreshMotionControl();});
+ listen(clear,'click',()=>{pending?.abort();history=[];log.replaceChildren();suggestion.hidden=true;intro.hidden=false;conversation.scrollTop=0;status.textContent=target?'Chat cleared.':'Local gestures are ready.';refreshMotionControl();});
  listen(input,'keydown',event=>{
   if(event.key!=='Enter'||event.shiftKey||event.isComposing||event.keyCode===229)return;
   event.preventDefault();

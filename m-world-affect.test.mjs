@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs';
 
-test('nine original-morph performances remain finite, bounded and distinct through dense full cycles',()=>{
+test('all original-morph performances remain finite, bounded and distinct through dense full cycles',()=>{
  const holds=[];
  for(const name of M_AFFECTS.filter(name=>name!=='neutral')){
   const duration=AFFECT_DURATIONS[name];
@@ -23,7 +23,7 @@ test('nine original-morph performances remain finite, bounded and distinct throu
   assert.equal(hold.phase,'hold');assert.equal(hold.envelope,1);
   holds.push(JSON.stringify([hold.weights,hold.eyelids]));
  }
- assert.equal(new Set(holds).size,9);
+ assert.equal(new Set(holds).size,M_AFFECTS.length-1);
 });
 
 test('performances enter and leave the neutral face without position or velocity discontinuity',()=>{
@@ -134,5 +134,24 @@ test('the five existing profiles keep their original channels and sleepy lid var
    const breath=name==='sleepy'?1+.025*Math.sin(progress*Math.PI*4):1;
    for(const side of ['left','right'])assert.equal(pose.eyelids[side],profile.eyelids[side]*envelope*breath);
   }
+ }
+});
+
+test('routine expressions develop thought, dozing and joy without new facial channels',()=>{
+ const at=(name,progress)=>sampleAffect({name,age:AFFECT_DURATIONS[name]*progress});
+ const question=at('pondering',.35),reconsider=at('pondering',.53),decision=at('pondering',.73);
+ assert.ok(question.weights.curious>.55&&question.eyelids.right>question.eyelids.left+.2);
+ assert.ok(reconsider.eyelids.left>reconsider.eyelids.right+.1,'a later thought shifts the subtle squint');
+ assert.ok(decision.weights.happy>.35&&decision.weights.curious<question.weights.curious-.2);
+ const doze=at('dozing',.34),waking=at('dozing',.76);
+ assert.ok(doze.eyelids.left>.44&&doze.eyelids.right>.44);
+ assert.ok(waking.eyelids.left<.22&&waking.weights.curious>0);
+ const delight=at('joyful',.34),satisfied=at('joyful',.53);
+ assert.ok(delight.weights.happy>.7&&delight.weights.surprised>.09);
+ assert.ok(satisfied.weights.happy>.7&&satisfied.weights.surprised<.03);
+ assert.ok(satisfied.eyelids.left>delight.eyelids.left+.14,'the smile settles through the original lid curve');
+ for(const name of ['pondering','dozing','joyful']){
+  assert.deepEqual(Object.keys(at(name,.4).weights),['happy','curious','surprised']);
+  assert.deepEqual(Object.keys(at(name,.4).eyelids),['left','right']);
  }
 });

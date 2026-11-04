@@ -1,0 +1,506 @@
+{
+  "scope": "Separate installed native Chrome runs; initial desktop observation uncommanded; later diagnostics and mocked replies labelled. Mobile emulated, no provider calls.",
+  "nodeTests": 482,
+  "chatLayout": {
+    "passed": 42,
+    "total": 42
+  },
+  "originalWholeAppRun": {
+    "passed": 35,
+    "total": 37,
+    "failures": [
+      {
+        "name": "mobile: native harness completed without technical failure",
+        "details": "TimeoutError: page.waitForFunction: Timeout 15000ms exceeded."
+      },
+      {
+        "name": "no JavaScript or local asset errors occurred",
+        "details": {
+          "errors": [
+            {
+              "profile": "mobile",
+              "error": "TimeoutError: page.waitForFunction: Timeout 15000ms exceeded.",
+              "stack": "page.waitForFunction: Timeout 15000ms exceeded.\n    at interruptAndUI (C:\\Users\\pinheirr\\Documents\\Codex\\2026-10-24\\liga-te-ao-blender-atrav-s\\portfolio\\m-world-v27-browser.mjs:158:55)\n    at async profile (C:\\Users\\pinheirr\\Documents\\Codex\\2026-10-24\\liga-te-ao-blender-atrav-s\\portfolio\\m-world-v27-browser.mjs:178:52)\n    at async file:///C:/Users/pinheirr/Documents/Codex/2026-10-24/liga-te-ao-blender-atrav-s/portfolio/m-world-v27-browser.mjs:185:81"
+            }
+          ],
+          "assetErrors": []
+        }
+      }
+    ],
+    "cause": "The mobile game helper waited for gestures/pending intents but omitted the still-active assistant expressionHold. Production correctly rejected play. Test now waits for all three busy states; no product deadline or state was changed."
+  },
+  "correctedMobileInteraction": {
+    "passed": 10,
+    "total": 10,
+    "errors": [],
+    "assetErrors": [],
+    "scope": "Only affected interactions repeated; previous mobile motion captures retained."
+  },
+  "desktopCadence": {
+    "wallMs": 4015,
+    "frames": 241,
+    "fps": 60.02490660024907,
+    "cpuP95": 4,
+    "rafP95": 18.899999976158142,
+    "heapBytes": 234440622,
+    "scope": "Actual warm drawing, without video recording or a fake clock."
+  },
+  "mobileCadence": {
+    "wallMs": 4006.899999976158,
+    "frames": 241,
+    "fps": 60.14624772303626,
+    "cpuP95": 3.199999988079071,
+    "rafP95": 17.799999952316284,
+    "heapBytes": 238527194,
+    "scope": "Actual warm drawing, without video recording or a fake clock."
+  },
+  "naturalDesktop": {
+    "inputs": 0,
+    "gestures": [
+      "nod",
+      "paw",
+      "curious",
+      "sleep",
+      "playful",
+      "hop"
+    ],
+    "selected": [
+      {
+        "id": "autonomy-1",
+        "kind": "self-play",
+        "action": "rest",
+        "play": "light",
+        "affect": "anticipation",
+        "targetId": null,
+        "characterGoal": "follow-light",
+        "status": "accepted",
+        "at": 7673.4,
+        "reason": "follow-light"
+      },
+      {
+        "id": "autonomy-2",
+        "kind": "expression",
+        "action": "rest",
+        "play": null,
+        "affect": "proud",
+        "targetId": null,
+        "characterGoal": "find-lookout",
+        "status": "accepted",
+        "at": 25506.2,
+        "reason": "find-lookout"
+      },
+      {
+        "id": "autonomy-3",
+        "kind": "expression",
+        "action": "rest",
+        "play": null,
+        "affect": "proud",
+        "targetId": null,
+        "characterGoal": null,
+        "status": "accepted",
+        "at": 32806.1,
+        "reason": "achievement"
+      },
+      {
+        "id": "autonomy-4",
+        "kind": "self-play",
+        "action": "rest",
+        "play": "ball",
+        "affect": "anticipation",
+        "targetId": null,
+        "characterGoal": null,
+        "status": "accepted",
+        "at": 44105.7,
+        "reason": "ball"
+      },
+      {
+        "id": "autonomy-5",
+        "kind": "scene",
+        "action": "inspect",
+        "play": null,
+        "affect": "focus",
+        "targetId": "surface-1",
+        "characterGoal": null,
+        "status": "accepted",
+        "at": 58305.4,
+        "reason": "inspect"
+      },
+      {
+        "id": "autonomy-6",
+        "kind": "self-play",
+        "action": "rest",
+        "play": "light",
+        "affect": "anticipation",
+        "targetId": null,
+        "characterGoal": null,
+        "status": "accepted",
+        "at": 68271.8,
+        "reason": "light"
+      },
+      {
+        "id": "autonomy-7",
+        "kind": "rest",
+        "action": "rest",
+        "play": null,
+        "affect": "dozing",
+        "targetId": null,
+        "characterGoal": null,
+        "status": "accepted",
+        "at": 83454.7,
+        "reason": "sleep"
+      },
+      {
+        "id": "autonomy-8",
+        "kind": "scene",
+        "action": "peek",
+        "play": "hide",
+        "affect": "mischief",
+        "targetId": "surface-1",
+        "characterGoal": null,
+        "status": "accepted",
+        "at": 105320.8,
+        "reason": "peek"
+      },
+      {
+        "id": "autonomy-9",
+        "kind": "expression",
+        "action": "rest",
+        "play": null,
+        "affect": "delight",
+        "targetId": null,
+        "characterGoal": null,
+        "status": "accepted",
+        "at": 127003.5,
+        "reason": "achievement"
+      },
+      {
+        "id": "autonomy-10",
+        "kind": "expression",
+        "action": "rest",
+        "play": null,
+        "affect": "joyful",
+        "targetId": null,
+        "characterGoal": null,
+        "status": "accepted",
+        "at": 138069.9,
+        "reason": "hop"
+      },
+      {
+        "id": "autonomy-11",
+        "kind": "expression",
+        "action": "rest",
+        "play": null,
+        "affect": "focus",
+        "targetId": null,
+        "characterGoal": null,
+        "status": "accepted",
+        "at": 146169.6,
+        "reason": "observe"
+      },
+      {
+        "id": "autonomy-12",
+        "kind": "scene",
+        "action": "inspect",
+        "play": null,
+        "affect": "focus",
+        "targetId": "surface-1",
+        "characterGoal": null,
+        "status": "accepted",
+        "at": 158602.7,
+        "reason": "inspect"
+      }
+    ],
+    "completed": [
+      {
+        "id": "autonomy-1",
+        "kind": "self-play",
+        "action": "rest",
+        "play": "light",
+        "affect": "anticipation",
+        "targetId": null,
+        "characterGoal": "follow-light",
+        "status": "complete",
+        "at": 22473,
+        "reason": "complete"
+      },
+      {
+        "id": "autonomy-2",
+        "kind": "expression",
+        "action": "rest",
+        "play": null,
+        "affect": "proud",
+        "targetId": null,
+        "characterGoal": "find-lookout",
+        "status": "complete",
+        "at": 29772.8,
+        "reason": "performance-complete"
+      },
+      {
+        "id": "autonomy-3",
+        "kind": "expression",
+        "action": "rest",
+        "play": null,
+        "affect": "proud",
+        "targetId": null,
+        "characterGoal": null,
+        "status": "complete",
+        "at": 40072.6,
+        "reason": "performance-complete"
+      },
+      {
+        "id": "autonomy-4",
+        "kind": "self-play",
+        "action": "rest",
+        "play": "ball",
+        "affect": "anticipation",
+        "targetId": null,
+        "characterGoal": null,
+        "status": "complete",
+        "at": 55272.2,
+        "reason": "complete"
+      },
+      {
+        "id": "autonomy-5",
+        "kind": "scene",
+        "action": "inspect",
+        "play": null,
+        "affect": "focus",
+        "targetId": "surface-1",
+        "characterGoal": null,
+        "status": "complete",
+        "at": 65255.2,
+        "reason": "scene-complete"
+      },
+      {
+        "id": "autonomy-6",
+        "kind": "self-play",
+        "action": "rest",
+        "play": "light",
+        "affect": "anticipation",
+        "targetId": null,
+        "characterGoal": null,
+        "status": "complete",
+        "at": 79438.1,
+        "reason": "complete"
+      },
+      {
+        "id": "autonomy-7",
+        "kind": "rest",
+        "action": "rest",
+        "play": null,
+        "affect": "dozing",
+        "targetId": null,
+        "characterGoal": null,
+        "status": "complete",
+        "at": 99270.9,
+        "reason": "performance-complete"
+      },
+      {
+        "id": "autonomy-8",
+        "kind": "scene",
+        "action": "peek",
+        "play": "hide",
+        "affect": "mischief",
+        "targetId": "surface-1",
+        "characterGoal": null,
+        "status": "complete",
+        "at": 123970.3,
+        "reason": "complete"
+      },
+      {
+        "id": "autonomy-9",
+        "kind": "expression",
+        "action": "rest",
+        "play": null,
+        "affect": "delight",
+        "targetId": null,
+        "characterGoal": null,
+        "status": "complete",
+        "at": 133020.1,
+        "reason": "performance-complete"
+      },
+      {
+        "id": "autonomy-10",
+        "kind": "expression",
+        "action": "rest",
+        "play": null,
+        "affect": "joyful",
+        "targetId": null,
+        "characterGoal": null,
+        "status": "complete",
+        "at": 143153.1,
+        "reason": "performance-complete"
+      },
+      {
+        "id": "autonomy-11",
+        "kind": "expression",
+        "action": "rest",
+        "play": null,
+        "affect": "focus",
+        "targetId": null,
+        "characterGoal": null,
+        "status": "complete",
+        "at": 152552.8,
+        "reason": "performance-complete"
+      },
+      {
+        "id": "autonomy-12",
+        "kind": "scene",
+        "action": "inspect",
+        "play": null,
+        "affect": "focus",
+        "targetId": "surface-1",
+        "characterGoal": null,
+        "status": "complete",
+        "at": 168152.4,
+        "reason": "scene-complete"
+      }
+    ],
+    "failed": [],
+    "balls": [
+      {
+        "id": 2,
+        "autonomous": true,
+        "scores": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "visibleSamples": 96
+      }
+    ],
+    "sleepClosed": true,
+    "hopMaxLift": 0.15991882791497564,
+    "missingNatural": [
+      "think"
+    ],
+    "wallMs": 162943
+  },
+  "naturalSampleCount": 1594,
+  "desktopChatGeometry": {
+    "panel": {
+      "left": 864,
+      "top": 158,
+      "right": 1264,
+      "bottom": 778,
+      "width": 400,
+      "height": 620
+    },
+    "log": {
+      "left": 889,
+      "top": 257,
+      "right": 1224,
+      "bottom": 537,
+      "width": 335,
+      "height": 280
+    },
+    "form": {
+      "left": 883,
+      "top": 621,
+      "right": 1245,
+      "bottom": 759,
+      "width": 362,
+      "height": 138
+    },
+    "visibleLog": 280,
+    "length": 700,
+    "overflow": 0,
+    "horizontal": [],
+    "inputHit": true,
+    "sendHit": true,
+    "actor": 31
+  },
+  "mobileChatGeometry": {
+    "panel": {
+      "left": 16,
+      "top": 206.734375,
+      "right": 374,
+      "bottom": 730,
+      "width": 358,
+      "height": 523.265625
+    },
+    "log": {
+      "left": 35,
+      "top": 293.734375,
+      "right": 355,
+      "bottom": 533.734375,
+      "width": 320,
+      "height": 240
+    },
+    "form": {
+      "left": 29,
+      "top": 593,
+      "right": 361,
+      "bottom": 717,
+      "width": 332,
+      "height": 124
+    },
+    "visibleLog": 240,
+    "length": 700,
+    "overflow": 0,
+    "horizontal": [],
+    "inputHit": true,
+    "sendHit": true,
+    "actor": 31
+  },
+  "network": {
+    "original": {
+      "mockHealth": 3,
+      "mockChat": 2,
+      "blockedPaid": 0,
+      "blockedBackend": []
+    },
+    "correctedMobile": {
+      "mockHealth": 1,
+      "mockChat": 1,
+      "blockedPaid": 0,
+      "blockedBackend": []
+    }
+  },
+  "videoEncode": {
+    "passed": true,
+    "frames": 331,
+    "sourceSeconds": 11.466445922851562,
+    "encodedFPS": 28.77962380150772,
+    "file": "../work/M_V27_Validation/motion/desktop-diagnostic-floating-ball.webm",
+    "scope": "Original real CDP frames; explicit MJPEG input decoder for the minimal bundled ffmpeg. No repeated browser capture. Source timestamps retained; not a performance benchmark."
+  },
+  "videoDecode": {
+    "duration": 11.501,
+    "width": 1280,
+    "height": 900,
+    "decoded": 49,
+    "error": null,
+    "passed": true
+  },
+  "hostedTextShieldRegression": {
+    "firstRun": "41832773857",
+    "passed": 28,
+    "total": 29,
+    "failedCheck": "Desktop text shield preserves actual paragraph pixels",
+    "devicePixel": [
+      653,
+      1026
+    ],
+    "cssCentre": [
+      326.75,
+      513.25
+    ],
+    "maxDelta": 46,
+    "nativeBaselineReproduced": false,
+    "nativeBaselineChangedProtectedInterior": 0,
+    "diagnosis": "Isolated pinhole strongly suggests fan rasterization. Native baseline did not reproduce Linux; no claim of an exact driver-level proof.",
+    "fix": "Only protected text/control bounds use solid two-triangle quads; card corners remain rounded. Test thresholds/insets unchanged.",
+    "geometryRegression": "Failed before, passed after.",
+    "nativeSolidMask": {
+      "protectedInteriorPixels": 89184,
+      "frontEmptyChanged": 0,
+      "behindEmptyChanged": 0,
+      "maxDelta": 0,
+      "pageErrors": [],
+      "actorMatchesFailingCI": true,
+      "scope": "Targeted fresh native Chrome. Windows baseline did not reproduce the Linux pinhole; original Linux CI still required."
+    }
+  }
+}

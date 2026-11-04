@@ -35,6 +35,7 @@ export function createAutonomy({seed=18421}={}){
  const random=()=>{randomState=(Math.imul(1664525,randomState)+1013904223)>>>0;return randomState/4294967296;};
  let serial=0,lastAt=0,nextDecisionAt=0,pending=null,active=null,reason='ready',lastOutcome=null;
  let completedCount=0,failedCount=0,lastAchievementAt=null,achievement=null,lastPlayAt=0;
+ let routinesStartedAt=null,lastSleepAt=null;
  const history=new Map(),familyUntil=new Map(),recent=[];
  const time=value=>validTime(value)?Math.max(lastAt,value):null;
  const remember=(id,entry)=>{
@@ -66,11 +67,16 @@ export function createAutonomy({seed=18421}={}){
   outcome(pending,'expired','reservation-expired',at);pending=null;
   reason='reservation-expired';settle(at,1000);
  }
+ function routineNeeds(at){
+  const awakeMs=Math.max(0,at-(lastSleepAt??routinesStartedAt??at));
+  return {napUrge:clamp(awakeMs/90_000),awakeMs:Math.min(600_000,awakeMs),lastSleepAt};
+ }
  function snapshot(){
   return {status:active?'active':pending?'pending':'idle',current:clone((active||pending)?.decision??null),
    active:clone(active?.decision??null),pending:clone(pending?.decision??null),
    reservationUntil:pending?.expiresAt??null,nextDecisionAt,reason,lastOutcome:clone(lastOutcome),
    completedCount,failedCount,achievementPending:achievement!==null,
+   ...(routinesStartedAt===null?{}:{needs:routineNeeds(lastAt)}),
    recent:[...recent],targetHistory:[...history].map(([id,entry])=>({id,...entry}))};
  }
  function choose(facts={}){
@@ -78,6 +84,8 @@ export function createAutonomy({seed=18421}={}){
   const at=time(facts.nowMs);
   if(at===null){reason='invalid-time';return null;}
   lastAt=at;
+  const routinesAvailable=facts.routinesAvailable===true;
+  if(routinesAvailable&&routinesStartedAt===null)routinesStartedAt=at;
   const context=object(facts.context);
   const blocked=context.active===false?'inactive':context.hidden?'hidden':context.reducedMotion?'reduced-motion':
    context.typing?'typing':context.selection?'selection':context.scrolling?'scrolling':null;
@@ -99,6 +107,7 @@ export function createAutonomy({seed=18421}={}){
   const energy=clamp(facts.energy,.65),restNeed=1-smooth(energy);
   const playNeed=clamp((at-lastPlayAt)/40_000,.5);
   const curiosity=clamp((at-(lastAchievementAt??0))/30_000,.5);
+  const napUrge=routineNeeds(at).napUrge;
   const requestedGoal=object(facts.goal),goal=['follow-light','find-lookout','revisit-lookout'].includes(requestedGoal.id)?requestedGoal:null;
   const availableTargets=targetsOf(facts.targets);
   const candidates=[];
@@ -127,6 +136,10 @@ export function createAutonomy({seed=18421}={}){
    }
    if(facts.selfPlayAvailable===true&&energy>.25)add('light',.19+.31*smooth(energy)+.30*playNeed+.20*curiosity,
     {kind:'self-play',gesture:'playful',expression:'happy',affect:'anticipation',play:'light',quiet:false});
+   if(facts.ballPlayAvailable===true&&energy>.3)add('ball',.20+.27*smooth(energy)+.31*playNeed+.14*curiosity,
+    {kind:'self-play',gesture:'paw',expression:'happy',affect:'anticipation',play:'ball',quiet:false});
+   if(routinesAvailable&&energy>.4)add('hop',.13+.24*smooth(energy)+.28*playNeed+.12*curiosity,
+    {gesture:'hop',expression:'happy',affect:'joyful',quiet:false});
    if(goal?.id==='follow-light'&&facts.selfPlayAvailable===true&&energy>.25)add('goal-light',.65+.35*smooth(energy),
     {kind:'self-play',gesture:'playful',expression:'happy',affect:'anticipation',play:'light',quiet:false,reason:'follow-light',characterGoal:goal.id});
    if(['find-lookout','revisit-lookout'].includes(goal?.id)){
@@ -142,9 +155,15 @@ export function createAutonomy({seed=18421}={}){
    {expression:'curious',affect:'focus',reason:reading?'quiet-observe':'observe'});
   add('rest',reading?.62+.25*restNeed:.17+.61*restNeed,
    {kind:'rest',affect:energy<.3?'sleepy':'calm',reason:reading?'quiet-rest':'rest'});
+  if(routinesAvailable){
+   add('think',(reading?.36:.18)+.22*curiosity+.12*(1-playNeed)+.12*(1-restNeed),
+    {gesture:'think',expression:'curious',affect:'pondering',quiet:reading});
+   add('sleep',.17+.55*restNeed+.38*smooth(napUrge),
+    {kind:'rest',gesture:'sleep',affect:'dozing',quiet:true});
+  }
   if(!candidates.length){reason='unavailable';settle(at,1000);return null;}
   // A persistent intention focuses attention while rest and safety remain available.
-  if(candidates.some(value=>value.decision.characterGoal))for(const candidate of candidates){if(!candidate.decision.characterGoal&&candidate.family!=='rest'&&candidate.family!=='observe')candidate.score*=.72;}
+  if(candidates.some(value=>value.decision.characterGoal))for(const candidate of candidates){if(!candidate.decision.characterGoal&&candidate.decision.kind!=='rest'&&candidate.family!=='observe')candidate.score*=.72;}
   // A low-temperature softmax adds reproducible variety without ignoring strong needs.
   candidates.sort((a,b)=>(a.family+':'+(a.decision.targetId||'')).localeCompare(b.family+':'+(b.decision.targetId||''),'en'));
   const peak=Math.max(...candidates.map(value=>value.score));
@@ -187,6 +206,10 @@ export function createAutonomy({seed=18421}={}){
    lastAchievementAt=at;achievement={affect:choice.decision.kind==='self-play'?'proud':'delight',expiresAt:at+14_000};
    if(choice.decision.play!==null)lastPlayAt=at;
   }else if(choice.family==='achievement')achievement=null;
+  // Only an acknowledged finished performance satisfies these physical needs.
+  // Proposals, failures, cancellations and story-memory resets cannot fake rest.
+  if(choice.family==='sleep')lastSleepAt=at;
+  if(choice.family==='hop')lastPlayAt=at;
   const delay=choice.family==='achievement'?2800:choice.decision.quiet?4500:2000;
   familyUntil.set(choice.family,at+6500+Math.floor(random()*4000));
   outcome(choice,'complete',safeReason(resultReason,'completed'),at);reason='complete';

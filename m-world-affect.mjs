@@ -1,6 +1,6 @@
 /** Small facial performances built only from the original V6 expression and HAT morphs. */
-export const M_AFFECTS=Object.freeze(['neutral','focus','content','doubt','sleepy','delight','anticipation','mischief','proud','calm']);
-export const AFFECT_DURATIONS=Object.freeze({neutral:0,focus:4.8,content:4.8,doubt:4.4,sleepy:6.4,delight:4.8,anticipation:5.2,mischief:5.6,proud:5.8,calm:6.8});
+export const M_AFFECTS=Object.freeze(['neutral','focus','content','doubt','sleepy','delight','anticipation','mischief','proud','calm','pondering','dozing','joyful']);
+export const AFFECT_DURATIONS=Object.freeze({neutral:0,focus:4.8,content:4.8,doubt:4.4,sleepy:6.4,delight:4.8,anticipation:5.2,mischief:5.6,proud:5.8,calm:6.8,pondering:6,dozing:6.8,joyful:5.2});
 const clamp=(value,min=0,max=1)=>Math.max(min,Math.min(max,Number.isFinite(value)?value:0));
 const smooth=value=>{const t=clamp(value);return t*t*t*(t*(t*6-15)+10);};
 const PROFILES=Object.freeze({
@@ -46,13 +46,37 @@ const PERFORMANCES=Object.freeze({
   [.64,.23,.04,0,.26,.26],
   [.82,.19,.04,0,.28,.28],
   [1,0,0,0,0,0]
+ ],
+ pondering:[
+  [0,0,0,0,0,0],
+  [.18,.02,.35,.08,.10,.18],
+  [.35,.02,.58,.05,.10,.32],
+  [.53,.04,.54,.06,.24,.11],
+  [.73,.42,.26,.03,.12,.12],
+  [1,0,0,0,0,0]
+ ],
+ dozing:[
+  [0,0,0,0,0,0],
+  [.18,.17,.02,0,.23,.21],
+  [.34,.22,0,0,.46,.45],
+  [.57,.20,0,0,.44,.46],
+  [.76,.22,.04,0,.19,.20],
+  [1,0,0,0,0,0]
+ ],
+ joyful:[
+  [0,0,0,0,0,0],
+  [.18,.36,.17,.16,.04,.04],
+  [.34,.71,.13,.10,.06,.06],
+  [.53,.73,.10,.02,.21,.20],
+  [.74,.55,.12,.02,.16,.16],
+  [1,0,0,0,0,0]
  ]
 });
 
 function samplePerformance(beats,progress){
  const next=beats.findIndex(beat=>beat[0]>=progress);
  const from=beats[Math.max(0,next-1)],to=beats[Math.max(0,next)];
- const blend=to[0]>from[0]?smooth((progress-from[0])/(to[0]-from[0])):0;
+ const blend=to[0]>from[0]?clamp(smooth((progress-from[0])/(to[0]-from[0]))):0;
  const channels=from.slice(1).map((value,index)=>value+(to[index+1]-value)*blend);
  return {weights:{happy:channels[0],curious:channels[1],surprised:channels[2]},eyelids:{left:channels[3],right:channels[4]}};
 }

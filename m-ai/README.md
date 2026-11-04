@@ -4,9 +4,22 @@ This optional backend connects the portfolio's M character to the OpenAI Respons
 
 The public frontend endpoint points to the deployed Worker. Local scripted interactions still require no API traffic. If an approved rollout enables automatic directing, a limited snapshot of public visible components can also reach the API. The public browser config contains only public endpoint and feature settings. **Never put an OpenAI key in HTML, JavaScript, GitHub Pages, a browser config, a screenshot, or Git.**
 
-## V26 character continuity — prepared, not deployed
+## V27 narration repair — prepared, not deployed
 
-The V26 build adds a bounded authored character context for M's fictional identity,
+The next build derives a strict encounter interpretation alongside the validated
+context. Discovery location/route/time remain unknown; the active card is not
+proof of a past event. Portuguese phrasing uses approved everyday words rather
+than internal English IDs. Navigation suggestions require explicit intent in the
+latest message; a narrowed schema and postvalidation gate suppress unsolicited
+sections without replacing the ordinary provider reply. Input/output contracts,
+model, secret and quotas remain unchanged. Eleven targeted offline regressions
+cover this policy. Real prose quality still requires bounded evaluation after an
+explicitly approved Worker rollout; no paid request was made in V27 development.
+
+## V26 character continuity — published
+
+V26 was published through PR #10 on 4 November 2026, Worker version
+fee8d7fc-5d66-45cb-b370-5af0d0e20b7d. The build adds a bounded authored character context for M's fictional identity,
 goal and remembered discovery. It does not add server-side story storage, raw chat
 persistence, a new model, a new API key or an increased request allowance. Character
 state is local encounter data, not verified global history or proof of visitor identity.
