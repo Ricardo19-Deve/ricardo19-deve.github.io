@@ -8,7 +8,7 @@ const runtime=file('analytics/worker.mjs');
 const publicConfig=file('m-analytics-config.mjs');
 
 test('production D1 binding is configured to the supplied real database',()=>{
- assert.match(config,/^name\s*=\s*"m-portfolio-analytics"$/m);
+ assert.match(config,/^name\s*=\s*"ricardo19-deve-github-io"$/m);
  assert.match(config,/^main\s*=\s*"worker.mjs"$/m);
  assert.match(config,/^binding\s*=\s*"ANALYTICS_DB"$/m);
  assert.match(config,/^database_name\s*=\s*"m-portfolio-analytics"$/m);
