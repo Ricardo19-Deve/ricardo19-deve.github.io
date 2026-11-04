@@ -169,3 +169,26 @@ body>header.top.glass-nav{z-index:92!important}
  .m-companion[data-mode="questions"] .m-companion-form textarea{min-height:42px}
 }
 @media(prefers-reduced-motion:reduce){.m-companion[data-mode="questions"] .m-companion-question{transition:none}}
+
+/* V29 privacy control is utility UI, not a command for M's gestures. */
+.m-companion[data-mode="questions"] .m-companion-privacy-toggle{
+ border:0;background:transparent;color:#afcada;min-height:36px;padding:6px 8px;font-size:11px;font-weight:500;
+}
+.m-companion[data-mode="questions"] .m-companion-privacy-toggle[aria-expanded="true"]{color:#b8f0f4;text-decoration:underline}
+.m-companion[data-mode="questions"] .m-companion-director{
+ position:static;min-height:0;padding:12px;display:flex;flex-direction:column;gap:8px;
+ border-radius:14px;background:#142538;
+}
+.m-companion[data-mode="questions"] .m-companion-director-header{
+ display:flex;gap:12px;align-items:center;justify-content:space-between;
+}
+.m-companion[data-mode="questions"] .m-companion-director-title{font-size:12px}
+.m-companion[data-mode="questions"] .m-companion-director-status{font-size:11px}
+.m-companion[data-mode="questions"] .m-companion-director-toggle{
+ position:static;min-height:34px;font-size:11px;flex:0 0 auto;
+}
+.m-companion[data-mode="questions"][data-keyboard-open="true"]{
+ bottom:calc(var(--m-companion-keyboard-inset,0px) + 8px);
+ height:min(530px,calc(var(--m-companion-visible-height,100dvh) - 16px));
+ max-height:min(530px,calc(var(--m-companion-visible-height,100dvh) - 16px));
+}
