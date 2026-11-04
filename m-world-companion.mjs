@@ -1,5 +1,5 @@
-import {getContextComponent,contextualChatRequest} from './m-world-context.mjs?v=32';
-import {validateCharacterContext} from './m-world-character-context.mjs?v=32';
+import {getContextComponent,contextualChatRequest} from './m-world-context.mjs?v=33';
+import {validateCharacterContext} from './m-world-character-context.mjs?v=33';
 /** Explicit chat, local gestures and automatic AI-play controls. No persistent chat storage. */
 export const M_ASSISTANT_GESTURES=Object.freeze(['wave','curious','surprised','shy']);
 export const M_LOCAL_GESTURES=Object.freeze([...M_ASSISTANT_GESTURES,'playful','wink','nod','sleep','hop','think']);
@@ -19,12 +19,13 @@ export function validateAssistantReply(value){
 }
 export function createMCompanion({document=globalThis.document,endpoint='',fetchImpl=globalThis.fetch,onGesture=()=>false,onExpression=()=>{},onSection=()=>{},onEngagement=()=>{},getMotionStatus=()=>({active:true,reducedMotion:false}),onEnableMotion=()=>false,getContext=()=>({section:'home',language:'en'}),getDirectorStatus=()=>({enabled:true,available:false,pending:false,attempts:0,limit:6,source:'local'}),onDirectorEnabled=()=>{},onAffect=()=>false,onScene=()=>false,onGame=()=>false,onContextResponse=()=>{},onResetMemory=()=>{},getAutonomyStatus=()=>null,getCharacterStatus=()=>null,onRememberCharacter=()=>{}}={}){
  const target=assistantEndpoint(endpoint,document.location?.href),listeners=[];
+ const diagnostics=/(?:^|[?&])m-debug=1(?:&|$)/.test(document.location?.search||'');
  const make=(tag,cls,text)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(text)el.textContent=text;return el;};
  const button=(text,cls)=>{const el=make('button',cls,text);el.type='button';return el;};
- const toggle=button('Talk to M','m-companion-toggle');toggle.dataset.mOverlay='true';toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-controls','m-companion');
- const panel=make('section','m-companion');panel.id='m-companion';panel.dataset.mOverlay='true';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Talk to M');
- const header=make('div','m-companion-header'),title=make('h2','','Meet M'),close=button('Close','m-companion-close'),enableMotion=button('Enable M motion','m-companion-enable-motion');header.append(title,enableMotion,close);enableMotion.hidden=true;
- const intro=make('p','m-companion-intro',target?'M explores and plays on her own. Chat or try an optional gesture.':'M explores and plays on her own. Gestures are optional.');
+ const toggle=button('Ask M','m-companion-toggle');toggle.dataset.mOverlay='true';toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-controls','m-companion');
+ const panel=make('section','m-companion');panel.dataset.mode=diagnostics?'diagnostics':'questions';panel.id='m-companion';panel.dataset.mOverlay='true';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Talk to M');
+ const header=make('div','m-companion-header'),title=make('h2','','Ask M'),close=button('Close','m-companion-close'),enableMotion=button('Enable M motion','m-companion-enable-motion');header.append(title,enableMotion,close);enableMotion.hidden=true;close.setAttribute('aria-label','Close M chat');
+ const intro=make('p','m-companion-intro',target?'Curious about Ricardo’s work? Ask M anything about the projects and experience on this page.':'M explores the page on her own. Questions will be available when AI chat is connected.');
  const motionNote=make('p','m-companion-intro','Reduced motion is on. M stays still until you enable motion.');motionNote.hidden=true;
  const status=make('p','m-companion-status',target?'AI chat is ready.':'Local gestures are ready. AI chat is not connected yet.');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
  const autonomyNote=make('p','m-companion-autonomy');autonomyNote.setAttribute('aria-live','off');autonomyNote.hidden=true;
@@ -48,12 +49,23 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  resetMemory.addEventListener('click',()=>{onResetMemory();refreshStoryControl();status.textContent='Character memory cleared. Chat and AI request limits are unchanged.';});
  const contextRow=make('div','m-companion-context'),contextLabel=make('span'),explain=button('Explain this card');contextRow.append(contextLabel,explain);contextRow.hidden=true;
  explain.addEventListener('click',()=>{const c=getContextComponent(getContext()?.component);if(!c)return;input.value=(getContext()?.language==='pt'?'Explica este componente: ':'Explain this component: ')+c.title;form.requestSubmit(send);});
+ const prompts=make('div','m-companion-prompts');
+ prompts.setAttribute('role','group');prompts.setAttribute('aria-label','Suggested questions for M');
+ for(const question of ['What has Ricardo built?','How does Ricardo use AI?','What is his Salesforce experience?']){
+  const item=button(question,'m-companion-question');prompts.append(item);
+  item.addEventListener('click',()=>{if(!target||pending||destroyed)return;input.value=question;form.requestSubmit(send);});
+ }
+ prompts.hidden=!target;
  const log=make('div','m-companion-log');log.setAttribute('role','log');log.setAttribute('tabindex','0');log.setAttribute('aria-label','Conversation with M');log.setAttribute('aria-live','polite');log.setAttribute('aria-relevant','additions');
  const suggestion=button('Explore projects','m-companion-section');suggestion.hidden=true;
- const form=make('form','m-companion-form'),label=make('label','','Message M'),input=make('textarea');input.id='m-companion-message';input.name='message';input.maxLength=1200;input.rows=2;input.wrap='soft';input.placeholder=target?'Ask about M’s world or Ricardo’s work…':'AI chat will be available once connected';input.disabled=!target;label.htmlFor=input.id;
+ const form=make('form','m-companion-form'),label=make('label','','Message M'),input=make('textarea');input.id='m-companion-message';input.name='message';input.maxLength=1200;input.rows=2;input.wrap='soft';input.placeholder=target?'Ask M a question…':'AI chat will be available once connected';input.disabled=!target;label.htmlFor=input.id;
  const send=button('Send','m-companion-send');send.type='submit';send.disabled=!target;
- const clear=button('Clear chat','m-companion-clear'),privacy=make('p','m-companion-privacy',target?'AI chat uses your message, recent chat and public page context. It can also use M’s discoveries and current intention. Chat stays in this tab.':'Gestures run locally. Chat stays disconnected until the server is configured.');
- form.append(label,input,send,clear);form.hidden=!target;clear.hidden=!target;const conversation=make('div','m-companion-body');conversation.append(intro,motionNote,status,log,suggestion,contextRow,actions,options,directorControls,autonomyNote,privacy);panel.append(header,conversation,form);document.body.append(toggle,panel);
+ const clear=button('Clear chat','m-companion-clear'),privacy=make('p','m-companion-privacy',target?'AI-powered answers about public portfolio information. Chat stays in this tab.':'Chat is not connected yet.');
+ form.append(label,input,send,clear);form.hidden=!target;clear.hidden=!target;const conversation=make('div','m-companion-body');conversation.append(intro,motionNote,prompts,log,status,suggestion,contextRow,actions,options,directorControls,autonomyNote,privacy);panel.append(header,conversation,form);document.body.append(toggle,panel);
+ // Visitors can only ask questions. Original controls are retained exclusively
+ // for an explicitly requested ?m-debug=1 diagnostic session.
+ if(!diagnostics){actions.hidden=true;options.hidden=true;directorControls.hidden=true;autonomyNote.hidden=true;contextRow.hidden=true;suggestion.hidden=true;clear.hidden=true;}
+
  let history=[],pending=null,destroyed=false,sectionHint='none',open=false,directorUiEnabled=null,contextCapability=null,characterCapability=null,storyKey=null;
  const listen=(el,name,fn)=>{el.addEventListener(name,fn);listeners.push(()=>el.removeEventListener(name,fn));};
  function refreshMotionControl(){const motion=getMotionStatus(),reducedMotion=Boolean(motion?.reducedMotion);enableMotion.hidden=motionNote.hidden=!reducedMotion;intro.hidden=history.length>0||reducedMotion;return {active:motion?.active!==false,reducedMotion};}
@@ -72,7 +84,7 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
   if(directorStatus.textContent!==text)directorStatus.textContent=text;
   return state;
  }
- function refreshAutonomyControl(){const current=getAutonomyStatus();autonomyNote.hidden=!current;if(!current)return;const motion=getMotionStatus(),choice=current.current||current.active;const text=motion?.active===false?'M is paused.':motion?.reducedMotion?'M is resting while motion is off.':choice?.play==='ball'?'M is playing with a floating ball.':choice?.gesture==='sleep'?'M is having a quiet rest.':choice?.gesture==='hop'?'M is making a playful hop.':choice?.gesture==='think'?'M is thinking about her next discovery.':current.execution?.kind==='game'?'M is playing on her own.':choice?.kind==='scene'?'M is exploring the page.':choice?.quiet?'M is watching quietly.':'M decides where to explore, play and rest.';if(autonomyNote.textContent!==text)autonomyNote.textContent=text;}
+ function refreshAutonomyControl(){const current=getAutonomyStatus();autonomyNote.hidden=!diagnostics||!current;if(!current)return;const motion=getMotionStatus(),choice=current.current||current.active;const text=motion?.active===false?'M is paused.':motion?.reducedMotion?'M is resting while motion is off.':choice?.play==='ball'?'M is playing with a floating ball.':choice?.gesture==='sleep'?'M is having a quiet rest.':choice?.gesture==='hop'?'M is making a playful hop.':choice?.gesture==='think'?'M is thinking about her next discovery.':current.execution?.kind==='game'?'M is playing on her own.':choice?.kind==='scene'?'M is exploring the page.':choice?.quiet?'M is watching quietly.':'M decides where to explore, play and rest.';if(autonomyNote.textContent!==text)autonomyNote.textContent=text;}
  function refreshStoryControl(){
   const snapshot=getCharacterStatus();
   const {version,chapter,beat,goal,discovery,preference,recall,favoriteComponent}=snapshot||{};
@@ -99,10 +111,10 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
   rememberCharacter.textContent='Remember on this device: '+(snapshot.remember?'On':'Off');rememberCharacter.setAttribute('aria-pressed',String(snapshot.remember));
   storyStorage.textContent=!snapshot.remember?'M’s discoveries last while this page is open. Chat stays in this tab.':snapshot.storageAvailable?'M’s discoveries stay on this device. Chat stays in this tab.':'M can keep this adventure going here, but this browser cannot save it for another visit. Chat stays in this tab.';
  }
- function refresh(){refreshViewport();refreshAutonomyControl();refreshStoryControl();const motion=refreshMotionControl();refreshDirectorControl();const c=getContextComponent(getContext()?.component);contextRow.hidden=!c||!target;if(c)contextLabel.textContent='About: '+c.title;return motion;}
+ function refresh(){refreshViewport();refreshAutonomyControl();refreshStoryControl();const motion=refreshMotionControl();refreshDirectorControl();const c=getContextComponent(getContext()?.component);contextRow.hidden=!diagnostics||!c||!target;if(c)contextLabel.textContent='About: '+c.title;return motion;}
  function makeRoomForCharacter(accepted){if(accepted&&document.defaultView?.matchMedia?.('(max-width: 720px)')?.matches)setOpen(false,{cancelPending:false});}
  function setOpen(value,{cancelPending=true}={}){refresh();open=Boolean(value);panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));onEngagement(open);if(open)(target?input:close).focus();else{if(cancelPending)pending?.abort();toggle.focus();}refreshViewport();}
- function append(role,text){const row=make('p','m-companion-message '+role);row.textContent=text;log.append(row);while(log.childNodes.length>12)log.firstChild.remove();log.scrollTop=role==='assistant'&&Number.isFinite(row.offsetTop)?row.offsetTop:log.scrollHeight;if(open)conversation.scrollTop=0;}
+ function append(role,text){prompts.hidden=true;const row=make('p','m-companion-message '+role);row.textContent=text;log.append(row);while(log.childNodes.length>12)log.firstChild.remove();log.scrollTop=role==='assistant'&&Number.isFinite(row.offsetTop)?row.offsetTop:log.scrollHeight;if(open)conversation.scrollTop=0;}
  function refreshViewport(){
   const view=document.defaultView,visual=view?.visualViewport,height=visual?.height||view?.innerHeight;
   if(!panel.style?.setProperty||!Number.isFinite(height)||height<=0)return;
@@ -121,7 +133,7 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  listen(toggle,'click',()=>setOpen(!open));listen(close,'click',()=>setOpen(false));
  listen(document,'keydown',event=>{if(open&&event.key==='Escape'){event.preventDefault();setOpen(false);}});
  listen(suggestion,'click',()=>{if(sectionHint!=='none'){onSection(sectionHint);setOpen(false);}});
- listen(clear,'click',()=>{pending?.abort();history=[];log.replaceChildren();suggestion.hidden=true;intro.hidden=false;conversation.scrollTop=0;status.textContent=target?'Chat cleared.':'Local gestures are ready.';refreshMotionControl();});
+ listen(clear,'click',()=>{pending?.abort();history=[];log.replaceChildren();suggestion.hidden=true;intro.hidden=false;conversation.scrollTop=0;status.textContent=target?'Chat cleared.':'Chat is not connected.';prompts.hidden=!target;refreshMotionControl();});
  listen(input,'keydown',event=>{
   if(event.key!=='Enter'||event.shiftKey||event.isComposing||event.keyCode===229)return;
   event.preventDefault();
@@ -147,10 +159,10 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
    intro.hidden=true;status.textContent='Answered with OpenAI.';
    const contextual=chatContext.component&&onContextResponse(chatContext.component,reply)===true;
    if(!contextual){onExpression(reply.expression);if(reply.gesture!=='none')onGesture(reply.gesture,{source:'assistant',expression:reply.expression});}
-   if(reply.section!=='none'){sectionHint=reply.section;suggestion.textContent='Explore '+reply.section;suggestion.hidden=false;}
+   if(reply.section!=='none'){sectionHint=reply.section;suggestion.textContent='Explore '+reply.section;suggestion.hidden=!diagnostics;}
   }catch(error){if(!destroyed)status.textContent=controller.signal.aborted?'Chat request cancelled.':String(error.message||'M could not answer.');}
   finally{clearTimeout(timeout);if(pending===controller){pending=null;send.disabled=!target;input.disabled=!target;if(open&&!destroyed)input.focus();}}
  });
  refresh();
- return {elements:{toggle,panel,directorToggle,directorStatus,moreGestures,story,rememberCharacter},refresh,refreshMotionControl,refreshDirectorControl,isOpen:()=>open,snapshot:()=>({open,configured:Boolean(target),pending:Boolean(pending),messages:history.length}),destroy(){destroyed=true;pending?.abort();for(const remove of listeners)remove();onEngagement(false);toggle.remove();panel.remove();}};
+ return {elements:{toggle,panel,directorToggle,directorStatus,moreGestures,story,rememberCharacter,prompts},refresh,refreshMotionControl,refreshDirectorControl,isOpen:()=>open,snapshot:()=>({open,configured:Boolean(target),pending:Boolean(pending),messages:history.length}),destroy(){destroyed=true;pending?.abort();for(const remove of listeners)remove();onEngagement(false);toggle.remove();panel.remove();}};
 }
