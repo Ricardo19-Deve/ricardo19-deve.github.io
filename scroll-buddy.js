@@ -1,4 +1,4 @@
-import './m-analytics-bootstrap.mjs?v=33';
+import './m-analytics-bootstrap.mjs?v=34';
 import {createCharacter,characterReceiptId} from './m-world-character.mjs?v=33';
 import {createAutonomy} from './m-world-autonomy.mjs?v=33';
 import {planBallFlight,sampleBallFlight} from './m-world-ball.mjs?v=33';
