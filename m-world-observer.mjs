@@ -1,4 +1,4 @@
-import { DIRECTOR_ACTIONS, DIRECTOR_EVENTS, DIRECTOR_KINDS, DIRECTOR_MAX_RECENT, DIRECTOR_MAX_TARGETS, DIRECTOR_SECTIONS, DIRECTOR_ZONES, validateDirectorInput } from './m-world-director-protocol.mjs?v=42';
+import { DIRECTOR_ACTIONS, DIRECTOR_EVENTS, DIRECTOR_KINDS, DIRECTOR_MAX_RECENT, DIRECTOR_MAX_TARGETS, DIRECTOR_SECTIONS, DIRECTOR_ZONES, validateDirectorInput } from './m-world-director-protocol.mjs?v=43';
 const safeId=value=>typeof value==='string' && /^[a-zA-Z0-9][a-zA-Z0-9:_-]{0,63}$/u.test(value);
 const cleanTitle=value=>typeof value==='string'?value.replace(/[\u0000-\u001f\u007f]/gu,' ').replace(/\s+/gu,' ').trim().slice(0,80):'';
 
