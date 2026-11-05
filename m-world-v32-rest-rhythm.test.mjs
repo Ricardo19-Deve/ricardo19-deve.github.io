@@ -19,13 +19,13 @@ test('V32 sleep must be a full physically reclining pose, not merely closed eyel
  assert.equal(down.phase,'sleeping');
  assert.ok(before.weight>0&&before.weight<down.weight,'M visibly lowers before lying down');
  assert.ok(down.weight>.99);
- assert.ok(down.rotationZ>1.05&&down.rotationZ<1.3,'M actually reclines roughly 68 degrees');
+ assert.ok(down.rotationZ>1.25&&down.rotationZ<1.4,'M actually reclines roughly 76 degrees');
  assert.equal(reverse.rotationZ,-down.rotationZ,'M chooses left or right side');
  assert.ok(down.positionY<-.04,'resting body settles lower');
  assert.ok(down.scale>=REST_MIN_SCALE-.01&&down.scale<.81,'rest fits existing actor window');
  assert.ok(rising.weight<down.weight,'M visibly gets back up');
  assert.ok(Math.abs(sampleEmbodiedRest({name:'sleep',age:duration,side:1}).rotationZ)<1e-8);
- assert.equal(REST_TILT_RADIANS,1.18);
+ assert.equal(REST_TILT_RADIANS,1.33);
 });
 test('V32 physical rest follows smooth curves with bounded tiny breathing, no abrupt transition',()=>{
  const duration=GESTURE_DURATIONS.sleep, samples=Array.from({length:360},
@@ -35,7 +35,7 @@ test('V32 physical rest follows smooth curves with bounded tiny breathing, no ab
    assert.ok(Number.isFinite(val));
   assert.ok(state.weight>=0&&state.weight<=1);
   assert.ok(state.scale>=.77&&state.scale<=1.01);
-  assert.ok(state.rotationZ<=1.18);
+  assert.ok(state.rotationZ<=1.33);
  }
  const changes=samples.slice(1).map((v,i)=>Math.abs(v.rotationZ-samples[i].rotationZ));
  assert.ok(Math.max(...changes)<.05,'no rotational pop in the slow lie-down');
