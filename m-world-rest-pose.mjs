@@ -11,7 +11,7 @@ const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,Number.isFinite(n)?n:a));
 const ease=x=>{const v=clamp(x);return v*v*(3-2*v);};
 const ramp=(p,start,end)=>ease((p-start)/(end-start));
 const hold=(p,on,flat,release,done)=>ramp(p,on,flat)*(1-ramp(p,release,done));
-export const REST_TILT_RADIANS=1.18;
+export const REST_TILT_RADIANS=1.33;
 export const REST_MIN_SCALE=.78;
 /** age and duration are in seconds; side is the direction M chooses to curl. */
 export function sampleEmbodiedRest({name=null,age=0,duration=12.4,side=1,reducedMotion=false}={}){
@@ -26,11 +26,11 @@ export function sampleEmbodiedRest({name=null,age=0,duration=12.4,side=1,reduced
   resting:weight>0,
   phase:p<.05?'preparing':p<.32?'lying-down':p<.78?'sleeping':p<.995?'waking':'awake',
   weight,
-  // about 68° to one side, against a compact floor-height rest pose.
+  // about 76° to one side, against a compact floor-height rest pose.
   rotationZ:sign*REST_TILT_RADIANS*weight,
   rotationX:.035*falling*(1-waking),
   positionX:sign*.018*weight,
-  positionY:-.05*weight+breath,
+  positionY:-.11*weight+breath,
   // Fitting within the precomputed V6 animated safety envelope; intentionally
   // smaller than the standard stage while the entire body is horizontal.
   scale:1-(1-REST_MIN_SCALE)*weight+breath*.35,
