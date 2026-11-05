@@ -47,6 +47,20 @@ export function makeLivingSeed({cryptoImpl=globalThis.crypto,random=Math.random,
  try{r=Number(random());}catch{}
  return ((Math.trunc(Number.isFinite(t)?t:0)^Math.trunc(clamp(r,0,.999999999)*4294967296))>>>0)||18421;
 }
+/** Only a finite, explicit local action category is carried into learning. */
+export function growthFamilyForDecision(decision){
+ if(!decision||typeof decision!=='object')return null;
+ if(decision.characterGoal==='follow-light')return 'goal-light';
+ if(['find-lookout','revisit-lookout'].includes(decision.characterGoal))return 'goal-lookout';
+ if(decision.play==='light'||decision.play==='ball')return decision.play;
+ if(['inspect','peek','perch','orbit'].includes(decision.action))return decision.action;
+ if(decision.gesture==='sleep')return 'sleep';
+ if(decision.gesture==='think')return 'think';
+ if(decision.gesture==='hop')return 'hop';
+ if(decision.reason==='observe'||decision.reason==='quiet-observe')return 'observe';
+ if(decision.reason==='achievement')return 'achievement';
+ return decision.kind==='rest'?'rest':null;
+}
 export function createGrowthMemory({storage,now=Date.now,remember=true}={}){
  let enabled=remember===true,available=false,lastSavedDay=null;
  try{storage??=globalThis.localStorage;}catch{storage=null;}
