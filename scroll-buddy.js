@@ -53,7 +53,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  let brainState=brain.snapshot(),companion=null,pendingGesture=null,director=null,observer=null;
  let directorComponents=[],directorSnapshot=null,directorActivity=null,directorLastExecution=null;
  let directorKey='',directorRevision=0,directorNextRead=0,directorEvent='idle',directorRouteId=0,directorCompletedRouteId=null;const directorRecent=[];
- const state={x:0,y:100,vx:0,vy:0,ax:0,ay:0,heading:0,turn:0,travel:0,leanX:0,leanY:0,depth:1,depthTarget:1,mode:'float',phase:'hold',emotion:'neutral',emotionUntil:0,clock:0,targetId:null,gesture:null,expressionHold:null,affect:null};
+ const state={x:0,y:100,vx:0,vy:0,ax:0,ay:0,heading:0,turn:0,travel:0,leanX:0,leanY:0,depth:1,depthTarget:1,mode:'float',phase:'hold',emotion:'neutral',emotionUntil:0,clock:0,targetId:null,gesture:null,expressionHold:null,affect:null,lifeMoment:null};
  let avatar=null,loading=null,active=true,frameId=null,lastFrame=0,route=null,nextChoice=0,frozen=false,disposed=false;
  let motionOptIn=false;try{motionOptIn=sessionStorage.getItem('m-world-motion-allowed')==='yes';}catch{}
  let reducedMotion=motionPreference.matches&&!motionOptIn,lastLife=null,renderFrame=null;
@@ -346,7 +346,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   return character.record({id:characterReceiptId(owner.characterVisit,owner.decision.id),goal,success,componentId:owner.characterComponent||null,publicComponent:owner.characterPublicComponent||null});
  }
  function resetCharacterMemory(){
-  cancelAutonomy('memory-reset');memory.clear();character.reset();if(typeof growth!=='undefined')growth.reset();if(typeof worldKnowledge!=='undefined')worldKnowledge.reset();if(typeof worldStories!=='undefined')worldStories.reset();autonomy.resetMemory(performance.now());companion?.refresh();
+  cancelAutonomy('memory-reset');state.lifeMoment=null;memory.clear();character.reset();if(typeof growth!=='undefined')growth.reset();if(typeof worldKnowledge!=='undefined')worldKnowledge.reset();if(typeof worldStories!=='undefined')worldStories.reset();autonomy.resetMemory(performance.now());companion?.refresh();
  }
  function setCharacterAffect(name,{weight=.9,owner=null}={}){
   if(M_AFFECTS.includes(name))state.affect={name,age:0,weight,owner};
@@ -379,8 +379,15 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   noteAutonomy(success&&acknowledged?'complete':'failed',decision,now,acknowledged?reason:'ownership-lost');
   releaseCharacterAffect();
   if(remembered&&success&&decision.characterGoal==='follow-light')setCharacterAffect('proud',{weight:1});
-  else if(livedBeat?.complete)setCharacterAffect('delight',{weight:.62});
-  if(livedBeat)companion?.refresh();
+  if(livedBeat){
+   // A lived story makes a visible but fleeting ORIGINAL-RIG reaction. This
+   // event exists only after acknowledged real action; it is never simulated.
+   state.lifeMoment={name:livedBeat.complete?'complete':livedBeat.beat,at:now,duration:4.5};
+   if(livedBeat.complete)setCharacterAffect('delight',{weight:.66});
+   else if(livedBeat.beat==='notice')setCharacterAffect('focus',{weight:.55});
+   else if(livedBeat.beat==='explore')setCharacterAffect('content',{weight:.5});
+   companion?.refresh();
+  }
   nextChoice=now+1000;
  }
  function cancelAutonomy(reason='interrupted',now=performance.now()){
@@ -703,7 +710,10 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   const target=world.surfaces.find(s=>s.id===interest.attentionId)||world.surfaces.find(s=>s.id===state.targetId);
   const gaze=game?.name==='ball'&&game.ballPoint?{x:bound((game.ballPoint.x-state.x-metrics.size*.5)/90,-1,1),y:bound((state.y+metrics.size*.45-game.ballPoint.y)/90,-1,1)}:game?.name==='light'&&game.goal?{x:bound((game.goal.x-state.x)/260,-1,1),y:bound((state.y-game.goal.y)/220,-1,1)}:lastLife?.attention==='pointer'&&scenes.snapshot().status!=='playing'?lastLife.gaze:target?{x:bound((target.left+target.width*.5-(state.x+(f.left+f.right)/2))/260,-1,1),y:bound(((state.y+(f.top+f.bottom)*.4)-(target.top+Math.min(100,target.height*.3)))/220,-1,1)}:lastLife?.gaze||{x:0,y:0};
   if(frozen)avatar.render();
-  else avatar.update(dt,{mode:state.mode,activity:state.mode==='perch'&&state.phase==='hold'?'perch':state.mode,emotion:reducedMotion?'neutral':state.emotion,vx:state.vx,vy:state.vy,clock:state.clock,gesture:state.gesture,affect:state.affect,characterEnergy:characterEnergy,reducedMotion,locomotion:{ax:state.ax,ay:state.ay,heading:state.heading,turn:state.turn,travel:state.travel,leanX:state.leanX,leanY:state.leanY},attention:gaze,nearCard:Boolean(target),depth:state.depth});
+  else avatar.update(dt,{mode:state.mode,activity:state.mode==='perch'&&state.phase==='hold'?'perch':state.mode,emotion:reducedMotion?'neutral':state.emotion,vx:state.vx,vy:state.vy,clock:state.clock,gesture:state.gesture,affect:state.affect,characterEnergy:characterEnergy,reducedMotion,locomotion:{ax:state.ax,ay:state.ay,heading:state.heading,turn:state.turn,travel:state.travel,leanX:state.leanX,leanY:state.leanY},attention:gaze,nearCard:Boolean(target),depth:state.depth,
+   phase:state.phase,reading:Boolean(performance.now()<interest.readingUntil),
+   lifeMoment:state.lifeMoment&&performance.now()-state.lifeMoment.at<state.lifeMoment.duration*1000?
+    {name:state.lifeMoment.name,age:Math.max(0,(performance.now()-state.lifeMoment.at)/1000),duration:state.lifeMoment.duration}:null});
   renderBall(world,actor);
   layer.dataset.depth=state.depth<0?'behind':'front';layer.dataset.worldAction=state.mode;layer.dataset.phase=state.phase;
   layer.dataset.worldTarget=state.targetId||'corridor';layer.dataset.occluders=String(world.surfaces.filter(r=>overlap(bounds,r)).length);
