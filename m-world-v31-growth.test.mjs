@@ -117,8 +117,8 @@ test('V31 page runtime connects new personality only to success acknowledgments 
  assert.doesNotMatch(src,/seed:18421|seed:18425/);
  assert.match(src,/const livingSeed=makeLivingSeed\(\)/);
  assert.match(src,/createGrowthMemory\(\{remember:character.snapshot\(\).remember\}\)/);
- assert.match(src,/if\(acknowledged\)\{const family=growthFamilyForDecision\(decision\)/);
+ assert.match(src,/if\(acknowledged&&typeof growth!=='undefined'&&typeof growthFamilyForDecision==='function'\)/);
  assert.match(src,/growth\.setRemember\(value\)/);
  assert.match(src,/growth\.reset\(\)/);
- assert.match(src,/habits:\{\.\.\.growth.preferences\(\),opening\}/);
+ assert.match(src,/habits:typeof growth==='undefined'\?undefined:\{\.\.\.growth.preferences\(\),opening\}/);
 });
