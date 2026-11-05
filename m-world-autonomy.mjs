@@ -110,12 +110,21 @@ export function createAutonomy({seed=18421}={}){
   const napUrge=routineNeeds(at).napUrge;
   const requestedGoal=object(facts.goal),goal=['follow-light','find-lookout','revisit-lookout'].includes(requestedGoal.id)?requestedGoal:null;
   const availableTargets=targetsOf(facts.targets);
+  // V31: the optional, bounded local learning profile never outranks safety.
+  // Omitted profile preserves the exact legacy deterministic test behavior.
+  const habits=object(facts.habits),learned=object(habits.weights);
+  const openers=['explore','play','observe'];
+  const opening=completedCount===0&&openers.includes(habits.opening)?habits.opening:null;
   const candidates=[];
   const add=(family,score,decision,stableId=null)=>{
    if(at<(familyUntil.get(family)||0))return;
    const repeats=recent.filter(value=>value===family).length;
    const variety=Math.pow(.68,repeats)*(recent.at(-1)===family?.3:1);
-   candidates.push({family,stableId,score:clamp(score)*variety,
+   const memoryWeight=Number.isFinite(learned[family])?Math.max(.7,Math.min(1.2,learned[family])):1;
+   const openingWeight=opening==='explore'?(['inspect','peek','orbit'].includes(family)?1.32:family==='goal-light'?.58:1):
+    opening==='play'?(['light','ball','hop'].includes(family)?1.3:family==='goal-light'?.82:1):
+    opening==='observe'?(['observe','think','rest'].includes(family)?1.44:family==='goal-light'?.44:1):1;
+   candidates.push({family,stableId,score:clamp(score*memoryWeight*openingWeight)*variety,
     decision:{kind:'expression',targetId:null,action:'rest',gesture:'none',expression:'neutral',
      affect:'calm',play:null,quiet:true,reason:family,...decision}});
   };
@@ -174,6 +183,23 @@ export function createAutonomy({seed=18421}={}){
   let roll=random()*weights.reduce((sum,value)=>sum+value,0),index=weights.length-1;
   for(let i=0;i<weights.length;i++){roll-=weights[i];if(roll<=0){index=i;break;}}
   const selected=candidates[index];
+  // An independently chosen gesture variant gives each inspection a different
+  // emotional beat, without changing the original 31-bone rig or action plan.
+  // Explicit/manual actions and unprofiled test simulations are unaffected.
+  if(opening!==null||Object.keys(learned).length){
+   const palettes={
+    inspect:['curious','nod','shy','wink'],peek:['playful','shy','wink'],
+    perch:['nod','curious','shy'],orbit:['curious','surprised','nod']
+   };
+   const gestures=palettes[selected.decision.action];
+   if(selected.decision.kind==='scene'&&gestures){
+    const gesture=gestures[Math.floor(random()*gestures.length)];
+    selected.decision.gesture=gesture;
+    selected.decision.expression=['surprised'].includes(gesture)?'surprised':
+     ['shy'].includes(gesture)?'neutral':
+     ['curious'].includes(gesture)?'curious':'happy';
+   }
+  }
   const satisfiesGoal=goal?.id==='follow-light'&&selected.decision.play==='light'||['find-lookout','revisit-lookout'].includes(goal?.id)&&selected.decision.action==='perch'&&selected.decision.targetId===goal.targetId;
   const decision={id:'autonomy-'+(++serial),...selected.decision,...(satisfiesGoal?{characterGoal:goal.id}:{})};
   pending={decision,stableId:selected.stableId,family:selected.family,expiresAt:at+AUTONOMY_RESERVATION_MS};
