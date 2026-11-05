@@ -1,3 +1,19 @@
+# M World V40 — emoções visíveis no corpo da M
+
+A M passa a demonstrar entusiasmo, curiosidade, hesitação, satisfação e
+cansaço através da postura do modelo Blender V6 original. As mudanças seguem
+gradualmente as emoções que o motor autónomo **já** selecionou, afetando
+cabeça, peito, braços, orelhas e os dez ossos originais da cauda.
+
+A camada não decide ações, não substitui animações nem interfere com o sono,
+o contacto com cartões ou a acessibilidade. Ask M continua exclusivamente
+um chat sobre o portefólio; as definições mantêm apenas Memory e AI play.
+Não há novos pedidos à OpenAI nem alterações aos Workers Cloudflare.
+
+[Relatório e verificações da V40](docs/m-world-v40/PROGRESS.md).
+
+---
+
 # M World V39 — natural continuity between actions
 
 M now carries her real movement through natural moments of anticipation,
