@@ -506,7 +506,7 @@ test('V36 developer controls are never constructed in the chat at any route',()=
  const src=readFileSync(new URL('m-world-companion.mjs',import.meta.url),'utf8');
  assert.match(src,/panel.dataset.mode='questions'/);
  assert.match(src,/conversation.append\(intro,log,status,privacy\)/);
- assert.match(src,/if\(diagnostics\)debugPanel.append\(debugHeader,actions,options,autonomyNote,contextRow,suggestion,clear\)/);
+ assert.match(src,/if\(diagnostics\)debugPanel.append\(debugHeader,actions,options,autonomyNote,contextRow,suggestion,clear,resetMemory,directorStatus\)/);
  assert.doesNotMatch(src,/conversation.append\([^)]*actions/);
  assert.doesNotMatch(src,/header.append\([^)]*privacyToggle/);
  assert.doesNotMatch(src,/form.append\([^)]*clear/);
