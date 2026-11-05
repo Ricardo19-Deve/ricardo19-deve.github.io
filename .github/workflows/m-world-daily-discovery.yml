@@ -1,0 +1,46 @@
+name: M World — verified daily discovery
+
+on:
+  # Fetch centrally, never from individual visitors.
+  schedule:
+    - cron: '17 7 * * *'
+  workflow_dispatch:
+  # Seed the first discovery after this workflow is introduced.
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/m-world-daily-discovery.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: m-world-daily-discovery
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run offline tests for the curated feed parser
+        run: node --test m-world-v33-discovery.test.mjs
+      - name: Fetch and validate one public Wikipedia discovery
+        run: node scripts/update-m-world-daily.mjs
+      - name: Commit only changed validated knowledge
+        run: |
+          if git diff --quiet -- data/m-world-daily.json; then
+            echo "No new verified discovery to publish."
+            exit 0
+          fi
+          git config user.name "M World daily discovery bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/m-world-daily.json
+          git commit -m "data(m-world): daily sourced world discovery"
+          git push origin HEAD:main
