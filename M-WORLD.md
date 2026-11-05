@@ -1,3 +1,17 @@
+# M World V32 — M now actually lies down and wakes naturally
+
+The original V6 character keeps her full 31-bone rig and detailed face, but
+sleep is now a complete embodied performance: settle, tuck arms/legs and tail,
+recline sideways, breathe, wake and stand up. Sleep is staged in a protected,
+text-safe area rather than obscuring portfolio content. The visitor's local
+time of day (night / morning / day / evening) softly influences what she feels
+like doing while her V31 local outcome memory continues to mature. No new
+OpenAI calls, location access, weather service, identity collection or D1 writes.
+
+See [V32 embodied sleep and world-rhythm validation](docs/m-world-v32/PROGRESS.md).
+
+---
+
 # M World V31 — Independent starts and evolving local experience
 
 M now begins with fresh browser entropy rather than a fixed gesture sequence.
