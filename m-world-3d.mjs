@@ -446,7 +446,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    stage.rotation.y=num(extra.ry,-.17,.17)+num(dynamics.bodyMotion.rotation.y*.2,-.05,.05)+dynamics.stageYaw;
    stage.rotation.z=num(extra.rz+micro.roll,-.12,.12)+lastRestPose.rotationZ;
    stage.position.x=num(extra.x*.22+lastRestPose.positionX,-.08,.08);
-   stage.position.y=num(extra.y*.25+micro.lift+lastRestPose.positionY,-.12,.06);
+   stage.position.y=num(extra.y*.25+micro.lift+lastRestPose.positionY,-.17,.06);
    stage.scale.setScalar((1+num(extra.scale+micro.scale,-.03,.03))*lastRestPose.scale);
    if(!reduced&&dt>0&&qualityGovernor.observe(dt*1000))syncResolution();
    render();
