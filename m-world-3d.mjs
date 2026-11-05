@@ -17,6 +17,7 @@ import {createLivingPerformance} from './m-world-living-performance.mjs?v=45';
 import {createSurfaceContact} from './m-world-surface-contact.mjs?v=45';
 import {createMotionContinuity} from './m-world-motion-continuity.mjs?v=45';
 import {createEmotionalBody} from './m-world-emotional-body.mjs?v=45';
+import {createPoseHandoff} from './m-world-pose-handoff.mjs?v=46';
 import {createRenderQualityGovernor} from './m-world-quality.mjs?v=45';
 import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=45';
 import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs?v=45';
@@ -146,6 +147,10 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
  };
  let viewportSize=0,pixelRatio=0,disposed=false,environmentTarget=null,clock=0,swimWeight=0,autoBlink=true,depth=1,spatialFrame=null,frameFit=null;
  const presence=createPresenceDynamics(),qualityGovernor=createRenderQualityGovernor(),microMotion=createMicroMotion(),livingPerformance=createLivingPerformance({seed:Math.floor(Math.random()*4294967295)}),surfaceContact=createSurfaceContact(),motionContinuity=createMotionContinuity(),emotionalBody=createEmotionalBody({seed:Math.floor(Math.random()*4294967295)});
+  // Preserve bone poses AND their angular velocity when an autonomous layer
+  // hands control to a gesture, sleep, card attachment or another mood.
+  const handoffs={living:createPoseHandoff({halfLife:.10}),contact:createPoseHandoff({halfLife:.09}),continuity:createPoseHandoff({halfLife:.11}),emotional:createPoseHandoff({halfLife:.14})};
+  const stageHandoff=createPoseHandoff({halfLife:.12,limit:1.7});
  let lastContact=surfaceContact.sample(),lastContinuity=motionContinuity.sample(),lastEmotional=emotionalBody.sample({reducedMotion:true});
  let lastRestPose=sampleEmbodiedRest();
  const scene=new THREE.Scene(),camera=new THREE.OrthographicCamera(-WORLD_SPAN/2,WORLD_SPAN/2,WORLD_SPAN/2,-WORLD_SPAN/2,.03,100);
@@ -410,7 +415,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    return {bones:31,rigBones:31,tailBones:motion.tailDiagnostics.connected,maxInfluences:skin.maxUsed,skinSets:skin.sets,
     clips:clips.map(c=>c.name),detailMaps:textures.size,detailSlots,viewportSize,pixelRatio,renderPixels:[canvas.width,canvas.height],
     environment:{type:'PMREM RoomEnvironment',intensity:scene.environmentIntensity,toneMapping:'AgX'},
-     quality:qualityGovernor.snapshot(),presence:presence.snapshot(),facialContinuity:facialContinuity.snapshot(),microMotion:microMotion.snapshot(),livingPerformance:{...livingPerformance.snapshot(),mode:lastLiving.mode,idle:lastLiving.idle,reaction:lastLiving.reaction},restPose:{...lastRestPose},contact:{...surfaceContact.snapshot(),supported:lastContact.supported},continuity:{...motionContinuity.snapshot(),mode:lastContinuity.mode},emotionalBody:{...emotionalBody.snapshot(),mood:lastEmotional.mood},
+     quality:qualityGovernor.snapshot(),presence:presence.snapshot(),facialContinuity:facialContinuity.snapshot(),microMotion:microMotion.snapshot(),livingPerformance:{...livingPerformance.snapshot(),mode:lastLiving.mode,idle:lastLiving.idle,reaction:lastLiving.reaction},restPose:{...lastRestPose},contact:{...surfaceContact.snapshot(),supported:lastContact.supported},continuity:{...motionContinuity.snapshot(),mode:lastContinuity.mode},emotionalBody:{...emotionalBody.snapshot(),mood:lastEmotional.mood},handoff:{stage:stageHandoff.snapshot(),living:handoffs.living.snapshot(),contact:handoffs.contact.snapshot(),continuity:handoffs.continuity.snapshot(),emotional:handoffs.emotional.snapshot()},
     framing:{rest:boundsRecord(restBox),envelope:boundsRecord(envelope),framed:boundsRecord(framed),scale:frameFit.scale,samples:frameSamples},
     occlusion:{supported:depthSupported,depth,visualSide:visualDepthSide(depth),worldZ:depthRoot.position.z,surfaceZ:0,protectedZ:depthPlan.protectedZ,surfaceRects:surfaceBatch.rectCount,protectedRects:protectedBatch.rectCount,maskDrawCalls:Number(surfaceBatch.mesh.visible)+Number(protectedBatch.mesh.visible)},
     render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,points:renderer.info.render.points,lines:renderer.info.render.lines,programs:renderer.info.programs.length,textures:renderer.info.memory.textures,geometries:renderer.info.memory.geometries},
@@ -454,6 +459,12 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     energy:state.characterEnergy,reading:Boolean(state.reading),
     reducedMotion:reduced,gestureActive:Boolean(lastGesture.name)||Boolean(state.gesture),
     sleeping:state.gesture?.name==='sleep',supported:lastContact.supported});
+   // V41: never drop a live additive quaternion at an action boundary.
+   // Every secondary layer hands its previous pose/velocity to the next frame.
+   lastLiving={...lastLiving,pose:handoffs.living.sample(lastLiving.pose,dt,{immediate:reduced})};
+   lastContact={...lastContact,pose:handoffs.contact.sample(lastContact.pose,dt,{immediate:reduced})};
+   lastContinuity={...lastContinuity,pose:handoffs.continuity.sample(lastContinuity.pose,dt,{immediate:reduced})};
+   lastEmotional={...lastEmotional,pose:handoffs.emotional.sample(lastEmotional.pose,dt,{immediate:reduced})};
    const expression=lastGesture.envelope>0?expressionFor(state.gesture?.expression??lastGesture.expression,state.mode||activity):expressionFor(state.emotion??state.mood,state.mode||activity);
    emotionalLayer.prepare();continuityLayer.prepare();contactLayer.prepare();livingLayer.prepare();gestureLayer.prepare();locomotionLayer.prepare();motion.prepare();action.setEffectiveWeight(swimWeight);mixer.update(dt);
    motion.update(dt,{mode,expression,attention:dynamics.attention,energy:dynamics.energy,clipActive:swimWeight>1e-4,
@@ -479,6 +490,15 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    stage.position.x=num(extra.x*.22+lastRestPose.positionX+lastLiving.stage.x+lastContact.stage.x+lastContinuity.stage.x+lastEmotional.stage.x,-.08,.08);
    stage.position.y=num(extra.y*.25+micro.lift+lastRestPose.positionY+lastLiving.stage.y+lastContact.stage.y+lastContinuity.stage.y+lastEmotional.stage.y,-.17,.06);
    stage.scale.setScalar((1+num(extra.scale+micro.scale,-.03,.03)+lastLiving.stage.scale+lastContact.stage.scale+lastContinuity.stage.scale+lastEmotional.stage.scale)*lastRestPose.scale);
+   // The expressive stage had instant mode/expression targets even when its
+   // bones were spring-filtered. Filter the FINAL stage position/rotation/scale
+   // as one continuous pose (including V32 lying down and waking up).
+   const stagePose=stageHandoff.sample({
+    rotation:[stage.rotation.x,stage.rotation.y,stage.rotation.z],
+    placement:[stage.position.x,stage.position.y,stage.scale.x-1]
+   },dt,{immediate:reduced});
+   const rotation=stagePose.rotation||[0,0,0],placement=stagePose.placement||[0,0,0];
+   stage.rotation.set(...rotation);stage.position.x=placement[0];stage.position.y=placement[1];stage.scale.setScalar(1+placement[2]);
    if(!reduced&&dt>0&&qualityGovernor.observe(dt*1000))syncResolution();
    render();
   };
