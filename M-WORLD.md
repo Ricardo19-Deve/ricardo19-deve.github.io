@@ -1,3 +1,17 @@
+# M World V37 — only two preferences
+
+The public settings drawer now has exactly **Memory · On/Off** and
+**AI play · On/Off**. Long disclosures, Wikipedia discovery cards,
+story status and the reset button are absent from the public settings.
+These services continue behind the scenes and the existing privacy and
+AI-play controls still work. Memory Off clears M's previously saved
+local adventures; a developer-only reset remains in separate Dev tools.
+
+The Ask M conversation remains a content-only portfolio Q&A.
+[Full changes and acceptance checks](docs/m-world-v37/PROGRESS.md).
+
+---
+
 # M World V36 — content-only Ask M
 
 The public **Ask M** panel is now a clean conversation about the portfolio.
