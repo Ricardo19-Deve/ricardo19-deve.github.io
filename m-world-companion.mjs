@@ -17,7 +17,7 @@ export function validateAssistantReply(value){
  if(typeof value.reply!=='string'||!value.reply.trim()||value.reply.length>700||!['neutral','happy','curious','surprised'].includes(value.expression)||!['none',...M_ASSISTANT_GESTURES].includes(value.gesture)||!SECTIONS.includes(value.section))return null;
  return {reply:value.reply.trim(),expression:value.expression,gesture:value.gesture,section:value.section};
 }
-export function createMCompanion({document=globalThis.document,endpoint='',fetchImpl=globalThis.fetch,onGesture=()=>false,onExpression=()=>{},onSection=()=>{},onEngagement=()=>{},getMotionStatus=()=>({active:true,reducedMotion:false}),onEnableMotion=()=>false,getContext=()=>({section:'home',language:'en'}),getDirectorStatus=()=>({enabled:true,available:false,pending:false,attempts:0,limit:6,source:'local'}),onDirectorEnabled=()=>{},onAffect=()=>false,onScene=()=>false,onGame=()=>false,onContextResponse=()=>{},onResetMemory=()=>{},getAutonomyStatus=()=>null,getCharacterStatus=()=>null,onRememberCharacter=()=>{},getWorldDiscovery=()=>null}={}){
+export function createMCompanion({document=globalThis.document,endpoint='',fetchImpl=globalThis.fetch,onGesture=()=>false,onExpression=()=>{},onSection=()=>{},onEngagement=()=>{},getMotionStatus=()=>({active:true,reducedMotion:false}),onEnableMotion=()=>false,getContext=()=>({section:'home',language:'en'}),getDirectorStatus=()=>({enabled:true,available:false,pending:false,attempts:0,limit:6,source:'local'}),onDirectorEnabled=()=>{},onAffect=()=>false,onScene=()=>false,onGame=()=>false,onContextResponse=()=>{},onResetMemory=()=>{},getAutonomyStatus=()=>null,getCharacterStatus=()=>null,onRememberCharacter=()=>{},getWorldDiscovery=()=>null,getWorldStory=()=>null}={}){
  const target=assistantEndpoint(endpoint,document.location?.href),listeners=[];
  const diagnostics=/(?:^|[?&])m-debug=1(?:&|$)/.test(document.location?.search||'');
  const make=(tag,cls,text)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(text)el.textContent=text;return el;};
@@ -29,9 +29,9 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  const motionNote=make('p','m-companion-intro','Reduced motion is on. M stays still until you enable motion.');motionNote.hidden=true;
  // One collapsed, sourced observation, not an extra action-button panel.
  const worldNote=make('details','m-companion-world-note'),worldSummary=make('summary','','M’s discovery today'),
-  worldText=make('p','m-companion-world-text'),worldLink=make('a','m-companion-world-link','Source: Wikipedia');
+  worldText=make('p','m-companion-world-text'),worldNarrative=make('p','m-companion-world-story'),worldLink=make('a','m-companion-world-link','Source: Wikipedia');
  worldLink.target='_blank';worldLink.rel='noopener noreferrer';
- worldNote.append(worldSummary,worldText,worldLink);worldNote.hidden=true;
+ worldNote.append(worldSummary,worldText,worldNarrative,worldLink);worldNote.hidden=true;
  let worldNoteId=null;
  function refreshWorldNote(){
   const item=getWorldDiscovery();
@@ -42,6 +42,9 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
    worldText.textContent=item.title+' ('+item.year+') · '+item.topic;
    worldLink.href=item.url;worldNoteId=item.id;
   }
+  const lived=getWorldStory();
+  worldNarrative.textContent=lived?.available&&typeof lived?.narrative==='string'?lived.narrative:'';
+  worldNarrative.hidden=!worldNarrative.textContent;
   worldNote.hidden=false;
  }
  const status=make('p','m-companion-status',target?'AI chat is ready.':'Local gestures are ready. AI chat is not connected yet.');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
@@ -192,5 +195,5 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
   finally{clearTimeout(timeout);if(pending===controller){pending=null;send.disabled=!target;input.disabled=!target;if(open&&!destroyed)input.focus();}}
  });
  refresh();
- return {elements:{toggle,panel,directorToggle,directorStatus,moreGestures,story,rememberCharacter,prompts,privacyToggle,worldNote},refresh,refreshMotionControl,refreshDirectorControl,isOpen:()=>open,snapshot:()=>({open,configured:Boolean(target),pending:Boolean(pending),messages:history.length}),destroy(){destroyed=true;pending?.abort();for(const remove of listeners)remove();onEngagement(false);toggle.remove();panel.remove();}};
+ return {elements:{toggle,panel,directorToggle,directorStatus,moreGestures,story,rememberCharacter,prompts,privacyToggle,worldNote,worldNarrative},refresh,refreshMotionControl,refreshDirectorControl,isOpen:()=>open,snapshot:()=>({open,configured:Boolean(target),pending:Boolean(pending),messages:history.length}),destroy(){destroyed=true;pending?.abort();for(const remove of listeners)remove();onEngagement(false);toggle.remove();panel.remove();}};
 }
