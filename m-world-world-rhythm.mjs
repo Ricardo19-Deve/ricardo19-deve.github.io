@@ -24,9 +24,24 @@ export function worldCandidateWeight(family,world){
   ['ball','light','hop','goal-light'].includes(family)?'playBias':
   ['observe','think','inspect','peek','orbit'].includes(family)?'curiosityBias':null;
  if(!key)return 1;
- // Use only the whitelisted phase, not untrusted caller multipliers.
+ // Use only whitelisted phases and topics, never arbitrary external multipliers.
  const phase=world.phase;
- if(key==='restBias')return phase==='night'?1.5:phase==='evening'?1.16:phase==='morning'?.87:.9;
- if(key==='playBias')return phase==='night'?.76:phase==='morning'?.96:world.weekend===true?1.12:1.05;
- return phase==='morning'?1.16:phase==='day'?1.1:1;
+ const base=key==='restBias'?(phase==='night'?1.5:phase==='evening'?1.16:phase==='morning'?.87:.9):
+  key==='playBias'?(phase==='night'?.76:phase==='morning'?.96:world.weekend===true?1.12:1.05):
+  (phase==='morning'?1.16:phase==='day'?1.1:1);
+ const discovery=world.discovery;
+ const topic=['science','nature','culture','exploration','history'].includes(discovery?.topic)?discovery.topic:null;
+ if(!topic)return base;
+ const matching={
+  science:['think','inspect','observe'],
+  nature:['peek','light','inspect'],
+  culture:['observe','orbit','perch'],
+  exploration:['inspect','orbit','hop'],
+  history:['observe','think']
+ };
+ if(!matching[topic].includes(family))return base;
+ const interest=Number.isFinite(discovery.interest)?Math.max(1,Math.min(1.09,discovery.interest)):1;
+ // Daily knowledge only makes M a little more curious; safety and action
+ // availability remain authoritative in createAutonomy.
+ return Math.min(1.65,base*1.055*interest);
 }

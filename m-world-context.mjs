@@ -1,4 +1,4 @@
-import {cloneCharacterContext} from './m-world-character-context.mjs?v=37';
+import {cloneCharacterContext} from './m-world-character-context.mjs?v=38';
 /** Public, stable component IDs shared by the page and contextual chat. */
 const records=[
  ['portrait-ricardo','Ricardo Pinheiro portrait','portrait','home'],

@@ -192,3 +192,11 @@ body>header.top.glass-nav{z-index:92!important}
  height:min(530px,calc(var(--m-companion-visible-height,100dvh) - 16px));
  max-height:min(530px,calc(var(--m-companion-visible-height,100dvh) - 16px));
 }
+
+/* V33 — a discreet cited observation, never a gesture/button console. */
+.m-companion-world-note{border:1px solid rgba(126,174,197,.26);border-radius:12px;background:rgba(27,48,65,.55);padding:7px 11px}
+.m-companion-world-note summary{cursor:pointer;font-size:12px;color:#bad6e4;font-weight:600}
+.m-companion-world-note[open] summary{margin-bottom:8px}
+.m-companion-world-text{color:#d9e6f1;font-size:12px;line-height:1.5;margin:0 0 5px;overflow-wrap:anywhere}
+.m-companion-world-link{color:#a8e9f2;font-size:11px;text-decoration:underline;text-underline-offset:2px}
+.m-companion-world-link:focus-visible{outline:2px solid #94dcff;outline-offset:3px}
