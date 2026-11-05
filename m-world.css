@@ -206,3 +206,59 @@ body>header.top.glass-nav{z-index:92!important}
  padding:8px 10px;margin:5px 0 9px;border-left:2px solid rgba(151,207,230,.5);
  border-radius:3px;background:rgba(18,42,56,.32)}
 .m-companion-world-story[hidden]{display:none}
+
+/* V36 — Ask M is only a conversation about the portfolio.
+   The HTML hidden attribute must override layout display rules; old selectors
+   inadvertently made the "hidden" AI play and gesture controls visible. */
+.m-companion[hidden],
+.m-companion [hidden],
+.m-companion-settings[hidden],
+.m-companion-settings [hidden],
+.m-companion-settings-toggle[hidden]{display:none!important}
+
+/* Settings are a separate, optional surface OUTSIDE the chat composer. */
+.m-companion-settings-toggle{
+ position:fixed;right:227px;bottom:max(18px,env(safe-area-inset-bottom));
+ z-index:105;width:42px;height:44px;border:1px solid #637b92;
+ border-radius:22px;background:#14273b;color:#d8eaf3;
+ font-size:20px;line-height:1;cursor:pointer;
+ box-shadow:0 8px 26px #0005;
+}
+.m-companion-settings-toggle:hover{background:#213b50;border-color:#94cbd7}
+.m-companion-settings-toggle:focus-visible{outline:3px solid #94dcff;outline-offset:3px}
+.m-companion-settings{
+ position:fixed;right:14px;bottom:84px;z-index:106;
+ width:min(350px,calc(100vw - 28px));
+ max-height:calc(100dvh - 110px);overflow:auto;
+ display:flex;flex-direction:column;gap:12px;
+ padding:17px;border-radius:19px;border:1px solid rgba(151,200,224,.35);
+ background:linear-gradient(150deg,#182b3f,#0e192b);
+ box-shadow:0 20px 65px #000b;
+ color:#e2edf5;font:500 12px/1.5 'DM Sans',sans-serif;
+}
+.m-companion-settings-header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.m-companion-settings-header h3{margin:0;font-size:16px;color:#eef5ff}
+.m-companion-settings button{padding:9px 12px;min-height:40px;
+ border:1px solid #526c84;border-radius:12px;
+ color:#ebf5ff;background:#213449;cursor:pointer;font:600 12px/1.3 'DM Sans',sans-serif}
+.m-companion-settings button:focus-visible,.m-companion-settings summary:focus-visible,
+.m-companion-settings a:focus-visible{outline:3px solid #94dcff;outline-offset:2px}
+.m-companion-settings .m-companion-privacy{margin:0;font-size:11px;color:#aac7d6}
+.m-companion-settings .m-companion-director{display:flex;flex-direction:column;gap:9px;
+ border:1px solid rgba(142,192,216,.2);border-radius:12px;
+ background:rgba(16,35,51,.6);padding:12px}
+.m-companion-settings .m-companion-director-header{display:flex;gap:10px;align-items:center;justify-content:space-between}
+.m-companion-settings .m-companion-director-title{font-size:12px;font-weight:700}
+.m-companion-settings .m-companion-director-status{font-size:11px;color:#a9c6d5;margin:0}
+.m-companion-settings .m-companion-auto-privacy,.m-companion-settings .m-companion-world-note{font-size:11px;color:#a9c6d5}
+.m-companion-settings .m-companion-auto-privacy summary{cursor:pointer}
+.m-companion-settings .m-companion-world-note{max-width:100%}
+.m-companion[data-mode="questions"] .m-companion-body:empty{display:none}
+.m-companion[data-mode="questions"] .m-companion-status:empty{display:none}
+.m-companion[data-mode="questions"] .m-companion-intro{max-width:35ch}
+.m-companion[data-mode="questions"] .m-companion-form{margin-top:auto}
+@media(max-width:720px){
+ .m-companion-settings-toggle{right:214px;bottom:max(12px,env(safe-area-inset-bottom))}
+ .m-companion-settings{right:12px;bottom:76px;width:calc(100vw - 24px);
+  max-height:calc(100dvh - 102px);padding:14px}
+}
