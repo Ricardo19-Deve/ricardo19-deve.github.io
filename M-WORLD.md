@@ -1,3 +1,18 @@
+# M World V31 — Independent starts and evolving local experience
+
+M now begins with fresh browser entropy rather than a fixed gesture sequence.
+Her first autonomous inclination can be to explore, play or observe, and authored
+existing gestures vary between real card performances. A new private growth
+memory uses only **completed local autonomous actions** to learn bounded
+preferences over days (on the same browser). There are no extra OpenAI calls,
+no visitor identifiers, no cross-user tracking, and no D1 changes. Opting out
+of "Remember M" or resetting memory also clears growth records.
+
+The V6 model and card-depth fixes remain unchanged. Read the
+[V31 implementation and safety notes](docs/m-world-v31/PROGRESS.md).
+
+---
+
 # M World V29 — Life, conversation and privacy-aware insights
 
 The original V6 M uses rounded **card-only occlusion** when behind portfolio
