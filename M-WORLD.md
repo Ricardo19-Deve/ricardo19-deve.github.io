@@ -1,3 +1,23 @@
+# M World V33 — verified discoveries from the outside world
+
+M's local life now has a daily **sourced, validated world discovery**. A
+central GitHub Actions job selects at most one safe historical/cultural/science
+article from Wikipedia's "On this day" feed, storing only the date, year,
+title, topic and canonical source link. A small collapsed note inside Ask M
+shows the source. Curiosity can shift subtly toward the theme; topic interests
+can persist across visits only when "Remember M" is enabled.
+
+Visitors do **not** send prompts, identifying data or location to the feed,
+and there are no extra OpenAI calls. The original M V6 rig, the existing
+AI Worker and the separate D1 analytics Worker are untouched. If an
+authenticated daily source is absent, stale or malformed, the knowledge
+component stays empty instead of inventing a fact. This is adaptive topic
+interest, not self-retraining or uncensored live Internet access.
+
+Read [V33 implementation and verification](docs/m-world-v33/PROGRESS.md).
+
+---
+
 # M World V32 — M now actually lies down and wakes naturally
 
 The original V6 character keeps her full 31-bone rig and detailed face, but
