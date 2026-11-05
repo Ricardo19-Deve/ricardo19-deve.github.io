@@ -1,3 +1,20 @@
+# M World V39 — natural continuity between actions
+
+M now carries her real movement through natural moments of anticipation,
+turning and settling. Her original 31-bone Blender V6 head, shoulders,
+legs and ten-piece tail respond to actual changes in speed and heading,
+without a rigid repeating transition clip. The spatial route still owns
+all coordinates, occlusion and genuine V38 card attachment. Sleep,
+author-authored gestures, accessibility and visitor reading outrank the new
+bounded motion bridge.
+
+Ask M and the compact settings panel are unchanged. No additional
+OpenAI calls, Cloudflare changes or visitor tracking.
+
+[Implementation details and QA](docs/m-world-v39/PROGRESS.md).
+
+---
+
 # M World V38 — M touches and balances on real cards
 
 M now experiences card contact through her original Blender V6 body instead
