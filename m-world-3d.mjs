@@ -149,8 +149,8 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
  const presence=createPresenceDynamics(),qualityGovernor=createRenderQualityGovernor(),microMotion=createMicroMotion(),livingPerformance=createLivingPerformance({seed:Math.floor(Math.random()*4294967295)}),surfaceContact=createSurfaceContact(),motionContinuity=createMotionContinuity(),emotionalBody=createEmotionalBody({seed:Math.floor(Math.random()*4294967295)});
   // Preserve bone poses AND their angular velocity when an autonomous layer
   // hands control to a gesture, sleep, card attachment or another mood.
-  const handoffs={living:createPoseHandoff({halfLife:.10}),contact:createPoseHandoff({halfLife:.09}),continuity:createPoseHandoff({halfLife:.11}),emotional:createPoseHandoff({halfLife:.14})};
-  const stageHandoff=createPoseHandoff({halfLife:.12,limit:1.7});
+  const handoffs={living:createPoseHandoff({halfLife:.16}),contact:createPoseHandoff({halfLife:.13}),continuity:createPoseHandoff({halfLife:.16}),emotional:createPoseHandoff({halfLife:.18})};
+  const stageHandoff=createPoseHandoff({halfLife:.25,limit:1.7});
  let lastContact=surfaceContact.sample(),lastContinuity=motionContinuity.sample(),lastEmotional=emotionalBody.sample({reducedMotion:true});
  let lastRestPose=sampleEmbodiedRest();
  const scene=new THREE.Scene(),camera=new THREE.OrthographicCamera(-WORLD_SPAN/2,WORLD_SPAN/2,WORLD_SPAN/2,-WORLD_SPAN/2,.03,100);
