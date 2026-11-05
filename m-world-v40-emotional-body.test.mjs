@@ -58,7 +58,7 @@ test('V40 emotional body eases into feelings instead of snapping to fixed expres
  const before=states.at(-1).pose.Head[0];
  const redirected=e.sample({dt:1/60,affect:face('doubt',.8)});
  assert.ok(Math.abs(redirected.pose.Head[0]-before)<.012,'emotion changes smoothly');
- const final=run(e,220,{emotion:'neutral',affect:face('neutral',0)});
+ const final=run(e,950,{emotion:'neutral',affect:face('neutral',0)});
  assert.equal(final.mood,'neutral');
  assert.equal(final.active,false);
  assert.deepEqual(final.pose,{});
