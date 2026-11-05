@@ -129,8 +129,8 @@ test('AI play defaults on, pauses independently, and refresh never initiates net
  let state={enabled:true,available:true,pending:false,attempts:3,limit:6,source:'openai'},enabledMotion=0;const changes=[];
  const {companion,requests}=companionFixture({getDirectorStatus:()=>state,getMotionStatus:()=>({active:true,reducedMotion:false}),onEnableMotion:()=>{enabledMotion++;return true;},onDirectorEnabled:value=>{changes.push(value);state={...state,enabled:value};}});t.after(()=>companion.destroy());
  const {directorToggle,directorStatus}=companion.elements;
- assert.equal(directorToggle.textContent,'Pause AI play');assert.equal(directorToggle['aria-pressed'],'true');assert.equal(directorStatus.role,'status');assert.match(directorStatus.textContent,/3 of 6/);
- directorToggle.dispatchEvent(new Event('click'));assert.equal(changes[0],false);assert.equal(directorToggle.textContent,'Enable AI play');assert.match(directorStatus.textContent,/paused/);
+ assert.equal(directorToggle.textContent,'AI play · On');assert.equal(directorToggle['aria-pressed'],'true');assert.equal(directorStatus.role,'status');assert.match(directorStatus.textContent,/3 of 6/);
+ directorToggle.dispatchEvent(new Event('click'));assert.equal(changes[0],false);assert.equal(directorToggle.textContent,'AI play · Off');assert.match(directorStatus.textContent,/paused/);
  directorToggle.dispatchEvent(new Event('click'));assert.equal(changes[1],true);assert.equal(state.attempts,3);
  for(let n=0;n<8;n++)companion.refresh();assert.equal(requests.length,0);assert.equal(enabledMotion,0);
 });
@@ -175,7 +175,7 @@ test('AI pause remains independent of local autonomous status and respects pause
  const {directorToggle,directorStatus,panel}=companion.elements,autonomyNote=companion.elements.debugPanel.childNodes.find(element=>element.className==='m-companion-autonomy'),chatStatus=status.textContent;
  assert.equal(autonomyNote.textContent,'M is exploring the page.');
  directorToggle.dispatchEvent(new Event('click'));
- assert.deepEqual(changes,[false]);assert.equal(directorToggle.textContent,'Enable AI play');assert.equal(directorToggle['aria-pressed'],'false');
+ assert.deepEqual(changes,[false]);assert.equal(directorToggle.textContent,'AI play · Off');assert.equal(directorToggle['aria-pressed'],'false');
  assert.equal(directorStatus.textContent,'AI play is paused. Local play continues.');assert.equal(autonomyNote.textContent,'M is exploring the page.');
  autonomy={execution:{kind:'game',id:'internal-game-04'}};companion.refresh();assert.equal(autonomyNote.textContent,'M is playing on her own.');
  motion={active:false,reducedMotion:false};companion.refresh();assert.equal(autonomyNote.textContent,'M is paused.');
@@ -185,7 +185,7 @@ test('AI pause remains independent of local autonomous status and respects pause
  assert.equal(director.enabled,false);assert.equal(director.attempts,2);assert.equal(directorStatus.textContent,'AI play is paused. Local play continues.');
  assert.equal(autonomyNote['aria-live'],'off');assert.doesNotMatch(autonomyNote.textContent,/internal-|game-04/);
  assert.equal(status.textContent,chatStatus);assert.equal(enabledMotion,0);assert.equal(requests.length,0);
- directorToggle.dispatchEvent(new Event('click'));assert.deepEqual(changes,[false,true]);assert.equal(directorToggle.textContent,'Pause AI play');assert.match(directorStatus.textContent,/2 of 6/);assert.equal(autonomyNote.textContent,'M is playing on her own.');assert.equal(requests.length,0);
+ directorToggle.dispatchEvent(new Event('click'));assert.deepEqual(changes,[false,true]);assert.equal(directorToggle.textContent,'AI play · On');assert.match(directorStatus.textContent,/2 of 6/);assert.equal(autonomyNote.textContent,'M is playing on her own.');assert.equal(requests.length,0);
 });
 
 test('the original four gestures stay prominent while extra gestures have an accessible disclosure',t=>{
@@ -436,18 +436,21 @@ test('V36 M privacy and optional AI budget remain controllable OUTSIDE the chat'
  assert.equal(settingsPanel.hidden,true);
  privacyToggle.dispatchEvent(new Event('click'));
  assert.equal(settingsPanel.hidden,false);
+ assert.deepEqual(settingsPanel.childNodes.map(x=>x.className),
+  ['m-companion-settings-header','m-companion-remember-privacy','m-companion-director-toggle'],
+  'public settings must contain only memory and AI play, not logs, discoveries or reset');
  assert.equal(privacyToggle['aria-expanded'],'true');
  assert.equal(chatBody.childNodes.length,4,'opening preferences must not add chat buttons');
- const memory=f.gesture('Remember M on this device: On');
+ const memory=f.gesture('Memory · On');
  assert.ok(memory);
  memory.dispatchEvent(new Event('click'));
  assert.deepEqual(history,[false]);
- assert.equal(memory.textContent,'Remember M on this device: Off');
+ assert.equal(memory.textContent,'Memory · Off');
  directorToggle.dispatchEvent(new Event('click'));
  assert.deepEqual(history,[false,'AI false']);
- assert.equal(directorToggle.textContent,'Enable AI play');
- f.gesture('Reset character memory').dispatchEvent(new Event('click'));
- assert.equal(reset,1);
+ assert.equal(directorToggle.textContent,'AI play · Off');
+ assert.equal(settingsPanel.childNodes.some(x=>x.textContent==='Reset character memory'),false);
+ assert.equal(reset,0,'Reset is not presented in ordinary preferences; Memory off clears persisted history');
  assert.equal(f.requests.length,0,'settings actions cannot call the chat API');
  settingsClose.dispatchEvent(new Event('click'));
  assert.equal(settingsPanel.hidden,true);
@@ -503,8 +506,37 @@ test('V36 developer controls are never constructed in the chat at any route',()=
  const src=readFileSync(new URL('m-world-companion.mjs',import.meta.url),'utf8');
  assert.match(src,/panel.dataset.mode='questions'/);
  assert.match(src,/conversation.append\(intro,log,status,privacy\)/);
- assert.match(src,/if\(diagnostics\)debugPanel.append\(debugHeader,actions,options,autonomyNote,contextRow,suggestion,clear\)/);
+ assert.match(src,/if\(diagnostics\)debugPanel.append\(debugHeader,actions,options,autonomyNote,contextRow,suggestion,clear,resetMemory,directorStatus\)/);
  assert.doesNotMatch(src,/conversation.append\([^)]*actions/);
  assert.doesNotMatch(src,/header.append\([^)]*privacyToggle/);
  assert.doesNotMatch(src,/form.append\([^)]*clear/);
+});
+
+
+test('V37 user preferences stay genuinely minimal while daily discovery continues privately',t=>{
+ const discovery={id:'2026-11-05:2013:science',year:2013,topic:'science',title:'ISRO',
+  url:'https://en.wikipedia.org/wiki/ISRO'};
+ const f=companionFixture({publicUI:true,getWorldDiscovery:()=>discovery,
+  getWorldStory:()=>({available:true,narrative:'M has explored today'})});
+ t.after(()=>f.companion.destroy());
+ const {settingsPanel,panel,worldNote}=f.companion.elements;
+ f.companion.elements.privacyToggle.dispatchEvent(new Event('click'));
+ assert.deepEqual(settingsPanel.childNodes.map(x=>x.className),
+  ['m-companion-settings-header','m-companion-remember-privacy','m-companion-director-toggle']);
+ assert.equal(settingsPanel.firstChild.firstChild.textContent,'M settings');
+ assert.equal(worldNote.parent!==settingsPanel,true,'knowledge may influence M without appearing in preferences');
+ assert.equal(settingsPanel.childNodes.some(x=>/AI shares|discovery|Reset character memory/.test(x.textContent)),false);
+ assert.equal(panel.childNodes.find(x=>x.className==='m-companion-body').childNodes.length,4);
+ assert.equal(f.requests.length,0);
+});
+
+test('V37 reset remains owner-diagnostic-only, not a third public setting',t=>{
+ const f=companionFixture();t.after(()=>f.companion.destroy());
+ const {settingsPanel,debugPanel}=f.companion.elements;
+ assert.equal(settingsPanel.childNodes.length,3);
+ assert.ok(debugPanel.childNodes.some(x=>x.textContent==='Reset character memory'));
+ assert.ok(!settingsPanel.childNodes.some(x=>x.textContent==='Reset character memory'));
+ const css=readFileSync(new URL('m-world.css',import.meta.url),'utf8');
+ assert.match(css,/\.m-companion-settings>\.m-companion-remember-privacy/);
+ assert.match(css,/\.m-companion-settings>\.m-companion-director-toggle/);
 });

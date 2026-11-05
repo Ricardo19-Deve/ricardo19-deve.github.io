@@ -301,3 +301,26 @@ body>header.top.glass-nav{z-index:92!important}
  .m-companion-debug-panel{right:12px;bottom:76px;width:calc(100vw - 24px);
   max-height:calc(100dvh - 102px);padding:14px}
 }
+
+/* V37 — two discreet preferences; discoveries, activity details and reset
+   remain internal to M (advanced reset is available only in diagnostics). */
+.m-companion-settings{
+ width:min(266px,calc(100vw - 28px));
+ padding:14px;gap:9px;
+}
+.m-companion-settings-header h3{font-size:14px;font-weight:650}
+.m-companion-settings>.m-companion-remember-privacy,
+.m-companion-settings>.m-companion-director-toggle{
+ display:block;width:100%;min-height:41px;
+ text-align:left;padding:10px 14px;
+ font-size:12px;line-height:1.25;
+ border:1px solid rgba(143,186,207,.38);border-radius:12px;
+ background:rgba(34,55,77,.88);color:#e1f1fc;
+}
+.m-companion-settings>.m-companion-remember-privacy[aria-pressed="true"],
+.m-companion-settings>.m-companion-director-toggle[aria-pressed="true"]{
+ border-color:rgba(144,204,214,.56);background:rgba(42,74,90,.75);
+}
+@media(max-width:720px){
+ .m-companion-settings{width:min(266px,calc(100vw - 24px));padding:12px}
+}

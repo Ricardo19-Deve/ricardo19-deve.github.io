@@ -1,5 +1,5 @@
-import {getContextComponent,contextualChatRequest} from './m-world-context.mjs?v=41';
-import {validateCharacterContext} from './m-world-character-context.mjs?v=41';
+import {getContextComponent,contextualChatRequest} from './m-world-context.mjs?v=42';
+import {validateCharacterContext} from './m-world-character-context.mjs?v=42';
 /** V36: public chat answers portfolio questions only. M's autonomous actions and private settings live outside the conversation. */
 export const M_ASSISTANT_GESTURES=Object.freeze(['wave','curious','surprised','shy']);
 export const M_LOCAL_GESTURES=Object.freeze([...M_ASSISTANT_GESTURES,'playful','wink','nod','sleep','hop','think']);
@@ -63,11 +63,12 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  const autonomyNote=make('p','m-companion-autonomy');autonomyNote.setAttribute('aria-live','off');autonomyNote.hidden=true;
  const actions=make('div','m-companion-actions'),moreGestures=make('details','m-companion-more-gestures'),moreSummary=make('summary','','More gestures'),moreActions=make('div','m-companion-more-actions');moreGestures.append(moreSummary,moreActions);
  for(const name of M_LOCAL_GESTURES){const el=button({wave:'Wave',curious:'Curious',surprised:'Surprised',shy:'Shy',playful:'Playful',wink:'Wink',nod:'Nod',sleep:'Sleep',hop:'Hop',think:'Think'}[name]);(M_ASSISTANT_GESTURES.includes(name)?actions:moreActions).append(el);el.addEventListener('click',()=>{refreshMotionControl();const accepted=onGesture(name,{source:'visitor'}),motion=refreshMotionControl();status.textContent=accepted?'Gesture requested. M will respond from a safe resting place.':!motion.active?'Resume M to try a gesture.':motion.reducedMotion?'Motion is off. Enable M motion to try a gesture.':'M cannot perform this gesture yet. Please try again.';makeRoomForCharacter(accepted);});}
- const directorControls=make('div','m-companion-director'),directorHeader=make('div','m-companion-director-header'),directorTitle=make('span','m-companion-director-title','AI play'),directorToggle=button('Pause AI play','m-companion-director-toggle'),directorStatus=make('p','m-companion-director-status');
- directorControls.id='m-companion-director-options';directorToggle.setAttribute('aria-pressed','true');directorStatus.setAttribute('role','status');directorStatus.setAttribute('aria-live','polite');directorHeader.append(directorTitle,directorToggle);const rememberPrivacy=button('Remember M on this device','m-companion-remember-privacy');
+ const directorControls=make('div','m-companion-director'),directorHeader=make('div','m-companion-director-header'),directorTitle=make('span','m-companion-director-title','AI play'),directorToggle=button('AI play · On','m-companion-director-toggle'),directorStatus=make('p','m-companion-director-status');
+ directorControls.id='m-companion-director-options';directorToggle.setAttribute('aria-pressed','true');directorStatus.setAttribute('role','status');directorStatus.setAttribute('aria-live','polite');directorHeader.append(directorTitle);const rememberPrivacy=button('Remember M on this device','m-companion-remember-privacy');
  rememberPrivacy.setAttribute('aria-pressed','false');
- directorControls.append(directorHeader,directorStatus,rememberPrivacy,
-  make('p','m-companion-privacy','M can remember successful local adventures on this device. Switch off to erase this memory. Optional AI play shares only public page summaries.'));
+ // Only two preferences are shown to visitors. These operate on existing
+ // engines; no character actions, API calls or new tracking are created here.
+ directorControls.append(directorHeader,directorStatus);
  const autoPrivacy=make('details','m-companion-auto-privacy'),autoSummary=make('summary','m-companion-privacy','AI shares public summaries'),autoPrivacyNote=make('p','m-companion-privacy','AI play occasionally sends public component headings, types, coarse positions, safe action choices, recent actions and M’s discoveries and current intention to OpenAI, with up to 6 requests per tab. Form values and chat drafts stay private. Pause AI play any time.');autoPrivacy.append(autoSummary,autoPrivacyNote);const options=make('div','m-companion-options');options.append(moreGestures,autoPrivacy);
  const story=make('details','m-companion-story'),storySummary=make('summary','','M’s story'),storyChapter=make('p','m-companion-story-chapter'),storyGoal=make('p','m-companion-story-goal'),storyDiscovery=make('p','m-companion-story-discovery'),storyPreference=make('p','m-companion-story-preference'),storyJournal=make('ol','m-companion-story-journal'),rememberCharacter=button('Remember on this device','m-companion-remember-character'),storyStorage=make('p','m-companion-story-storage');
  story.hidden=true;story.setAttribute('aria-live','off');storyJournal.setAttribute('aria-label','M’s remembered discoveries');rememberCharacter.setAttribute('aria-label','Remember M’s adventures on this device');rememberCharacter.setAttribute('aria-pressed','false');
@@ -102,14 +103,17 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  settingsPanel.id='m-companion-settings';settingsPanel.dataset.mOverlay='true';settingsPanel.hidden=true;
  settingsPanel.setAttribute('role','dialog');settingsPanel.setAttribute('aria-label','M preferences and privacy');
  const settingsHeader=make('div','m-companion-settings-header'),
- settingsTitle=make('h3','','M preferences'),settingsClose=button('Close','m-companion-settings-close');
+ settingsTitle=make('h3','','M settings'),settingsClose=button('Close','m-companion-settings-close');
  settingsClose.setAttribute('aria-label','Close M preferences');settingsHeader.append(settingsTitle,settingsClose);
- const settingsIntro=make('p','m-companion-privacy','M chooses her movements and expressions on her own. These controls manage only privacy, memory and optional AI play.');
+ // Detailed activity, discovery and memory-reset tools are internal diagnostics,
+ // not settings that portfolio visitors need to read.
+ rememberPrivacy.title='Turning memory off deletes M’s saved adventures on this device.';
+ directorToggle.title='Optional AI play uses public portfolio summaries, never form entries.';
  // One and only one Ask M UI, even for developers: portfolio Q&A and Send.
  // A debug URL may expose separate tools, but never place them in the chat.
  conversation.append(intro,log,status,privacy);
  prompts.hidden=true;suggestion.hidden=true;contextRow.hidden=true;
- settingsPanel.append(settingsHeader,settingsIntro,enableMotion,directorControls,autoPrivacy,worldNote,resetMemory);
+ settingsPanel.append(settingsHeader,rememberPrivacy,directorToggle);
  const debugToggle=button('Dev tools','m-companion-debug-toggle'),
   debugPanel=make('section','m-companion-debug-panel'),
   debugHeader=make('div','m-companion-settings-header'),
@@ -121,7 +125,7 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  debugPanel.hidden=true;debugPanel.setAttribute('role','dialog');
  debugPanel.setAttribute('aria-label','M developer diagnostics');
  debugHeader.append(debugTitle,debugClose);
- if(diagnostics)debugPanel.append(debugHeader,actions,options,autonomyNote,contextRow,suggestion,clear);
+ if(diagnostics)debugPanel.append(debugHeader,actions,options,autonomyNote,contextRow,suggestion,clear,resetMemory,directorStatus);
  panel.append(header,conversation,form);
  if(diagnostics)document.body.append(toggle,privacyToggle,settingsPanel,debugToggle,debugPanel,panel);
  else document.body.append(toggle,privacyToggle,settingsPanel,panel);
@@ -131,7 +135,12 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  function refreshMotionControl(){const motion=getMotionStatus(),reducedMotion=Boolean(motion?.reducedMotion);enableMotion.hidden=motionNote.hidden=!reducedMotion;intro.hidden=history.length>0||reducedMotion;return {active:motion?.active!==false,reducedMotion};}
  function refreshDirectorControl(){
   const state=getDirectorStatus()||{},motion=getMotionStatus()||{},enabled=state.enabled!==false;
-  if(directorUiEnabled!==enabled){directorToggle.textContent=enabled?'Pause AI play':'Enable AI play';directorToggle.setAttribute('aria-pressed',String(enabled));directorUiEnabled=enabled;}
+  if(directorUiEnabled!==enabled){
+   directorToggle.textContent='AI play · '+(enabled?'On':'Off');
+   directorToggle.setAttribute('aria-label','Optional AI play: '+(enabled?'On':'Off')+'. Uses public page summaries only.');
+   directorToggle.setAttribute('aria-pressed',String(enabled));
+   directorUiEnabled=enabled;
+  }
   let text;
   if(!enabled)text='AI play is paused. Local play continues.';
   else if(motion.active===false)text='AI play waits while M is paused.';
@@ -150,7 +159,8 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
   const {version,chapter,beat,goal,discovery,preference,recall,favoriteComponent}=snapshot||{};
   const context={version,chapter,beat,goal,discovery,preference,recall,favoriteComponent};
   if(!validateCharacterContext(context)||typeof snapshot.remember!=='boolean'||typeof snapshot.storageAvailable!=='boolean'){story.hidden=true;storyKey=null;return;}
-  rememberPrivacy.textContent='Remember M on this device: '+(snapshot.remember?'On':'Off');
+  rememberPrivacy.textContent='Memory · '+(snapshot.remember?'On':'Off');
+  rememberPrivacy.setAttribute('aria-label','Remember M on this device: '+(snapshot.remember?'On':'Off')+'. Turning off deletes saved adventures.');
   rememberPrivacy.setAttribute('aria-pressed',String(snapshot.remember));
   const entries=[];
   const phrases={'light-found':'I caught the little light.','lookout-found':'I found a lookout worth coming back to.','lookout-revisited':'I came back to my familiar lookout.'};
