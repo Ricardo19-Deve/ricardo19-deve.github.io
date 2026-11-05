@@ -5,6 +5,7 @@ import {planBallFlight,sampleBallFlight} from './m-world-ball.mjs?v=36';
 import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=36';
 import {createSessionMemory} from './m-world-memory.mjs?v=36';
 import {createGrowthMemory,makeLivingSeed,growthFamilyForDecision} from './m-world-growth.mjs?v=36';
+import {senseWorldRhythm} from './m-world-world-rhythm.mjs?v=37';
 import {getContextComponent,matchContextComponent} from './m-world-context.mjs?v=36';
 import {M_AFFECTS,AFFECT_DURATIONS} from './m-world-affect.mjs?v=36';
 import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=36';
@@ -421,7 +422,9 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   const characterGoal=externalBusy||now<interest.readingUntil?null:currentCharacterGoal(targets,world);
   const routinesAvailable=gestureViewportFits(metrics,world.viewport);
   const decision=autonomy.choose({nowMs:now,goal:characterGoal,context:{active,hidden:document.hidden,reducedMotion,typing,selection,scrolling:false,reading:now<interest.readingUntil,busy:externalBusy,section:currentSection(world)},energy:bound(.82-autonomyFatigue+(characterEnergy-.5)*.12,.2,1),remotePending:director?.getStatus().pending,selfPlayAvailable:Boolean(corridor&&Math.hypot(corridor.x-state.x,corridor.y-state.y)>44),routinesAvailable,ballPlayAvailable:routinesAvailable,targets,
-   habits:typeof growth==='undefined'?undefined:{...growth.preferences(),opening}});
+   habits:typeof growth==='undefined'?undefined:{...growth.preferences(),opening},
+   world:typeof senseWorldRhythm==='function'?senseWorldRhythm({date:new Date(),
+    online:typeof navigator==='undefined'||navigator.onLine!==false}):undefined});
   if(!decision)return;
   let accepted=false,kind=decision.kind;
   if(decision.kind==='self-play'||decision.play==='hide'){
@@ -431,7 +434,16 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
    const neutral=actorRect(state,{...metrics,footprint:metrics.neutralFootprint||metrics.footprint});
    const stationary=Boolean(decision.quiet&&now<interest.readingUntil);
    const quietReady=!stationary||(gestureReady({state,actor:actorRect(state,metrics),viewport:world.viewport,escaping:route?.escape})&&!world.protectedRects.some(r=>overlap(neutral,r)));
-   if(quietReady)accepted=queueIntent({name:decision.gesture==='none'?null:decision.gesture,affect:decision.affect,quiet:stationary,source:'life',expression:decision.expression,autonomyId:decision.id,queuedAt:state.clock});
+   // A real nap needs a safe lying surface, not a pose over protected text.
+   // When not reading, a sleep intention walks to an existing safe staging spot
+   // before the 3D body lies down. During active reading it stays in place only
+   // if the full neutral actor is clear of protected content.
+   const napping=decision.gesture==='sleep';
+   const safeSpot=!napping||stationary||Boolean(planGestureStage({position:state,metrics,
+    viewport:world.viewport,surfaces:world.surfaces,protectedRects:world.protectedRects}));
+   if(quietReady&&safeSpot)accepted=queueIntent({name:decision.gesture==='none'?null:decision.gesture,
+    affect:decision.affect,quiet:stationary,source:'life',expression:decision.expression,
+    autonomyId:decision.id,queuedAt:state.clock});
   }
   autonomy.resolve(decision.id,{accepted,nowMs:now});
   if(accepted){const target=targets.find(value=>value.id===decision.targetId);autoExecution={decision,kind,started:now,sceneId:kind==='scene'?scenes.snapshot().id:null,gameId:kind==='game'?game.id:null,visible:false,characterVisit:character.snapshot().visitId,characterComponent:target?.stableId||(decision.characterGoal?characterGoal?.restingPlace:null)||null,characterPublicComponent:getContextComponent(target?.stableId)?.id||null};nextChoice=Infinity;noteAutonomy('accepted',decision,now,decision.reason);}
