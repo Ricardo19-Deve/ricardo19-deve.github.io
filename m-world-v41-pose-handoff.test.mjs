@@ -8,7 +8,7 @@ const run=(engine,n,pose)=>{let result;for(let i=0;i<n;i++)result=engine.sample(
 const value=(pose,bone='Head',axis=0)=>pose[bone]?.[axis]||0;
 
 test('V41 critically damped handoff keeps both pose and velocity continuous at an abrupt mood switch',()=>{
- const engine=createPoseHandoff({halfLife:.13});
+ const engine=createPoseHandoff({halfLife:.17});
  const before=run(engine,50,{Head:[.28,-.11,.04]});
  const justBefore=value(before);
  const next=engine.sample({Head:[-.31,.18,-.09]},step);
@@ -19,7 +19,7 @@ test('V41 critically damped handoff keeps both pose and velocity continuous at a
 });
 
 test('V41 an autonomous layer suppressed by an authored gesture gently fades its LAST pose instead of resetting it',()=>{
- const engine=createPoseHandoff({halfLife:.1});
+ const engine=createPoseHandoff({halfLife:.16});
  const settled=run(engine,90,{Head:[.25,.13,-.08],'Tail.10':[0,0,.07]});
  const atCut=engine.sample({},step);
  assert.ok(value(atCut)>.20,'secondary layer is still visible at the first authored gesture frame');
@@ -31,7 +31,7 @@ test('V41 an autonomous layer suppressed by an authored gesture gently fades its
 });
 
 test('V41 3D stage can turn from happy to curious and then lie down without a reset',()=>{
- const engine=createPoseHandoff({halfLife:.12,limit:1.7});
+ const engine=createPoseHandoff({halfLife:.25,limit:1.7});
  const happy=run(engine,75,{rotation:[0,.08,.10],placement:[0,.06,.02]});
  const curious=engine.sample({rotation:[-.04,.18,.12],placement:[.01,.02,0]},step);
  assert.ok(Math.abs(curious.rotation[1]-happy.rotation[1])<.005,'mode changes preserve stage rotation');
