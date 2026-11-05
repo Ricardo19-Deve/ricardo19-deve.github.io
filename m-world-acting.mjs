@@ -160,23 +160,23 @@ export function sampleGesture({name,age=0,side=1,reducedMotion=false}={}){
   const closure=window(p,.16,.30,.74,.94),wake=pulse(p,.78,.87,.99);
   const breath=window(p,.25,.34,.72,.92)*Math.sin((p-.30)*Math.PI*8);
   blink={left:closure,right:window(p,.17,.31,.75,.95)};
-  add('Body',.065*settle+.009*breath,0,s*.025*settle);
-  add('Chest',.075*settle+.014*breath,0,-s*.025*cozy);
-  add('Neck',.055*settle-.035*wake,0,s*.020*settle);
-  add('Head',.22*settle-.075*wake,s*.035*settle,s*.12*settle);
+  add('Body',.115*settle+.009*breath,0,s*.035*settle);
+  add('Chest',.145*settle+.014*breath,0,-s*.055*cozy);
+  add('Neck',.095*settle-.055*wake,0,s*.025*settle);
+  add('Head',.29*settle-.09*wake,s*.04*settle,s*.13*settle);
   for(const [suffix,sign]of [['L',1],['R',-1]]){
-   add('Arm.'+suffix,.055*cozy-.045*wake,0,sign*.035*cozy);
-   add('Forearm.'+suffix,sign*.18*cozy,0,-sign*.19*cozy);
+   add('Arm.'+suffix,.11*cozy-.07*wake,0,sign*.04*cozy);
+   add('Forearm.'+suffix,sign*.27*cozy,0,-sign*.23*cozy);
    add('Hand.'+suffix,sign*.055*cozy,0,-sign*.07*cozy);
-   add('Leg.'+suffix,.13*cozy-.08*wake,0,sign*.025*cozy);
-   add('Foot.'+suffix,-.065*cozy+.045*wake);
+   add('Leg.'+suffix,.22*cozy-.12*wake,0,sign*.03*cozy);
+   add('Foot.'+suffix,-.115*cozy+.065*wake);
    add('Ear.'+suffix,.14*cozy-.06*wake,0,-sign*.065*cozy);
    add('EarTip.'+suffix,.065*window(p,.18,.37,.78,1));
   }
   for(let i=1;i<=10;i++){
    const lag=(i-1)*.008,curl=window(p,.14+lag,.34+lag,.74+lag,1);
    const follow=window(p,.27+lag,.38+lag,.72+lag,1)*Math.sin((p-.30-lag)*Math.PI*8);
-   add('Tail.'+String(i).padStart(2,'0'),-.006*curl+.004*follow,s*.003*follow,s*.018*curl);
+   add('Tail.'+String(i).padStart(2,'0'),-.013*curl+.004*follow,s*.003*follow,s*.028*curl);
   }
  }else if(name==='hop'){
   const gather=pulse(p,.015,.18,.34),push=pulse(p,.19,.29,.48);

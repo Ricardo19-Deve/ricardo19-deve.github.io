@@ -1,3 +1,4 @@
+import {worldCandidateWeight} from './m-world-world-rhythm.mjs?v=37';
 /** Pure local intentions. Existing scene/spatial executors own every physical effect. */
 export const AUTONOMY_RESERVATION_MS=2000;
 const MAX_TARGETS=64,MAX_HISTORY=24,MAX_RECENT=8;
@@ -121,10 +122,11 @@ export function createAutonomy({seed=18421}={}){
    const repeats=recent.filter(value=>value===family).length;
    const variety=Math.pow(.68,repeats)*(recent.at(-1)===family?.3:1);
    const memoryWeight=Number.isFinite(learned[family])?Math.max(.7,Math.min(1.2,learned[family])):1;
+   const rhythmWeight=worldCandidateWeight(family,facts.world);
    const openingWeight=opening==='explore'?(['inspect','peek','orbit'].includes(family)?1.32:family==='goal-light'?.58:1):
     opening==='play'?(['light','ball','hop'].includes(family)?1.3:family==='goal-light'?.82:1):
     opening==='observe'?(['observe','think','rest'].includes(family)?1.44:family==='goal-light'?.44:1):1;
-   candidates.push({family,stableId,score:clamp(score*memoryWeight*openingWeight)*variety,
+   candidates.push({family,stableId,score:clamp(score*memoryWeight*openingWeight*rhythmWeight)*variety,
     decision:{kind:'expression',targetId:null,action:'rest',gesture:'none',expression:'neutral',
      affect:'calm',play:null,quiet:true,reason:family,...decision}});
   };

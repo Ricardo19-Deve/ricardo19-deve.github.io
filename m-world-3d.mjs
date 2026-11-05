@@ -7,14 +7,15 @@ import {preserveFullSkinning} from './m-lab/swim-v3/threejs/full-skinning.js';
 import {createFacialV6} from './m-lab/interactions/facial-v6.mjs?blink=v30';
 import {createMotionV8,motionPose,canonicalBoneName} from './m-lab/interactions/motion-v8.mjs?rig=v16';
 import {performanceStagePoseV15} from './m-lab/interactions/performance-v15.mjs?v16';
-import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=36';
-import {createPresenceDynamics} from './m-world-dynamics.mjs?v=36';
-import {createFacialContinuity} from './m-world-face-continuity.mjs?v=36';
-import {visualDepthMasks,visualDepthSide} from './m-world-occlusion.mjs?v=36';
-import {createMicroMotion} from './m-world-micro-motion.mjs?v=36';
-import {createRenderQualityGovernor} from './m-world-quality.mjs?v=36';
-import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=36';
-import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs?v=36';
+import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=37';
+import {createPresenceDynamics} from './m-world-dynamics.mjs?v=37';
+import {createFacialContinuity} from './m-world-face-continuity.mjs?v=37';
+import {visualDepthMasks,visualDepthSide} from './m-world-occlusion.mjs?v=37';
+import {createMicroMotion} from './m-world-micro-motion.mjs?v=37';
+import {sampleEmbodiedRest} from './m-world-rest-pose.mjs?v=37';
+import {createRenderQualityGovernor} from './m-world-quality.mjs?v=37';
+import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=37';
+import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs?v=37';
 
 const PART_COUNT=19;
 const EXPECTED_SIZE=16899868;
@@ -141,6 +142,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
  };
  let viewportSize=0,pixelRatio=0,disposed=false,environmentTarget=null,clock=0,swimWeight=0,autoBlink=true,depth=1,spatialFrame=null,frameFit=null;
  const presence=createPresenceDynamics(),qualityGovernor=createRenderQualityGovernor(),microMotion=createMicroMotion();
+ let lastRestPose=sampleEmbodiedRest();
  const scene=new THREE.Scene(),camera=new THREE.OrthographicCamera(-WORLD_SPAN/2,WORLD_SPAN/2,WORLD_SPAN/2,-WORLD_SPAN/2,.03,100);
  camera.position.set(0,0,8);camera.lookAt(0,0,0);camera.updateProjectionMatrix();camera.updateMatrixWorld(true);
  const depthRoot=new THREE.Group(),stage=new THREE.Group(),container=new THREE.Group();scene.add(depthRoot);depthRoot.add(stage);stage.add(container);container.add(source);
@@ -402,7 +404,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    return {bones:31,rigBones:31,tailBones:motion.tailDiagnostics.connected,maxInfluences:skin.maxUsed,skinSets:skin.sets,
     clips:clips.map(c=>c.name),detailMaps:textures.size,detailSlots,viewportSize,pixelRatio,renderPixels:[canvas.width,canvas.height],
     environment:{type:'PMREM RoomEnvironment',intensity:scene.environmentIntensity,toneMapping:'AgX'},
-     quality:qualityGovernor.snapshot(),presence:presence.snapshot(),facialContinuity:facialContinuity.snapshot(),microMotion:microMotion.snapshot(),
+     quality:qualityGovernor.snapshot(),presence:presence.snapshot(),facialContinuity:facialContinuity.snapshot(),microMotion:microMotion.snapshot(),restPose:{...lastRestPose},
     framing:{rest:boundsRecord(restBox),envelope:boundsRecord(envelope),framed:boundsRecord(framed),scale:frameFit.scale,samples:frameSamples},
     occlusion:{supported:depthSupported,depth,visualSide:visualDepthSide(depth),worldZ:depthRoot.position.z,surfaceZ:0,protectedZ:depthPlan.protectedZ,surfaceRects:surfaceBatch.rectCount,protectedRects:protectedBatch.rectCount,maskDrawCalls:Number(surfaceBatch.mesh.visible)+Number(protectedBatch.mesh.visible)},
     render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,points:renderer.info.render.points,lines:renderer.info.render.lines,programs:renderer.info.programs.length,textures:renderer.info.memory.textures,geometries:renderer.info.memory.geometries},
@@ -423,6 +425,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    const target=reduced||calm?0:.8*dynamics.moving;swimWeight+=(target-swimWeight)*(1-Math.exp(-6*dt));if(swimWeight<1e-5)swimWeight=0;
    const mode=motionFor(state.mode||activity);
    lastGesture=sampleGesture({...state.gesture,reducedMotion:reduced});
+   lastRestPose=sampleEmbodiedRest({...state.gesture,reducedMotion:reduced});
    lastAffect=sampleAffect({...state.affect,reducedMotion:reduced||Boolean(lastGesture.name)});
    const expression=lastGesture.envelope>0?expressionFor(state.gesture?.expression??lastGesture.expression,state.mode||activity):expressionFor(state.emotion??state.mood,state.mode||activity);
    gestureLayer.prepare();locomotionLayer.prepare();motion.prepare();action.setEffectiveWeight(swimWeight);mixer.update(dt);
@@ -437,12 +440,14 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     facial.setExpressionBlend(fade?.weights||null);facial.setRestBlink(fade?.eyelids||null);
    facial.setExpression(expression);if(autoBlink===reduced){autoBlink=!reduced;facial.setAutoBlink(autoBlink);}facial.update(reduced?2:dt,performance.now());
    const extra=performanceStagePoseV15({time:clock,mode,expression,impact:reduced?0:calm?.07:.4,reducedMotion:reduced});
-   stage.rotation.x=num(extra.rx+micro.pitch,-.12,.12);
-    stage.rotation.y=num(extra.ry,-.17,.17)+num(dynamics.bodyMotion.rotation.y*.2,-.05,.05)+dynamics.stageYaw;
-    stage.rotation.z=num(extra.rz+micro.roll,-.12,.12);
-   stage.position.x=num(extra.x*.22,-.025,.025);
-    stage.position.y=num(extra.y*.25+micro.lift,-.06,.06);
-    stage.scale.setScalar(1+num(extra.scale+micro.scale,-.03,.03));
+   // V32: real lie-down + wake-up of the existing 31-bone M, with the
+   // original curled limbs, eyelids, tail and breathing gesture intact.
+   stage.rotation.x=num(extra.rx+micro.pitch,-.12,.12)+lastRestPose.rotationX;
+   stage.rotation.y=num(extra.ry,-.17,.17)+num(dynamics.bodyMotion.rotation.y*.2,-.05,.05)+dynamics.stageYaw;
+   stage.rotation.z=num(extra.rz+micro.roll,-.12,.12)+lastRestPose.rotationZ;
+   stage.position.x=num(extra.x*.22+lastRestPose.positionX,-.08,.08);
+   stage.position.y=num(extra.y*.25+micro.lift+lastRestPose.positionY,-.17,.06);
+   stage.scale.setScalar((1+num(extra.scale+micro.scale,-.03,.03))*lastRestPose.scale);
    if(!reduced&&dt>0&&qualityGovernor.observe(dt*1000))syncResolution();
    render();
   };
