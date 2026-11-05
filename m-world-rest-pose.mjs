@@ -17,7 +17,7 @@ export const REST_MIN_SCALE=.78;
 export function sampleEmbodiedRest({name=null,age=0,duration=12.4,side=1,reducedMotion=false}={}){
  const neutral={resting:false,phase:'awake',weight:0,rotationZ:0,rotationX:0,
   positionX:0,positionY:0,scale:1,breath:0};
- if(name!=='sleep'||reducedMotion||!Number.isFinite(age)||!Number.isFinite(duration)||duration<=0)return neutral;
+ if(name!=='sleep'||reducedMotion||!Number.isFinite(age)||!Number.isFinite(duration)||duration<=0||age<=0||age>=duration)return neutral;
  const p=clamp(age/duration),sign=side===-1?-1:1;
  const weight=hold(p,.045,.31,.78,.985);
  const falling=ramp(p,.035,.32),waking=ramp(p,.78,.99);
