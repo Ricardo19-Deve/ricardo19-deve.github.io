@@ -341,7 +341,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   return character.record({id:characterReceiptId(owner.characterVisit,owner.decision.id),goal,success,componentId:owner.characterComponent||null,publicComponent:owner.characterPublicComponent||null});
  }
  function resetCharacterMemory(){
-  cancelAutonomy('memory-reset');memory.clear();character.reset();growth.reset();autonomy.resetMemory(performance.now());companion?.refresh();
+  cancelAutonomy('memory-reset');memory.clear();character.reset();if(typeof growth!=='undefined')growth.reset();autonomy.resetMemory(performance.now());companion?.refresh();
  }
  function setCharacterAffect(name,{weight=.9,owner=null}={}){
   if(M_AFFECTS.includes(name))state.affect={name,age:0,weight,owner};
@@ -362,7 +362,9 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(pendingGesture?.autonomyId===decision.id)pendingGesture=null;
   const acknowledged=autonomy.complete({success,reason,nowMs:now});
   const remembered=acknowledged&&recordCharacterExperience(owner,success);
-  if(acknowledged){const family=growthFamilyForDecision(decision);if(family)growth.record({family,success});}
+  if(acknowledged&&typeof growth!=='undefined'&&typeof growthFamilyForDecision==='function'){
+   const family=growthFamilyForDecision(decision);if(family)growth.record({family,success});
+  }
   if(success&&acknowledged&&decision.kind==='scene'&&decision.targetId){directorRecent.push({targetId:decision.targetId,action:decision.action});if(directorRecent.length>6)directorRecent.shift();directorEvent='arrival';}
   noteAutonomy(success&&acknowledged?'complete':'failed',decision,now,acknowledged?reason:'ownership-lost');
   releaseCharacterAffect();if(remembered&&success&&decision.characterGoal==='follow-light')setCharacterAffect('proud',{weight:1});nextChoice=now+1000;
@@ -418,7 +420,8 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   const corridor=!externalBusy&&chooseCorridorTarget({viewport:world.viewport,metrics,position:state,protectedRects:world.protectedRects,surfaces:world.surfaces,depth:1,recent:recentCorridors});
   const characterGoal=externalBusy||now<interest.readingUntil?null:currentCharacterGoal(targets,world);
   const routinesAvailable=gestureViewportFits(metrics,world.viewport);
-  const decision=autonomy.choose({nowMs:now,goal:characterGoal,context:{active,hidden:document.hidden,reducedMotion,typing,selection,scrolling:false,reading:now<interest.readingUntil,busy:externalBusy,section:currentSection(world)},energy:bound(.82-autonomyFatigue+(characterEnergy-.5)*.12,.2,1),remotePending:director?.getStatus().pending,selfPlayAvailable:Boolean(corridor&&Math.hypot(corridor.x-state.x,corridor.y-state.y)>44),routinesAvailable,ballPlayAvailable:routinesAvailable,targets,habits:{...growth.preferences(),opening}});
+  const decision=autonomy.choose({nowMs:now,goal:characterGoal,context:{active,hidden:document.hidden,reducedMotion,typing,selection,scrolling:false,reading:now<interest.readingUntil,busy:externalBusy,section:currentSection(world)},energy:bound(.82-autonomyFatigue+(characterEnergy-.5)*.12,.2,1),remotePending:director?.getStatus().pending,selfPlayAvailable:Boolean(corridor&&Math.hypot(corridor.x-state.x,corridor.y-state.y)>44),routinesAvailable,ballPlayAvailable:routinesAvailable,targets,
+   habits:typeof growth==='undefined'?undefined:{...growth.preferences(),opening}});
   if(!decision)return;
   let accepted=false,kind=decision.kind;
   if(decision.kind==='self-play'||decision.play==='hide'){
