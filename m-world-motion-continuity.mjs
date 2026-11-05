@@ -25,7 +25,7 @@ const tailName=i=>'Tail.'+String(i).padStart(2,'0');
 export function createMotionContinuity(){
  let initialized=false,moving=false,filteredSpeed=0,turnFast=0,turnSlow=0,
   launchAge=20,settleAge=20,reorientAge=20,lastGroup='roam',
-  launches=0,landings=0,reorientations=0,frames=0,mode='quiet';
+  launches=0,arrivals=0,reorientations=0,frames=0,mode='quiet';
  function reset(){
   initialized=false;moving=false;filteredSpeed=0;turnFast=0;turnSlow=0;
   launchAge=settleAge=reorientAge=20;lastGroup='roam';mode='quiet';
@@ -43,7 +43,7 @@ export function createMotionContinuity(){
    initialized=true;moving=nextMoving;lastGroup=group;
   }else{
    if(!moving&&nextMoving){launchAge=0;launches++;}
-   if(moving&&!nextMoving){settleAge=0;landings++;}
+   if(moving&&!nextMoving){settleAge=0;arrivals++;}
    if(group!==lastGroup&&['inspect','play','explore'].includes(group)){
     reorientAge=0;reorientations++;
    }
@@ -67,23 +67,23 @@ export function createMotionContinuity(){
   // tail joint follows with more delay toward its tip.
   const start=launch*readingScale,stop=settle*readingScale,redirect=reorient*readingScale;
   const headPitch=clamp(-start*.033+stop*.033-redirect*.018,-.08,.08);
-  const headYaw=clamp(turnFast*.031+redirect*.024,-.07,.07);
+  const headYaw=clamp(turnFast*.031*readingScale+redirect*.024,-.07,.07);
   const lean=clamp(start*.023-stop*.014,-.04,.04);
   const pose={
-   Head:[headPitch,headYaw,-tailLag*.022],
-   Neck:[headPitch*.6,headYaw*.42,-tailLag*.012],
-   Chest:[lean,-tailLag*.012,tailLag*.013],
-   Body:[lean*.65,0,tailLag*.008],
+   Head:[headPitch,headYaw,-tailLag*.022*readingScale],
+   Neck:[headPitch*.6,headYaw*.42,-tailLag*.012*readingScale],
+   Chest:[lean,-tailLag*.012*readingScale,tailLag*.013*readingScale],
+   Body:[lean*.65,0,tailLag*.008*readingScale],
    'Arm.L':[-start*.022+stop*.009,0,-redirect*.014],
    'Arm.R':[-start*.018+stop*.009,0,redirect*.014],
    'Leg.L':[start*.027-stop*.013,0,0],
    'Leg.R':[start*.027-stop*.013,0,0],
-   'Ear.L':[-redirect*.034-start*.011,0,tailLag*.014],
-   'Ear.R':[-redirect*.023-start*.008,0,-tailLag*.011]
+   'Ear.L':[-redirect*.034-start*.011,0,tailLag*.014*readingScale],
+   'Ear.R':[-redirect*.023-start*.008,0,-tailLag*.011*readingScale]
   };
   for(let i=1;i<=10;i++){
    const l=i/10;
-   const inertia=clamp(-tailLag*(.007+.012*l)+stop*.006*(1-l)-
+   const inertia=clamp(-tailLag*(.007+.012*l)*readingScale+stop*.006*(1-l)-
     start*.005*l,-.024,.024);
    pose[tailName(i)]=[clamp(-stop*.003*l,-.01,.01),0,inertia];
   }
@@ -92,14 +92,14 @@ export function createMotionContinuity(){
    y:clamp(-.0035*start+.002*stop,-.007,.007),
    rx:clamp(-.014*start+.011*stop-.005*filteredSpeed,-.028,.028),
    ry:clamp(redirect*.009*clamp(turnFast,-1,1),-.014,.014),
-   rz:clamp(-tailLag*.013+stop*.004,-.025,.025),
+   rz:clamp(-tailLag*.013*readingScale+stop*.004,-.025,.025),
    scale:clamp(-start*.003+stop*.002,-.006,.006)
   };
   return {active,mode,launch,settle,reorient,pose,stage};
  }
  function snapshot(){
   return {mode,moving,filteredSpeed,turnLag:turnFast-turnSlow,launches,
-   arrivals:landings,reorientations,frames};
+   arrivals,reorientations,frames};
  }
  return {sample,reset,snapshot};
 }
