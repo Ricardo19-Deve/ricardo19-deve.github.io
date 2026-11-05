@@ -23,13 +23,12 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  const make=(tag,cls,text)=>{const el=document.createElement(tag);if(cls)el.className=cls;if(text)el.textContent=text;return el;};
  const button=(text,cls)=>{const el=make('button',cls,text);el.type='button';return el;};
  const toggle=button('Ask M','m-companion-toggle');toggle.dataset.mOverlay='true';toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-controls','m-companion');
- const panel=make('section','m-companion');panel.dataset.mode=diagnostics?'diagnostics':'questions';panel.id='m-companion';panel.dataset.mOverlay='true';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Talk to M');
- const header=make('div','m-companion-header'),title=make('h2','','Ask M'),close=button('Close','m-companion-close'),enableMotion=button('Enable M motion','m-companion-enable-motion'),privacyToggle=button('Privacy','m-companion-privacy-toggle');if(diagnostics)header.append(title,enableMotion,privacyToggle,close);
- else header.append(title,close);
- privacyToggle.hidden=diagnostics;
+ const panel=make('section','m-companion');panel.dataset.mode='questions';panel.id='m-companion';panel.dataset.mOverlay='true';panel.hidden=true;panel.setAttribute('role','dialog');panel.setAttribute('aria-label','Talk to M');
+ const header=make('div','m-companion-header'),title=make('h2','','Ask M'),close=button('Close','m-companion-close'),enableMotion=button('Enable M motion','m-companion-enable-motion'),privacyToggle=button('Privacy','m-companion-privacy-toggle');header.append(title,close);
+ privacyToggle.hidden=false;
  privacyToggle.setAttribute('aria-expanded','false');
- privacyToggle.setAttribute('aria-controls',diagnostics?'m-companion-director-options':'m-companion-settings');
- if(!diagnostics){
+ privacyToggle.setAttribute('aria-controls','m-companion-settings');
+ {
   privacyToggle.className='m-companion-settings-toggle';
   privacyToggle.textContent='⚙';
   privacyToggle.setAttribute('aria-label','M settings and privacy');
@@ -106,21 +105,25 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  settingsTitle=make('h3','','M preferences'),settingsClose=button('Close','m-companion-settings-close');
  settingsClose.setAttribute('aria-label','Close M preferences');settingsHeader.append(settingsTitle,settingsClose);
  const settingsIntro=make('p','m-companion-privacy','M chooses her movements and expressions on her own. These controls manage only privacy, memory and optional AI play.');
- if(diagnostics){
-  // The developer-only gesture and AI diagnostics still work under ?m-debug=1,
-  // without being constructed as visible controls in the public chat.
-  form.append(clear);
-  conversation.append(intro,motionNote,worldNote,prompts,log,status,suggestion,contextRow,actions,options,directorControls,autonomyNote,privacy);
- }else{
-  // Nothing that instructs M to perform an action belongs to Ask M.
-  // Not even a hidden gesture panel: avoid all display/hidden CSS collisions.
-  conversation.append(intro,log,status,privacy);
-  prompts.hidden=true;actions.hidden=true;options.hidden=true;autonomyNote.hidden=true;
-  contextRow.hidden=true;suggestion.hidden=true;clear.hidden=true;
-  settingsPanel.append(settingsHeader,settingsIntro,enableMotion,directorControls,autoPrivacy,worldNote,resetMemory);
- }
+ // One and only one Ask M UI, even for developers: portfolio Q&A and Send.
+ // A debug URL may expose separate tools, but never place them in the chat.
+ conversation.append(intro,log,status,privacy);
+ prompts.hidden=true;suggestion.hidden=true;contextRow.hidden=true;
+ settingsPanel.append(settingsHeader,settingsIntro,enableMotion,directorControls,autoPrivacy,worldNote,resetMemory);
+ const debugToggle=button('Dev tools','m-companion-debug-toggle'),
+  debugPanel=make('section','m-companion-debug-panel'),
+  debugHeader=make('div','m-companion-settings-header'),
+  debugTitle=make('h3','','M diagnostics'),debugClose=button('Close','m-companion-debug-close');
+ debugToggle.dataset.mOverlay='true';debugToggle.hidden=!diagnostics;
+ debugToggle.setAttribute('aria-controls','m-companion-debug-panel');
+ debugToggle.setAttribute('aria-expanded','false');
+ debugPanel.dataset.mOverlay='true';debugPanel.id='m-companion-debug-panel';
+ debugPanel.hidden=true;debugPanel.setAttribute('role','dialog');
+ debugPanel.setAttribute('aria-label','M developer diagnostics');
+ debugHeader.append(debugTitle,debugClose);
+ if(diagnostics)debugPanel.append(debugHeader,actions,options,autonomyNote,contextRow,suggestion,clear);
  panel.append(header,conversation,form);
- if(diagnostics)document.body.append(toggle,panel);
+ if(diagnostics)document.body.append(toggle,privacyToggle,settingsPanel,debugToggle,debugPanel,panel);
  else document.body.append(toggle,privacyToggle,settingsPanel,panel);
 
  let history=[],pending=null,destroyed=false,sectionHint='none',open=false,directorUiEnabled=null,contextCapability=null,characterCapability=null,storyKey=null;
@@ -179,9 +182,10 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  }
  function makeRoomForCharacter(accepted){if(accepted&&document.defaultView?.matchMedia?.('(max-width: 720px)')?.matches)setOpen(false,{cancelPending:false});}
  function setOpen(value,{cancelPending=true}={}){refresh();
-  if(value&&!diagnostics&&!settingsPanel.hidden){
+  if(value&&!settingsPanel.hidden){
    settingsPanel.hidden=true;privacyToggle.setAttribute('aria-expanded','false');
   }
+  if(value&&diagnostics&&!debugPanel.hidden){debugPanel.hidden=true;debugToggle.setAttribute('aria-expanded','false');}
   open=Boolean(value);panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));onEngagement(open);if(open)(target?input:close).focus();else{if(cancelPending)pending?.abort();toggle.focus();}refreshViewport();}
  function append(role,text){prompts.hidden=true;const row=make('p','m-companion-message '+role);row.textContent=text;log.append(row);while(log.childNodes.length>12)log.firstChild.remove();log.scrollTop=role==='assistant'&&Number.isFinite(row.offsetTop)?row.offsetTop:log.scrollHeight;if(open)conversation.scrollTop=0;}
  function refreshViewport(){
@@ -200,18 +204,27 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  listen(rememberPrivacy,'click',()=>{const current=getCharacterStatus();if(current&&typeof current.remember==='boolean'){onRememberCharacter(!current.remember);refreshStoryControl();}});
  listen(directorToggle,'click',()=>{const state=getDirectorStatus()||{};onDirectorEnabled(state.enabled===false);refresh();});
  function setSettingsOpen(value){
-  if(diagnostics)return;
   if(value&&open)setOpen(false);
+  if(value&&diagnostics&&!debugPanel.hidden){debugPanel.hidden=true;debugToggle.setAttribute('aria-expanded','false');}
   settingsPanel.hidden=!value;
   privacyToggle.setAttribute('aria-expanded',String(Boolean(value)));
   if(value)settingsClose.focus();
   else privacyToggle.focus();
  }
- listen(privacyToggle,'click',()=>{if(!diagnostics)setSettingsOpen(settingsPanel.hidden);});
+ listen(privacyToggle,'click',()=>setSettingsOpen(settingsPanel.hidden));
+ function setDebugOpen(value){
+  if(!diagnostics)return;
+  if(value&&open)setOpen(false);
+  if(value&&!settingsPanel.hidden){settingsPanel.hidden=true;privacyToggle.setAttribute('aria-expanded','false');}
+  debugPanel.hidden=!value;debugToggle.setAttribute('aria-expanded',String(Boolean(value)));
+  if(value)debugClose.focus();else debugToggle.focus();
+ }
+ listen(debugToggle,'click',()=>setDebugOpen(debugPanel.hidden));
+ listen(debugClose,'click',()=>setDebugOpen(false));
  listen(settingsClose,'click',()=>setSettingsOpen(false));
  listen(enableMotion,'click',()=>{const accepted=onEnableMotion(),motion=refreshMotionControl();status.textContent=!motion.active?'Resume M to try a gesture.':accepted&&!motion.reducedMotion?'M motion enabled for this tab.':'Motion is still off. Please try again.';});
  listen(toggle,'click',()=>setOpen(!open));listen(close,'click',()=>setOpen(false));
- listen(document,'keydown',event=>{if(event.key==='Escape'&&!diagnostics&&!settingsPanel.hidden){event.preventDefault();setSettingsOpen(false);}else if(open&&event.key==='Escape'){event.preventDefault();setOpen(false);}});
+ listen(document,'keydown',event=>{if(event.key==='Escape'&&!settingsPanel.hidden){event.preventDefault();setSettingsOpen(false);}else if(event.key==='Escape'&&diagnostics&&!debugPanel.hidden){event.preventDefault();setDebugOpen(false);}else if(open&&event.key==='Escape'){event.preventDefault();setOpen(false);}});
  listen(suggestion,'click',()=>{if(sectionHint!=='none'){onSection(sectionHint);setOpen(false);}});
  listen(clear,'click',()=>{pending?.abort();history=[];log.replaceChildren();suggestion.hidden=true;intro.hidden=false;conversation.scrollTop=0;status.textContent=target?'Chat cleared.':'Chat is not connected.';prompts.hidden=!target;refreshMotionControl();});
  listen(input,'keydown',event=>{
@@ -248,5 +261,5 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
   finally{clearTimeout(timeout);if(pending===controller){pending=null;send.disabled=!target;input.disabled=!target;if(open&&!destroyed)input.focus();}}
  });
  refresh();
- return {elements:{toggle,panel,settingsPanel,settingsClose,directorToggle,directorStatus,moreGestures,story,rememberCharacter,prompts,privacyToggle,worldNote,worldNarrative},refresh,refreshMotionControl,refreshDirectorControl,isOpen:()=>open,snapshot:()=>({open,configured:Boolean(target),pending:Boolean(pending),messages:history.length,settingsOpen:!diagnostics&&!settingsPanel.hidden}),destroy(){destroyed=true;pending?.abort();for(const remove of listeners)remove();onEngagement(false);toggle.remove();privacyToggle.remove();settingsPanel.remove();panel.remove();}};
+ return {elements:{toggle,panel,settingsPanel,settingsClose,debugToggle,debugPanel,debugClose,directorToggle,directorStatus,moreGestures,story,rememberCharacter,prompts,privacyToggle,worldNote,worldNarrative},refresh,refreshMotionControl,refreshDirectorControl,isOpen:()=>open,snapshot:()=>({open,configured:Boolean(target),pending:Boolean(pending),messages:history.length,settingsOpen:!settingsPanel.hidden}),destroy(){destroyed=true;pending?.abort();for(const remove of listeners)remove();onEngagement(false);toggle.remove();privacyToggle.remove();settingsPanel.remove();debugToggle.remove();debugPanel.remove();panel.remove();}};
 }
