@@ -6,6 +6,7 @@ import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=38';
 import {createSessionMemory} from './m-world-memory.mjs?v=38';
 import {createGrowthMemory,makeLivingSeed,growthFamilyForDecision} from './m-world-growth.mjs?v=38';
 import {createWorldKnowledge} from './m-world-world-knowledge.mjs?v=38';
+import {createLivedWorldStories} from './m-world-lived-stories.mjs?v=39';
 import {senseWorldRhythm} from './m-world-world-rhythm.mjs?v=38';
 import {getContextComponent,matchContextComponent} from './m-world-context.mjs?v=38';
 import {M_AFFECTS,AFFECT_DURATIONS} from './m-world-affect.mjs?v=38';
@@ -39,6 +40,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  const memory=createSessionMemory(),character=createCharacter(),scenes=createScenePlayer();
  const growth=createGrowthMemory({remember:character.snapshot().remember});
  const worldKnowledge=createWorldKnowledge({remember:character.snapshot().remember});
+ const worldStories=createLivedWorldStories({remember:character.snapshot().remember});
  const opening=['explore','play','observe'][livingSeed%3];
  const autonomy=createAutonomy({seed:(livingSeed^0x85ebca6b)>>>0});
  let autoExecution=null,autonomyNextRead=0,autonomyFatigue=0,autonomyLastRead=0,lastAutonomousGame=null;
@@ -344,7 +346,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   return character.record({id:characterReceiptId(owner.characterVisit,owner.decision.id),goal,success,componentId:owner.characterComponent||null,publicComponent:owner.characterPublicComponent||null});
  }
  function resetCharacterMemory(){
-  cancelAutonomy('memory-reset');memory.clear();character.reset();if(typeof growth!=='undefined')growth.reset();if(typeof worldKnowledge!=='undefined')worldKnowledge.reset();autonomy.resetMemory(performance.now());companion?.refresh();
+  cancelAutonomy('memory-reset');memory.clear();character.reset();if(typeof growth!=='undefined')growth.reset();if(typeof worldKnowledge!=='undefined')worldKnowledge.reset();if(typeof worldStories!=='undefined')worldStories.reset();autonomy.resetMemory(performance.now());companion?.refresh();
  }
  function setCharacterAffect(name,{weight=.9,owner=null}={}){
   if(M_AFFECTS.includes(name))state.affect={name,age:0,weight,owner};
@@ -365,12 +367,21 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(pendingGesture?.autonomyId===decision.id)pendingGesture=null;
   const acknowledged=autonomy.complete({success,reason,nowMs:now});
   const remembered=acknowledged&&recordCharacterExperience(owner,success);
-  if(acknowledged&&typeof growth!=='undefined'&&typeof growthFamilyForDecision==='function'){
-   const family=growthFamilyForDecision(decision);if(family)growth.record({family,success});
+  let livedBeat=null;
+  if(acknowledged&&typeof growthFamilyForDecision==='function'){
+   const family=growthFamilyForDecision(decision);
+   if(family){
+    if(typeof growth!=='undefined')growth.record({family,success});
+    if(typeof worldStories!=='undefined')livedBeat=worldStories.record({family,success});
+   }
   }
   if(success&&acknowledged&&decision.kind==='scene'&&decision.targetId){directorRecent.push({targetId:decision.targetId,action:decision.action});if(directorRecent.length>6)directorRecent.shift();directorEvent='arrival';}
   noteAutonomy(success&&acknowledged?'complete':'failed',decision,now,acknowledged?reason:'ownership-lost');
-  releaseCharacterAffect();if(remembered&&success&&decision.characterGoal==='follow-light')setCharacterAffect('proud',{weight:1});nextChoice=now+1000;
+  releaseCharacterAffect();
+  if(remembered&&success&&decision.characterGoal==='follow-light')setCharacterAffect('proud',{weight:1});
+  else if(livedBeat?.complete)setCharacterAffect('delight',{weight:.62});
+  if(livedBeat)companion?.refresh();
+  nextChoice=now+1000;
  }
  function cancelAutonomy(reason='interrupted',now=performance.now()){
   const owned=autoExecution;autoExecution=null;
@@ -427,7 +438,8 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
    habits:typeof growth==='undefined'?undefined:{...growth.preferences(),opening},
    world:typeof senseWorldRhythm==='function'?{...senseWorldRhythm({date:new Date(),
     online:typeof navigator==='undefined'||navigator.onLine!==false}),
-    discovery:typeof worldKnowledge==='undefined'?null:worldKnowledge.hint()}:undefined});
+    discovery:typeof worldKnowledge==='undefined'?null:worldKnowledge.hint(),
+    story:typeof worldStories==='undefined'?null:worldStories.hint()}:undefined});
   if(!decision)return;
   let accepted=false,kind=decision.kind;
   if(decision.kind==='self-play'||decision.play==='hide'){
@@ -820,7 +832,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  function snapshot(){
   if(avatar)metrics=avatar.getMetrics();
   const world=worldSnapshot();
-  return {ready:Boolean(avatar),active,error:layer.dataset.error||null,state:{...state,gesture:state.gesture?{...state.gesture}:null,expressionHold:state.expressionHold?{...state.expressionHold}:null},acting:{attached:Boolean(route?.attached),externalPortal:Boolean(route?.plan?.externalPortal)},brain:brain.snapshot(),companion:companion?.snapshot(),pendingGesture:pendingGesture?.name||null,pendingIntent:pendingGesture?{...pendingGesture}:null,preferences:{reducedMotion,systemReducedMotion:motionPreference.matches,motionOptIn},character:{scene:scenes.snapshot(),game:game?{...game}:null,memory:memory.snapshot(),autonomy:autonomyStatus(),story:character.snapshot(),growth:growth.snapshot(),world:worldKnowledge.snapshot()},staging:route?.gestureStage?{escape:route.escape,target:{...route.target},egress:{...route.egress}}:null,metrics,actor:actorRect(renderFrame?{x:renderFrame.actor.left,y:renderFrame.actor.top}:state,metrics),
+  return {ready:Boolean(avatar),active,error:layer.dataset.error||null,state:{...state,gesture:state.gesture?{...state.gesture}:null,expressionHold:state.expressionHold?{...state.expressionHold}:null},acting:{attached:Boolean(route?.attached),externalPortal:Boolean(route?.plan?.externalPortal)},brain:brain.snapshot(),companion:companion?.snapshot(),pendingGesture:pendingGesture?.name||null,pendingIntent:pendingGesture?{...pendingGesture}:null,preferences:{reducedMotion,systemReducedMotion:motionPreference.matches,motionOptIn},character:{scene:scenes.snapshot(),game:game?{...game}:null,memory:memory.snapshot(),autonomy:autonomyStatus(),story:character.snapshot(),growth:growth.snapshot(),world:worldKnowledge.snapshot(),worldStory:worldStories.snapshot()},staging:route?.gestureStage?{escape:route.escape,target:{...route.target},egress:{...route.egress}}:null,metrics,actor:actorRect(renderFrame?{x:renderFrame.actor.left,y:renderFrame.actor.top}:state,metrics),
    surfaces:world.surfaces.map(({element,...r})=>r),protectedRects:world.protectedRects,director:{...director?.getStatus(),perception:directorSnapshot,activity:directorActivity,lastExecution:directorLastExecution},renderer:avatar?.getDiagnostics(),life:lastLife,stats:{...stats},frozen};
  }
  if(debugEnabled)window.MWorld={
@@ -859,10 +871,10 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  };
  observer=createWorldObserver({getComponents:()=>directorComponents});
  director=createWorldDirector({getCharacterContext:()=>character.getContext(),endpoint:M_WORLD_CONFIG.directorEndpoint||'',onIntent:applyDirectorIntent,onStatus:()=>companion?.refresh()});
- companion=createMCompanion({getCharacterStatus:()=>character.snapshot(),onRememberCharacter:value=>{const accepted=character.setRemember(value);if(accepted){growth.setRemember(value);worldKnowledge.setRemember(value);}return accepted;},getWorldDiscovery:()=>worldKnowledge.snapshot().discovery,getAutonomyStatus:autonomyStatus,onAffect:name=>M_AFFECTS.includes(name)&&queueIntent({name:null,affect:name,source:'visitor',expression:'neutral',queuedAt:state.clock}),onScene:()=>beginCharacterScene(),onGame:startPlay,onResetMemory:resetCharacterMemory,onContextResponse:(id,reply)=>{cancelAutonomy('assistant-response');const world=worldSnapshot(),target=world.surfaces.find(r=>publicComponent(r)?.id===id);if(target){stopPlay('context-response');return beginCharacterScene({source:'assistant',targetId:target.id,action:'inspect',gesture:reply.gesture==='none'?'nod':reply.gesture,expression:reply.expression});}return false;},getDirectorStatus:()=>director.getStatus(),onDirectorEnabled:enabled=>{director.setEnabled(enabled);if(!enabled)directorActivity=null;updateDirector(performance.now(),worldSnapshot(),true);},endpoint:M_WORLD_CONFIG.assistantEndpoint,onGesture:queueGesture,onExpression:queueExpression,getMotionStatus:()=>({active,reducedMotion}),onEnableMotion:enableMotion,getContext:activeChatContext,onSection:name=>{document.getElementById(name)?.scrollIntoView({behavior:reducedMotion?'instant':'smooth',block:'start'});},onEngagement:open=>{if(!open)interest.hoverGuardUntil=performance.now()+250;invalidate();}});
+ companion=createMCompanion({getCharacterStatus:()=>character.snapshot(),onRememberCharacter:value=>{const accepted=character.setRemember(value);if(accepted){growth.setRemember(value);worldKnowledge.setRemember(value);worldStories.setRemember(value);}return accepted;},getWorldDiscovery:()=>worldKnowledge.snapshot().discovery,getWorldStory:()=>worldStories.snapshot(),getAutonomyStatus:autonomyStatus,onAffect:name=>M_AFFECTS.includes(name)&&queueIntent({name:null,affect:name,source:'visitor',expression:'neutral',queuedAt:state.clock}),onScene:()=>beginCharacterScene(),onGame:startPlay,onResetMemory:resetCharacterMemory,onContextResponse:(id,reply)=>{cancelAutonomy('assistant-response');const world=worldSnapshot(),target=world.surfaces.find(r=>publicComponent(r)?.id===id);if(target){stopPlay('context-response');return beginCharacterScene({source:'assistant',targetId:target.id,action:'inspect',gesture:reply.gesture==='none'?'nod':reply.gesture,expression:reply.expression});}return false;},getDirectorStatus:()=>director.getStatus(),onDirectorEnabled:enabled=>{director.setEnabled(enabled);if(!enabled)directorActivity=null;updateDirector(performance.now(),worldSnapshot(),true);},endpoint:M_WORLD_CONFIG.assistantEndpoint,onGesture:queueGesture,onExpression:queueExpression,getMotionStatus:()=>({active,reducedMotion}),onEnableMotion:enableMotion,getContext:activeChatContext,onSection:name=>{document.getElementById(name)?.scrollIntoView({behavior:reducedMotion?'instant':'smooth',block:'start'});},onEngagement:open=>{if(!open)interest.hoverGuardUntil=performance.now()+250;invalidate();}});
  try{if(localStorage.getItem('m-world-enabled')==='no')active=false;}catch{}
  life.setEnabled(active&&!reducedMotion);setActive(active,false);
  // One bounded, public same-origin knowledge read per page load, never a
  // Wikipedia request per visitor. Ignore source outages and stay fully local.
- if(active)void worldKnowledge.load().then(()=>companion?.refresh()).catch(()=>{});
+ if(active)void worldKnowledge.load().then(()=>{worldStories.begin(worldKnowledge.snapshot());companion?.refresh();}).catch(()=>{});
 })();
