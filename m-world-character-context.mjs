@@ -1,4 +1,4 @@
-import {getContextComponent} from './m-world-context.mjs?v=40';
+import {getContextComponent} from './m-world-context.mjs?v=41';
 
 /** Authored identity; encounter data cannot replace these traits or portfolio facts. */
 export const M_CHARACTER_BIBLE=Object.freeze({

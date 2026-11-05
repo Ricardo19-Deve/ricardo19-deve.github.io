@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {assistantEndpoint,validateAssistantReply,createMCompanion} from './m-world-companion.mjs';
 test('assistant accepts only explicit HTTPS or local development endpoints, without embedded credentials',()=>{
  assert.equal(assistantEndpoint(''),null);
@@ -15,7 +16,7 @@ test('assistant validates bounded gestures and section hints instead of interpre
 });
 
 class CompanionElement extends EventTarget {
- constructor(tag,document){super();this.tag=tag;this.ownerDocument=document;this.dataset={};this.childNodes=[];this.className='';this.value='';this.disabled=false;this.submissions=0;const css=new Map();this.style={setProperty:(name,value)=>css.set(name,value),getPropertyValue:name=>css.get(name)||''};}
+ constructor(tag,document){super();this.tag=tag;this.ownerDocument=document;this.dataset={};this.childNodes=[];this.className='';this.textContent='';this.value='';this.disabled=false;this.submissions=0;const css=new Map();this.style={setProperty:(name,value)=>css.set(name,value),getPropertyValue:name=>css.get(name)||''};}
  setAttribute(name,value){this[name]=value;}
  append(...elements){for(const element of elements){element.parent=this;this.childNodes.push(element);}}
  replaceChildren(...elements){this.childNodes=[];this.append(...elements);}
@@ -26,7 +27,7 @@ class CompanionElement extends EventTarget {
 }
 function companionFixture(options={}){
  const document=new EventTarget(),elements=[],requests=[];
- document.location={href:'https://portfolio.example/'};document.defaultView=options.viewportWindow;
+ document.location={href:options.publicUI?'https://portfolio.example/':'https://portfolio.example/?m-debug=1',search:options.publicUI?'':'?m-debug=1'};document.defaultView=options.viewportWindow;
  document.createElement=tag=>{const element=new CompanionElement(tag,document);elements.push(element);return element;};
  document.body=document.createElement('body');
  const companion=createMCompanion({document,endpoint:'https://m-companion-test.invalid/api/m/respond',fetchImpl:(url,options)=>new Promise((resolve,reject)=>{
@@ -114,7 +115,7 @@ test('disabled controls and destruction prevent keyboard submission, while Clear
   const {companion,input,requests,status,enableMotion}=companionFixture({getMotionStatus:()=>({active:true,reducedMotion:true}),onEnableMotion:()=>{enabled++;return false;},onGesture:()=>{gestures++;return false;}});t.after(()=>companion.destroy());
   input.value='A question';keydown(input);requests[0].reply({...validReply,gesture:'wave'});await settle();
   assert.equal(companion.snapshot().messages,2);assert.equal(status.textContent,'Answered with OpenAI.');
-  assert.equal(gestures,1);assert.equal(enabled,0);assert.equal(enableMotion.hidden,false);assert.equal(requests.length,1);
+  assert.equal(gestures,0,'chat replies must not control M’s actions');assert.equal(enabled,0);assert.equal(enableMotion.hidden,false);assert.equal(requests.length,1);
  });
 test('new local gestures stay separate from the backward-compatible four chat gestures',t=>{
  const played=[];
@@ -147,7 +148,7 @@ test('autonomous play is presented as independent of optional input and status r
  const {companion,requests,input,form,status}=companionFixture({getAutonomyStatus:()=>autonomy,onEnableMotion:()=>{enabledMotion++;return true;},onGesture:()=>{gestures++;return true;}});t.after(()=>companion.destroy());
  const {panel}=companion.elements,intro=panel.childNodes.find(element=>element.className==='m-companion-body').childNodes.find(element=>element.className==='m-companion-intro'),autonomyNote=panel.childNodes.find(element=>element.className==='m-companion-body').childNodes.find(element=>element.className==='m-companion-autonomy');
  assert.match(intro.textContent,/Ask M anything about the projects/);assert.doesNotMatch(intro.textContent,/optional gesture/);assert.equal(intro.hidden,false);
- assert.equal(autonomyNote.hidden,true,'public chat only displays questions, not action status');assert.equal(autonomyNote['aria-live'],'off');
+ assert.equal(autonomyNote.hidden,false,'diagnostic mode intentionally exposes status outside ordinary public UI');assert.equal(autonomyNote['aria-live'],'off');
  const chatStatus=status.textContent;input.value='Unsent private draft';
  for(const [next,expected]of [
   [{current:{kind:'scene',id:'internal-scene-17',anchorId:'project-epoxy'}},'M is exploring the page.'],
@@ -160,7 +161,7 @@ test('autonomous play is presented as independent of optional input and status r
   [{current:{kind:'self-play',play:'ball',id:'internal-ball-1'}},'M is playing with a floating ball.']
  ]){
   autonomy=next;for(let i=0;i<4;i++)companion.refresh();
-  assert.equal(autonomyNote.textContent,expected);assert.equal(autonomyNote['aria-live'],'off');assert.equal(autonomyNote.hidden,true,'autonomous life stays outside public chat UI');
+  assert.equal(autonomyNote.textContent,expected);assert.equal(autonomyNote['aria-live'],'off');assert.equal(autonomyNote.hidden,false,'developer-only diagnostics remain visible when explicitly requested');
   assert.doesNotMatch(autonomyNote.textContent,/internal-|project-|mischief/);
  }
  assert.equal(companion.isOpen(),false);assert.equal(input.value,'Unsent private draft');assert.equal(form.submissions,0);
@@ -202,14 +203,14 @@ test('contextual chat negotiates capability and has one animation owner',async t
  t.after(()=>f.companion.destroy());f.input.value='Explain this project';keydown(f.input);await settle();await settle();
  assert.equal(requests.length,2);assert.equal(requests[0].init.method,'GET');
  const sent=JSON.parse(requests[1].init.body);assert.equal(sent.context.component,'project-epoxy');
- assert.deepEqual(effects,[{id:'project-epoxy',gesture:'curious'}]);
+ assert.deepEqual(effects,[],'chat must answer about a card without commanding an animation');
 });
 test('legacy Worker receives the old context and fallback reactions remain available',async t=>{
  const requests=[],effects=[];
  const f=companionFixture({getContext:()=>({section:'projects',language:'pt',component:'project-epoxy'}),fetchImpl:async(url,init)=>{requests.push({url,init});return {ok:true,json:async()=>init.method==='GET'?{configured:true}:{...validReply,gesture:'wave'}};},onContextResponse:()=>{effects.push('context');return true;},onExpression:()=>effects.push('expression'),onGesture:()=>effects.push('gesture')});
  t.after(()=>f.companion.destroy());f.input.value='Explain Epoxy';keydown(f.input);await settle();await settle();
  assert.deepEqual(JSON.parse(requests[1].init.body).context,{section:'projects',language:'pt'});
- assert.deepEqual(effects,['expression','gesture']);
+ assert.deepEqual(effects,[],'legacy reply gestures are ignored, not forwarded to M');
 });
 test('optional character controls call local callbacks without consuming an API attempt',()=>{
  const effects=[],f=companionFixture({onAffect:name=>{effects.push(name);return true;},onGame:name=>{effects.push(name);return false;},onResetMemory:()=>effects.push('clear-memory')});
@@ -365,4 +366,105 @@ test('new routines remain optional local controls and never widen the assistant 
  for(const label of ['Pondering','Dozing','Joyful','Floating ball'])f.gesture(label).dispatchEvent(new Event('click'));
  assert.deepEqual(effects,[['sleep','visitor'],['hop','visitor'],['think','visitor'],'pondering','dozing','joyful','ball']);
  assert.equal(f.requests.length,0);for(const gesture of ['sleep','hop','think','paw'])assert.equal(validateAssistantReply({...validReply,gesture}),null);f.companion.destroy();
+});
+
+
+test('V36 public Ask M contains ONLY portfolio conversation and a composer, no M action controls',t=>{
+ const f=companionFixture({publicUI:true});t.after(()=>f.companion.destroy());
+ const {panel,settingsPanel,privacyToggle}=f.companion.elements;
+ assert.equal(panel.dataset.mode,'questions');
+ const header=panel.childNodes.find(x=>x.className==='m-companion-header');
+ const body=panel.childNodes.find(x=>x.className==='m-companion-body');
+ const form=panel.childNodes.find(x=>x.className==='m-companion-form');
+ assert.deepEqual(header.childNodes.map(x=>x.tag),['h2','button'],'header must not contain an AI/gesture/settings toolbar');
+ assert.deepEqual(body.childNodes.map(x=>x.className),
+  ['m-companion-intro','m-companion-log','m-companion-status','m-companion-privacy']);
+ assert.deepEqual(form.childNodes.map(x=>x.tag),['label','textarea','button']);
+ assert.equal(body.childNodes.some(x=>/action|director|gesture|story|auto-privacy|world-note|prompts/.test(x.className)),false);
+ assert.equal(f.status.textContent,'','no AI-play counters or artificial statuses in the public conversation');
+ assert.equal(f.document.body.childNodes.includes(settingsPanel),true);
+ assert.equal(f.document.body.childNodes.includes(privacyToggle),true);
+ assert.equal(settingsPanel.hidden,true);
+ assert.equal(privacyToggle['aria-label'],'M settings and privacy');
+ assert.equal(f.input.placeholder,'Ask M a question…');
+ assert.equal(panel.hidden,true);
+});
+
+test('V36 public contextual chat answers page questions without commanding M to move or emote',async t=>{
+ const effects=[],remote=[];
+ const f=companionFixture({publicUI:true,
+  getContext:()=>({section:'projects',language:'en',component:'project-epoxy'}),
+  fetchImpl:async(url,options)=>{
+   remote.push({url,options});
+   return {ok:true,json:async()=>options.method==='GET'?{contextualChat:{version:1}}:
+    {...validReply,reply:'The Epoxy Platform combines a web console and cloud tools.',gesture:'wave',expression:'surprised',section:'projects'}};
+  },
+  onContextResponse:()=>{effects.push('context-action');return true;},
+  onGesture:()=>{effects.push('forced-gesture');return true;},
+  onExpression:()=>effects.push('forced-expression'),
+  onSection:()=>effects.push('auto-navigation'),
+  onAffect:()=>effects.push('face'),
+  onGame:()=>effects.push('game')
+ });t.after(()=>f.companion.destroy());
+ f.companion.elements.toggle.dispatchEvent(new Event('click'));
+ f.input.value='Explain the Epoxy Platform';
+ keydown(f.input);await settle();await settle();
+ assert.equal(remote.length,2);
+ const request=JSON.parse(remote[1].options.body);
+ assert.equal(request.message,'Explain the Epoxy Platform');
+ assert.equal(request.context.component,'project-epoxy');
+ assert.deepEqual(effects,[],'answer schema gestures are never executed');
+ assert.equal(f.log.childNodes.length,2);
+ assert.match(f.log.childNodes[1].textContent,/Epoxy Platform/);
+ assert.equal(f.status.textContent,'','success needs no loud AI-play message');
+ assert.equal(f.companion.isOpen(),true);
+ assert.equal(f.companion.snapshot().messages,2);
+});
+
+test('V36 M privacy and optional AI budget remain controllable OUTSIDE the chat',t=>{
+ let remembered=characterStatus(),director={enabled:true,available:true,attempts:2,limit:6},reset=0;
+ const history=[];
+ const f=companionFixture({publicUI:true,
+  getCharacterStatus:()=>remembered,
+  getDirectorStatus:()=>director,
+  onRememberCharacter:value=>{history.push(value);remembered={...remembered,remember:value,storageAvailable:value};return true;},
+  onDirectorEnabled:value=>{director={...director,enabled:value};history.push('AI '+value);},
+  onResetMemory:()=>{reset++;}
+ });t.after(()=>f.companion.destroy());
+ const {settingsPanel,privacyToggle,directorToggle,panel,settingsClose}=f.companion.elements;
+ const chatBody=panel.childNodes.find(x=>x.className==='m-companion-body');
+ assert.equal(settingsPanel.hidden,true);
+ privacyToggle.dispatchEvent(new Event('click'));
+ assert.equal(settingsPanel.hidden,false);
+ assert.equal(privacyToggle['aria-expanded'],'true');
+ assert.equal(chatBody.childNodes.length,4,'opening preferences must not add chat buttons');
+ const memory=f.gesture('Remember M on this device: On');
+ assert.ok(memory);
+ memory.dispatchEvent(new Event('click'));
+ assert.deepEqual(history,[false]);
+ assert.equal(memory.textContent,'Remember M on this device: Off');
+ directorToggle.dispatchEvent(new Event('click'));
+ assert.deepEqual(history,[false,'AI false']);
+ assert.equal(directorToggle.textContent,'Enable AI play');
+ f.gesture('Reset character memory').dispatchEvent(new Event('click'));
+ assert.equal(reset,1);
+ assert.equal(f.requests.length,0,'settings actions cannot call the chat API');
+ settingsClose.dispatchEvent(new Event('click'));
+ assert.equal(settingsPanel.hidden,true);
+ assert.equal(privacyToggle['aria-expanded'],'false');
+ f.companion.elements.toggle.dispatchEvent(new Event('click'));
+ assert.equal(f.companion.isOpen(),true);
+ assert.equal(settingsPanel.hidden,true,'chat and private settings are separate surfaces');
+});
+
+test('V36 CSS honors the hidden attribute even when a legacy display:flex selector exists',()=>{
+ const css=readFileSync(new URL('m-world.css',import.meta.url),'utf8');
+ assert.match(css,/\.m-companion\[hidden\][\s\S]*?display:none!important/);
+ assert.match(css,/\.m-companion \[hidden\][\s\S]*?display:none!important/);
+ assert.match(css,/\.m-companion-settings\[hidden\][\s\S]*?display:none!important/);
+ assert.match(css,/\.m-companion-settings-toggle\{/);
+ const src=readFileSync(new URL('m-world-companion.mjs',import.meta.url),'utf8');
+ assert.match(src,/if\(diagnostics\)\{[\s\S]*?conversation.append\(intro,motionNote/);
+ assert.match(src,/conversation.append\(intro,log,status,privacy\)/);
+ assert.doesNotMatch(src,/if\(!diagnostics\)\{actions.hidden=true;options.hidden=true;directorControls.hidden=true/);
 });

@@ -1,4 +1,4 @@
-import {storyCandidateWeight} from './m-world-lived-stories.mjs?v=40';
+import {storyCandidateWeight} from './m-world-lived-stories.mjs?v=41';
 /**
  * V32 passive, privacy-first world awareness for M.
  * Ambient context is derived from the current browser clock, visibility and

@@ -1,3 +1,19 @@
+# M World V36 — content-only Ask M
+
+The public **Ask M** panel is now a clean conversation about the portfolio.
+It no longer contains buttons for gestures, expressions, games, AI play or
+autonomous stories. The underlying V6 character continues making her own
+decisions. Responses from the existing AI Worker are **information only**:
+even its backward-compatible gesture/expression fields never command M.
+
+An external ⚙ preferences panel keeps local memory, reset and AI-play
+privacy controls accessible. The broken CSS hidden/display rules are
+corrected. Version 41 forces the new UI to load after hard refresh.
+
+[Implementation and verification](docs/m-world-v36/PROGRESS.md)
+
+---
+
 # M World V35 — embodied, autonomous presence
 
 M's original V6 Blender rig now uses a reversible living-performance layer:

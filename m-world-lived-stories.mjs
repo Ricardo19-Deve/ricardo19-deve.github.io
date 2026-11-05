@@ -4,7 +4,7 @@
  * A title and URL remain ephemeral in the verified V33 feed. Persistent
  * memory contains no personal data, visitor messages or external article text.
  */
-import {validateWorldFeed,worldDay,WORLD_TOPICS} from './m-world-world-knowledge.mjs?v=40';
+import {validateWorldFeed,worldDay,WORLD_TOPICS} from './m-world-world-knowledge.mjs?v=41';
 
 export const M_STORY_KEY='m-world-lived-stories-v34';
 export const STORY_BEATS=Object.freeze(['notice','explore','reflect']);

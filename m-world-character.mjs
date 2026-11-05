@@ -1,4 +1,4 @@
-import {getContextComponent} from './m-world-context.mjs?v=40';
+import {getContextComponent} from './m-world-context.mjs?v=41';
 
 /** M's authored experiences on this device; no visitor identity, messages or live scene objects. */
 export const M_CHARACTER_STORAGE_KEY='m-world-character-v26';
