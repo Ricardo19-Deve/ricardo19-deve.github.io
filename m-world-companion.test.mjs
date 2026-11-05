@@ -146,7 +146,7 @@ test('AI status honestly reports unavailable, reduced motion and session limits 
 test('autonomous play is presented as independent of optional input and status refresh stays local',t=>{
  let autonomy={current:{kind:'scene',id:'internal-scene-17',anchorId:'project-epoxy'}},enabledMotion=0,gestures=0;
  const {companion,requests,input,form,status}=companionFixture({getAutonomyStatus:()=>autonomy,onEnableMotion:()=>{enabledMotion++;return true;},onGesture:()=>{gestures++;return true;}});t.after(()=>companion.destroy());
- const {panel}=companion.elements,intro=panel.childNodes.find(element=>element.className==='m-companion-body').childNodes.find(element=>element.className==='m-companion-intro'),autonomyNote=panel.childNodes.find(element=>element.className==='m-companion-body').childNodes.find(element=>element.className==='m-companion-autonomy');
+ const {panel}=companion.elements,intro=panel.childNodes.find(element=>element.className==='m-companion-body').childNodes.find(element=>element.className==='m-companion-intro'),autonomyNote=companion.elements.debugPanel.childNodes.find(element=>element.className==='m-companion-autonomy');
  assert.match(intro.textContent,/Ask M anything about the projects/);assert.doesNotMatch(intro.textContent,/optional gesture/);assert.equal(intro.hidden,false);
  assert.equal(autonomyNote.hidden,false,'diagnostic mode intentionally exposes status outside ordinary public UI');assert.equal(autonomyNote['aria-live'],'off');
  const chatStatus=status.textContent;input.value='Unsent private draft';
@@ -172,7 +172,7 @@ test('autonomous play is presented as independent of optional input and status r
 test('AI pause remains independent of local autonomous status and respects pause and reduced-motion labels',t=>{
  let director={enabled:true,available:true,attempts:2,limit:6},motion={active:true,reducedMotion:false},autonomy={current:{kind:'scene',id:'internal-scene-17'}},enabledMotion=0;const changes=[];
  const {companion,requests,status,enableMotion,motionNote}=companionFixture({getDirectorStatus:()=>director,getMotionStatus:()=>motion,getAutonomyStatus:()=>autonomy,onDirectorEnabled:enabled=>{changes.push(enabled);director={...director,enabled};},onEnableMotion:()=>{enabledMotion++;return true;}});t.after(()=>companion.destroy());
- const {directorToggle,directorStatus,panel}=companion.elements,autonomyNote=panel.childNodes.find(element=>element.className==='m-companion-body').childNodes.find(element=>element.className==='m-companion-autonomy'),chatStatus=status.textContent;
+ const {directorToggle,directorStatus,panel}=companion.elements,autonomyNote=companion.elements.debugPanel.childNodes.find(element=>element.className==='m-companion-autonomy'),chatStatus=status.textContent;
  assert.equal(autonomyNote.textContent,'M is exploring the page.');
  directorToggle.dispatchEvent(new Event('click'));
  assert.deepEqual(changes,[false]);assert.equal(directorToggle.textContent,'Enable AI play');assert.equal(directorToggle['aria-pressed'],'false');
@@ -190,7 +190,7 @@ test('AI pause remains independent of local autonomous status and respects pause
 
 test('the original four gestures stay prominent while extra gestures have an accessible disclosure',t=>{
  const {companion}=companionFixture();t.after(()=>companion.destroy());
- const panel=companion.elements.panel,actions=panel.childNodes.find(element=>element.className==='m-companion-body').childNodes.find(element=>element.className==='m-companion-actions'),more=companion.elements.moreGestures;
+ const actions=companion.elements.debugPanel.childNodes.find(element=>element.className==='m-companion-actions'),more=companion.elements.moreGestures;
  assert.equal(actions.childNodes.length,4);assert.deepEqual(actions.childNodes.map(element=>element.textContent),['Wave','Curious','Surprised','Shy']);
  assert.equal(more.tag,'details');assert.equal(Boolean(more.open),false);assert.equal(more.firstChild.tag,'summary');assert.equal(more.firstChild.textContent,'More gestures');assert.deepEqual(more.childNodes[1].childNodes.map(element=>element.textContent),['Playful','Wink','Nod','Sleep','Hop','Think']);
 });
@@ -464,7 +464,8 @@ test('V36 CSS honors the hidden attribute even when a legacy display:flex select
  assert.match(css,/\.m-companion-settings\[hidden\][\s\S]*?display:none!important/);
  assert.match(css,/\.m-companion-settings-toggle\{/);
  const src=readFileSync(new URL('m-world-companion.mjs',import.meta.url),'utf8');
- assert.match(src,/if\(diagnostics\)\{[\s\S]*?conversation.append\(intro,motionNote/);
+ assert.match(src,/conversation.append\(intro,log,status,privacy\)/);
+ assert.match(src,/if\(diagnostics\)debugPanel.append\(debugHeader,actions/);
  assert.match(src,/conversation.append\(intro,log,status,privacy\)/);
  assert.doesNotMatch(src,/if\(!diagnostics\)\{actions.hidden=true;options.hidden=true;directorControls.hidden=true/);
 });
