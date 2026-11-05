@@ -111,7 +111,9 @@ test('V29 private dashboard contains no access token and is search-blocked',asyn
 test('V29 questions-only UI keeps M controls diagnostic-only',()=>{
  const ui=readFileSync(new URL('m-world-companion.mjs',import.meta.url),'utf8');
  assert.match(ui,/panel.dataset.mode=diagnostics\?'diagnostics':'questions'/);
- assert.match(ui,/actions.hidden=true;options.hidden=true;directorControls.hidden=true/);
+ assert.match(ui,/conversation.append\(intro,log,status,privacy\)/);
+ assert.match(ui,/settingsPanel.append\(settingsHeader,settingsIntro/);
+ assert.match(ui,/if\(diagnostics\)\{/);
  assert.match(ui,/What has Ricardo built\?/);
  assert.match(ui,/How does Ricardo use AI\?/);
  assert.match(ui,/prompts.hidden=true/);
