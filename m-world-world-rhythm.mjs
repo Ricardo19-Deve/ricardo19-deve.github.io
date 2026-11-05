@@ -24,13 +24,7 @@ export function worldCandidateWeight(family,world){
   ['ball','light','hop','goal-light'].includes(family)?'playBias':
   ['observe','think','inspect','peek','orbit'].includes(family)?'curiosityBias':null;
  if(!key)return 1;
- // Compute from whitelisted phase, not untrusted multipliers.
- const canonical=senseWorldRhythm({
-  date:new Date(world.phase==='night'?'2026-01-01T02:00:00':
-   world.phase==='morning'?'2026-01-01T08:00:00':
-   world.phase==='evening'?'2026-01-01T20:00:00':'2026-01-01T13:00:00')
- });
- // Local-hour comparison without reinterpreting timezone from a fabricated date:
+ // Use only the whitelisted phase, not untrusted caller multipliers.
  const phase=world.phase;
  if(key==='restBias')return phase==='night'?1.5:phase==='evening'?1.16:phase==='morning'?.87:.9;
  if(key==='playBias')return phase==='night'?.76:phase==='morning'?.96:world.weekend===true?1.12:1.05;
