@@ -1,3 +1,21 @@
+# M World V34 — lived discoveries, not scripted animations
+
+After learning a verified public daily theme, M can now embark on a gentle
+three-beat local adventure: notice, explore, reflect. These stages advance
+**only when her original V6 body genuinely completes a compatible action**.
+Failed gestures, off-screen interruptions and calendar rollovers cannot create
+a false achievement. A small narrative appears beside the cited source in
+Ask M, without new action buttons. Only date/topic summaries of genuinely
+completed days may be kept locally, controlled by Remember M.
+
+The original 3D rig, night-time sleep, depth protections, sourced V33 feed,
+Cloudflare AI Worker and D1 analytics remain untouched. The new character
+progression does not re-train AI or access personal information.
+
+Read [V34 lived-discovery notes](docs/m-world-v34/PROGRESS.md).
+
+---
+
 # M World V33 — verified discoveries from the outside world
 
 M's local life now has a daily **sourced, validated world discovery**. A

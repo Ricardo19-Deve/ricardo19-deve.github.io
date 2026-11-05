@@ -200,3 +200,9 @@ body>header.top.glass-nav{z-index:92!important}
 .m-companion-world-text{color:#d9e6f1;font-size:12px;line-height:1.5;margin:0 0 5px;overflow-wrap:anywhere}
 .m-companion-world-link{color:#a8e9f2;font-size:11px;text-decoration:underline;text-underline-offset:2px}
 .m-companion-world-link:focus-visible{outline:2px solid #94dcff;outline-offset:3px}
+
+/* V34: softly distinguished narrative inside the existing cited note. */
+.m-companion-world-story{font-size:11px;line-height:1.55;color:#a9c9da;
+ padding:8px 10px;margin:5px 0 9px;border-left:2px solid rgba(151,207,230,.5);
+ border-radius:3px;background:rgba(18,42,56,.32)}
+.m-companion-world-story[hidden]{display:none}

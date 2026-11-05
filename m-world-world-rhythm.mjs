@@ -1,3 +1,4 @@
+import {storyCandidateWeight} from './m-world-lived-stories.mjs?v=39';
 /**
  * V32 passive, privacy-first world awareness for M.
  * Ambient context is derived from the current browser clock, visibility and
@@ -41,7 +42,10 @@ export function worldCandidateWeight(family,world){
  };
  if(!matching[topic].includes(family))return base;
  const interest=Number.isFinite(discovery.interest)?Math.max(1,Math.min(1.09,discovery.interest)):1;
- // Daily knowledge only makes M a little more curious; safety and action
- // availability remain authoritative in createAutonomy.
- return Math.min(1.65,base*1.055*interest);
+ // The verified daily theme can motivate an active lived story, but never
+ // force a new action. Only successfully acknowledged actions move the story.
+ const story=world.story?.topic===topic?world.story:null;
+ const motivation=storyCandidateWeight(family,story);
+ // Bounded thematic interest stays below safety and action-availability gates.
+ return Math.min(1.85,base*1.055*interest*motivation);
 }
