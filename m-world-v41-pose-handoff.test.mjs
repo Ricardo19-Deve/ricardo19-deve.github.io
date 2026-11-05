@@ -77,7 +77,7 @@ test('V41 does not mutate source poses or retain unknown user context',()=>{
  const original={Head:[.2,0,.1]};
  engine.sample(original,step);assert.deepEqual(original,{Head:[.2,0,.1]});
  const code=readFileSync(new URL('m-world-pose-handoff.mjs',import.meta.url),'utf8');
- assert.doesNotMatch(code,/\\bfetch\\s*\\(|localStorage|sessionStorage|document\\.|window\\.|OpenAI|analytics/i);
+ assert.doesNotMatch(code,/\bfetch\s*\(|localStorage|sessionStorage|document\.|window\.|OpenAI|analytics/i);
 });
 
 test('V41 renderer filters all abrupt secondary-layer exits AND the final stage, preserving original V6 rig and exact stage limits',()=>{
@@ -86,10 +86,10 @@ test('V41 renderer filters all abrupt secondary-layer exits AND the final stage,
  assert.match(renderer,/createPoseHandoff/);
  for(const name of ['living','contact','continuity','emotional'])
   assert.match(renderer,new RegExp('handoffs\\.'+name+'\\.sample\\(last'));
- assert.match(renderer,/stageHandoff\\.sample\\(\\{/);
- assert.match(renderer,/stage\\.rotation\\.set\\(\\.\\.\\.rotation\\)/);
- assert.match(renderer,/stage\\.scale\\.setScalar\\(1\\+placement\\[2\\]\\)/);
- assert.match(renderer,/mixer\\.update\\(dt\\)/);
+ assert.match(renderer,/stageHandoff\.sample\(\{/);
+ assert.match(renderer,/stage\.rotation\.set\(\.\.\.rotation\)/);
+ assert.match(renderer,/stage\.scale\.setScalar\(1\+placement\[2\]\)/);
+ assert.match(renderer,/mixer\.update\(dt\)/);
  assert.match(renderer,/preserveFullSkinning/);
- assert.match(world,/m-world-3d\\.mjs\\?v=46/);
+ assert.match(world,/m-world-3d\.mjs\?v=46/);
 });
