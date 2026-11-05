@@ -15,7 +15,7 @@ test('V41 critically damped handoff keeps both pose and velocity continuous at a
  assert.ok(Math.abs(value(next)-justBefore)<.01,'the visible head cannot snap to the new mood');
  const later=run(engine,100,{Head:[-.31,.18,-.09]});
  assert.ok(Math.abs(value(later)+.31)<.006,'the new posture is eventually reached');
- assert.ok(engine.snapshot().transitions>=1);
+ assert.equal(engine.snapshot().channels,1,'one original head remains continuously animated');
 });
 
 test('V41 an autonomous layer suppressed by an authored gesture gently fades its LAST pose instead of resetting it',()=>{
