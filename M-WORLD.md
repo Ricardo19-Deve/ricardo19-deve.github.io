@@ -1,3 +1,16 @@
+# M World V35 — embodied, autonomous presence
+
+M's original V6 Blender rig now uses a reversible living-performance layer:
+her gaze and ears anticipate motion, the ten real tail joints follow naturally,
+she occasionally glances, listens or ponders while still, and real completed
+V34 discoveries cause brief corresponding head/body/face reactions. Manual
+gestures, physical V32 sleep, reading and reduced-motion accessibility remain
+in control. No replacement meshes or extra AI calls.
+
+[Implementation and validation](docs/m-world-v35/PROGRESS.md)
+
+---
+
 # M World V34 — lived discoveries, not scripted animations
 
 After learning a verified public daily theme, M can now embark on a gentle

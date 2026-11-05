@@ -78,6 +78,7 @@ test('V32 M cannot nap over text and reduced motion remains authoritative',()=>{
  assert.match(source,/world:typeof senseWorldRhythm==='function'/);
  assert.match(renderer,/sampleEmbodiedRest\(\{\.\.\.state.gesture,reducedMotion:reduced\}\)/);
  assert.match(renderer,/stage.rotation.z=num\(extra.rz\+micro.roll,-.12,.12\)\+lastRestPose.rotationZ/);
- assert.match(renderer,/stage.scale.setScalar\(\(1\+num\(extra.scale\+micro.scale,-.03,.03\)\)\*lastRestPose.scale\)/);
+ assert.match(renderer,/stage.scale.setScalar\(\(1\+num\(extra.scale\+micro.scale,-.03,.03\)\+lastLiving.stage.scale\)\*lastRestPose.scale\)/);
+ assert.match(renderer,/lastLiving=livingPerformance.sample\(\{dt,vx,vy/);
  assert.match(renderer,/preserveFullSkinning/);
 });
