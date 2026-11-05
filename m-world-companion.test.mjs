@@ -511,3 +511,32 @@ test('V36 developer controls are never constructed in the chat at any route',()=
  assert.doesNotMatch(src,/header.append\([^)]*privacyToggle/);
  assert.doesNotMatch(src,/form.append\([^)]*clear/);
 });
+
+
+test('V37 user preferences stay genuinely minimal while daily discovery continues privately',t=>{
+ const discovery={id:'2026-11-05:2013:science',year:2013,topic:'science',title:'ISRO',
+  url:'https://en.wikipedia.org/wiki/ISRO'};
+ const f=companionFixture({publicUI:true,getWorldDiscovery:()=>discovery,
+  getWorldStory:()=>({available:true,narrative:'M has explored today'})});
+ t.after(()=>f.companion.destroy());
+ const {settingsPanel,panel,worldNote}=f.companion.elements;
+ f.companion.elements.privacyToggle.dispatchEvent(new Event('click'));
+ assert.deepEqual(settingsPanel.childNodes.map(x=>x.className),
+  ['m-companion-settings-header','m-companion-remember-privacy','m-companion-director-toggle']);
+ assert.equal(settingsPanel.firstChild.firstChild.textContent,'M settings');
+ assert.equal(worldNote.parent!==settingsPanel,true,'knowledge may influence M without appearing in preferences');
+ assert.equal(settingsPanel.childNodes.some(x=>/AI shares|discovery|Reset character memory/.test(x.textContent)),false);
+ assert.equal(panel.childNodes.find(x=>x.className==='m-companion-body').childNodes.length,4);
+ assert.equal(f.requests.length,0);
+});
+
+test('V37 reset remains owner-diagnostic-only, not a third public setting',t=>{
+ const f=companionFixture();t.after(()=>f.companion.destroy());
+ const {settingsPanel,debugPanel}=f.companion.elements;
+ assert.equal(settingsPanel.childNodes.length,3);
+ assert.ok(debugPanel.childNodes.some(x=>x.textContent==='Reset character memory'));
+ assert.ok(!settingsPanel.childNodes.some(x=>x.textContent==='Reset character memory'));
+ const css=readFileSync(new URL('m-world.css',import.meta.url),'utf8');
+ assert.match(css,/\.m-companion-settings>\.m-companion-remember-privacy/);
+ assert.match(css,/\.m-companion-settings>\.m-companion-director-toggle/);
+});
