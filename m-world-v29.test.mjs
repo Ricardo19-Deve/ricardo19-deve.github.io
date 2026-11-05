@@ -113,7 +113,7 @@ test('V29 questions-only UI keeps M controls diagnostic-only',()=>{
  assert.match(ui,/panel.dataset.mode='questions'/);
  assert.match(ui,/if\(diagnostics\)debugPanel.append\(debugHeader,actions/);
  assert.match(ui,/conversation.append\(intro,log,status,privacy\)/);
- assert.match(ui,/settingsPanel.append\(settingsHeader,settingsIntro/);
+ assert.match(ui,/settingsPanel.append\(settingsHeader,rememberPrivacy,directorToggle\)/);
  assert.match(ui,/if\(diagnostics\)document.body.append\(toggle,privacyToggle,settingsPanel,debugToggle,debugPanel,panel\)/);
  assert.match(ui,/What has Ricardo built\?/);
  assert.match(ui,/How does Ricardo use AI\?/);
