@@ -26,7 +26,7 @@ class CompanionElement extends EventTarget {
 }
 function companionFixture(options={}){
  const document=new EventTarget(),elements=[],requests=[];
- document.location={href:'https://portfolio.example/'};document.defaultView=options.viewportWindow;
+ document.location={href:options.publicUI?'https://portfolio.example/':'https://portfolio.example/?m-debug=1',search:options.publicUI?'':'?m-debug=1'};document.defaultView=options.viewportWindow;
  document.createElement=tag=>{const element=new CompanionElement(tag,document);elements.push(element);return element;};
  document.body=document.createElement('body');
  const companion=createMCompanion({document,endpoint:'https://m-companion-test.invalid/api/m/respond',fetchImpl:(url,options)=>new Promise((resolve,reject)=>{
@@ -114,7 +114,7 @@ test('disabled controls and destruction prevent keyboard submission, while Clear
   const {companion,input,requests,status,enableMotion}=companionFixture({getMotionStatus:()=>({active:true,reducedMotion:true}),onEnableMotion:()=>{enabled++;return false;},onGesture:()=>{gestures++;return false;}});t.after(()=>companion.destroy());
   input.value='A question';keydown(input);requests[0].reply({...validReply,gesture:'wave'});await settle();
   assert.equal(companion.snapshot().messages,2);assert.equal(status.textContent,'Answered with OpenAI.');
-  assert.equal(gestures,1);assert.equal(enabled,0);assert.equal(enableMotion.hidden,false);assert.equal(requests.length,1);
+  assert.equal(gestures,0,'chat replies must not control M’s actions');assert.equal(enabled,0);assert.equal(enableMotion.hidden,false);assert.equal(requests.length,1);
  });
 test('new local gestures stay separate from the backward-compatible four chat gestures',t=>{
  const played=[];
@@ -202,14 +202,14 @@ test('contextual chat negotiates capability and has one animation owner',async t
  t.after(()=>f.companion.destroy());f.input.value='Explain this project';keydown(f.input);await settle();await settle();
  assert.equal(requests.length,2);assert.equal(requests[0].init.method,'GET');
  const sent=JSON.parse(requests[1].init.body);assert.equal(sent.context.component,'project-epoxy');
- assert.deepEqual(effects,[{id:'project-epoxy',gesture:'curious'}]);
+ assert.deepEqual(effects,[],'chat must answer about a card without commanding an animation');
 });
 test('legacy Worker receives the old context and fallback reactions remain available',async t=>{
  const requests=[],effects=[];
  const f=companionFixture({getContext:()=>({section:'projects',language:'pt',component:'project-epoxy'}),fetchImpl:async(url,init)=>{requests.push({url,init});return {ok:true,json:async()=>init.method==='GET'?{configured:true}:{...validReply,gesture:'wave'}};},onContextResponse:()=>{effects.push('context');return true;},onExpression:()=>effects.push('expression'),onGesture:()=>effects.push('gesture')});
  t.after(()=>f.companion.destroy());f.input.value='Explain Epoxy';keydown(f.input);await settle();await settle();
  assert.deepEqual(JSON.parse(requests[1].init.body).context,{section:'projects',language:'pt'});
- assert.deepEqual(effects,['expression','gesture']);
+ assert.deepEqual(effects,[],'legacy reply gestures are ignored, not forwarded to M');
 });
 test('optional character controls call local callbacks without consuming an API attempt',()=>{
  const effects=[],f=companionFixture({onAffect:name=>{effects.push(name);return true;},onGame:name=>{effects.push(name);return false;},onResetMemory:()=>effects.push('clear-memory')});
