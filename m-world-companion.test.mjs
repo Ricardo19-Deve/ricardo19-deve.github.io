@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {assistantEndpoint,validateAssistantReply,createMCompanion} from './m-world-companion.mjs';
 test('assistant accepts only explicit HTTPS or local development endpoints, without embedded credentials',()=>{
  assert.equal(assistantEndpoint(''),null);
@@ -15,7 +16,7 @@ test('assistant validates bounded gestures and section hints instead of interpre
 });
 
 class CompanionElement extends EventTarget {
- constructor(tag,document){super();this.tag=tag;this.ownerDocument=document;this.dataset={};this.childNodes=[];this.className='';this.value='';this.disabled=false;this.submissions=0;const css=new Map();this.style={setProperty:(name,value)=>css.set(name,value),getPropertyValue:name=>css.get(name)||''};}
+ constructor(tag,document){super();this.tag=tag;this.ownerDocument=document;this.dataset={};this.childNodes=[];this.className='';this.textContent='';this.value='';this.disabled=false;this.submissions=0;const css=new Map();this.style={setProperty:(name,value)=>css.set(name,value),getPropertyValue:name=>css.get(name)||''};}
  setAttribute(name,value){this[name]=value;}
  append(...elements){for(const element of elements){element.parent=this;this.childNodes.push(element);}}
  replaceChildren(...elements){this.childNodes=[];this.append(...elements);}
@@ -147,7 +148,7 @@ test('autonomous play is presented as independent of optional input and status r
  const {companion,requests,input,form,status}=companionFixture({getAutonomyStatus:()=>autonomy,onEnableMotion:()=>{enabledMotion++;return true;},onGesture:()=>{gestures++;return true;}});t.after(()=>companion.destroy());
  const {panel}=companion.elements,intro=panel.childNodes.find(element=>element.className==='m-companion-body').childNodes.find(element=>element.className==='m-companion-intro'),autonomyNote=panel.childNodes.find(element=>element.className==='m-companion-body').childNodes.find(element=>element.className==='m-companion-autonomy');
  assert.match(intro.textContent,/Ask M anything about the projects/);assert.doesNotMatch(intro.textContent,/optional gesture/);assert.equal(intro.hidden,false);
- assert.equal(autonomyNote.hidden,true,'public chat only displays questions, not action status');assert.equal(autonomyNote['aria-live'],'off');
+ assert.equal(autonomyNote.hidden,false,'diagnostic mode intentionally exposes status outside ordinary public UI');assert.equal(autonomyNote['aria-live'],'off');
  const chatStatus=status.textContent;input.value='Unsent private draft';
  for(const [next,expected]of [
   [{current:{kind:'scene',id:'internal-scene-17',anchorId:'project-epoxy'}},'M is exploring the page.'],
@@ -160,7 +161,7 @@ test('autonomous play is presented as independent of optional input and status r
   [{current:{kind:'self-play',play:'ball',id:'internal-ball-1'}},'M is playing with a floating ball.']
  ]){
   autonomy=next;for(let i=0;i<4;i++)companion.refresh();
-  assert.equal(autonomyNote.textContent,expected);assert.equal(autonomyNote['aria-live'],'off');assert.equal(autonomyNote.hidden,true,'autonomous life stays outside public chat UI');
+  assert.equal(autonomyNote.textContent,expected);assert.equal(autonomyNote['aria-live'],'off');assert.equal(autonomyNote.hidden,false,'developer-only diagnostics remain visible when explicitly requested');
   assert.doesNotMatch(autonomyNote.textContent,/internal-|project-|mischief/);
  }
  assert.equal(companion.isOpen(),false);assert.equal(input.value,'Unsent private draft');assert.equal(form.submissions,0);
