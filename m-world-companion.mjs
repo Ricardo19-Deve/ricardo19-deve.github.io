@@ -178,7 +178,11 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
   return motion;
  }
  function makeRoomForCharacter(accepted){if(accepted&&document.defaultView?.matchMedia?.('(max-width: 720px)')?.matches)setOpen(false,{cancelPending:false});}
- function setOpen(value,{cancelPending=true}={}){refresh();open=Boolean(value);panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));onEngagement(open);if(open)(target?input:close).focus();else{if(cancelPending)pending?.abort();toggle.focus();}refreshViewport();}
+ function setOpen(value,{cancelPending=true}={}){refresh();
+  if(value&&!diagnostics&&!settingsPanel.hidden){
+   settingsPanel.hidden=true;privacyToggle.setAttribute('aria-expanded','false');
+  }
+  open=Boolean(value);panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));onEngagement(open);if(open)(target?input:close).focus();else{if(cancelPending)pending?.abort();toggle.focus();}refreshViewport();}
  function append(role,text){prompts.hidden=true;const row=make('p','m-companion-message '+role);row.textContent=text;log.append(row);while(log.childNodes.length>12)log.firstChild.remove();log.scrollTop=role==='assistant'&&Number.isFinite(row.offsetTop)?row.offsetTop:log.scrollHeight;if(open)conversation.scrollTop=0;}
  function refreshViewport(){
   const view=document.defaultView,visual=view?.visualViewport,height=visual?.height||view?.innerHeight;
@@ -197,6 +201,7 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  listen(directorToggle,'click',()=>{const state=getDirectorStatus()||{};onDirectorEnabled(state.enabled===false);refresh();});
  function setSettingsOpen(value){
   if(diagnostics)return;
+  if(value&&open)setOpen(false);
   settingsPanel.hidden=!value;
   privacyToggle.setAttribute('aria-expanded',String(Boolean(value)));
   if(value)settingsClose.focus();
