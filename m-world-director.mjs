@@ -1,5 +1,5 @@
-import {cloneCharacterContext} from './m-world-character-context.mjs?v=42';
-import { validateDirectorInput, validateDirectorReply } from './m-world-director-protocol.mjs?v=42';
+import {cloneCharacterContext} from './m-world-character-context.mjs?v=43';
+import { validateDirectorInput, validateDirectorReply } from './m-world-director-protocol.mjs?v=43';
 
 export const DIRECTOR_SESSION_LIMIT = 6;
 export const DIRECTOR_MIN_INTERVAL = 65_000;
