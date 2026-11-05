@@ -1,3 +1,19 @@
+# M World V38 — M touches and balances on real cards
+
+M now experiences card contact through her original Blender V6 body instead
+of merely floating over UI elements. After the existing spatial route confirms
+that she has actually landed on a safe card, she compresses slightly, balances
+with her feet and connected ten-bone tail, breathes at rest and gently releases
+on takeoff. Geometry, depth masks and card-scroll attachment remain with the
+existing trusted planner; the new animation cannot invent contact.
+
+Public Ask M and minimal Memory/AI play settings remain untouched, as do the
+original 31-bone character, Cloudflare Workers and API request budgets.
+
+[Full V38 contact-performance report](docs/m-world-v38/PROGRESS.md).
+
+---
+
 # M World V37 — only two preferences
 
 The public settings drawer now has exactly **Memory · On/Off** and

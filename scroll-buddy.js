@@ -1,25 +1,25 @@
 import './m-analytics-bootstrap.mjs?v=34';
-import {createCharacter,characterReceiptId} from './m-world-character.mjs?v=42';
-import {createAutonomy} from './m-world-autonomy.mjs?v=42';
-import {planBallFlight,sampleBallFlight} from './m-world-ball.mjs?v=42';
-import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=42';
-import {createSessionMemory} from './m-world-memory.mjs?v=42';
-import {createGrowthMemory,makeLivingSeed,growthFamilyForDecision} from './m-world-growth.mjs?v=42';
-import {createWorldKnowledge} from './m-world-world-knowledge.mjs?v=42';
-import {createLivedWorldStories} from './m-world-lived-stories.mjs?v=42';
-import {senseWorldRhythm} from './m-world-world-rhythm.mjs?v=42';
-import {getContextComponent,matchContextComponent} from './m-world-context.mjs?v=42';
-import {M_AFFECTS,AFFECT_DURATIONS} from './m-world-affect.mjs?v=42';
-import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=42';
-import {createWorldObserver} from './m-world-observer.mjs?v=42';
-import {createWorldDirector} from './m-world-director.mjs?v=42';
-import {advanceLocomotion} from './m-world-locomotion.mjs?v=42';
+import {createCharacter,characterReceiptId} from './m-world-character.mjs?v=43';
+import {createAutonomy} from './m-world-autonomy.mjs?v=43';
+import {planBallFlight,sampleBallFlight} from './m-world-ball.mjs?v=43';
+import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=43';
+import {createSessionMemory} from './m-world-memory.mjs?v=43';
+import {createGrowthMemory,makeLivingSeed,growthFamilyForDecision} from './m-world-growth.mjs?v=43';
+import {createWorldKnowledge} from './m-world-world-knowledge.mjs?v=43';
+import {createLivedWorldStories} from './m-world-lived-stories.mjs?v=43';
+import {senseWorldRhythm} from './m-world-world-rhythm.mjs?v=43';
+import {getContextComponent,matchContextComponent} from './m-world-context.mjs?v=43';
+import {M_AFFECTS,AFFECT_DURATIONS} from './m-world-affect.mjs?v=43';
+import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=43';
+import {createWorldObserver} from './m-world-observer.mjs?v=43';
+import {createWorldDirector} from './m-world-director.mjs?v=43';
+import {advanceLocomotion} from './m-world-locomotion.mjs?v=43';
 import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
-import {MWorldBrain} from './m-world-brain.mjs?v=42';
-import {M_GESTURES,GESTURE_DURATIONS,PAW_CONTACT_PROGRESS} from './m-world-acting.mjs?v=42';
-import {createMCompanion} from './m-world-companion.mjs?v=42';
-import {M_WORLD_CONFIG} from './m-world-config.mjs?v=42';
-import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=42';
+import {MWorldBrain} from './m-world-brain.mjs?v=43';
+import {M_GESTURES,GESTURE_DURATIONS,PAW_CONTACT_PROGRESS} from './m-world-acting.mjs?v=43';
+import {createMCompanion} from './m-world-companion.mjs?v=43';
+import {M_WORLD_CONFIG} from './m-world-config.mjs?v=43';
+import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=43';
 
 (() => {
  'use strict';
@@ -711,6 +711,11 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   const gaze=game?.name==='ball'&&game.ballPoint?{x:bound((game.ballPoint.x-state.x-metrics.size*.5)/90,-1,1),y:bound((state.y+metrics.size*.45-game.ballPoint.y)/90,-1,1)}:game?.name==='light'&&game.goal?{x:bound((game.goal.x-state.x)/260,-1,1),y:bound((state.y-game.goal.y)/220,-1,1)}:lastLife?.attention==='pointer'&&scenes.snapshot().status!=='playing'?lastLife.gaze:target?{x:bound((target.left+target.width*.5-(state.x+(f.left+f.right)/2))/260,-1,1),y:bound(((state.y+(f.top+f.bottom)*.4)-(target.top+Math.min(100,target.height*.3)))/220,-1,1)}:lastLife?.gaze||{x:0,y:0};
   if(frozen)avatar.render();
   else avatar.update(dt,{mode:state.mode,activity:state.mode==='perch'&&state.phase==='hold'?'perch':state.mode,emotion:reducedMotion?'neutral':state.emotion,vx:state.vx,vy:state.vy,clock:state.clock,gesture:state.gesture,affect:state.affect,characterEnergy:characterEnergy,reducedMotion,locomotion:{ax:state.ax,ay:state.ay,heading:state.heading,turn:state.turn,travel:state.travel,leanX:state.leanX,leanY:state.leanY},attention:gaze,nearCard:Boolean(target),depth:state.depth,
+   // Use the existing planner's TRUE contact only. Card animations and
+   // scroll anchoring remain owned by the spatial route, not by Three.js.
+   surfaceContact:Boolean(route?.attached&&route?.plan?.kind==='perch'&&
+    state.mode==='perch'&&state.phase==='hold'&&state.depthTarget>.95&&
+    route.element?.isConnected),
    phase:state.phase,reading:Boolean(performance.now()<interest.readingUntil),
    lifeMoment:state.lifeMoment&&performance.now()-state.lifeMoment.at<state.lifeMoment.duration*1000?
     {name:state.lifeMoment.name,age:Math.max(0,(performance.now()-state.lifeMoment.at)/1000),duration:state.lifeMoment.duration}:null});
@@ -766,7 +771,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(loading||avatar)return loading;
   loading=(async()=>{
    try{
-    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=42');
+    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=43');
     avatar=await mountMWorld3D(host,{onProgress(percent){layer.dataset.loadProgress=String(percent);if(active)toggle.textContent='M · '+percent+'%';}});
     metrics=avatar.getMetrics();cache.dirty=true;cache.lastRead=0;
     const world=worldSnapshot();
@@ -842,7 +847,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  function snapshot(){
   if(avatar)metrics=avatar.getMetrics();
   const world=worldSnapshot();
-  return {ready:Boolean(avatar),active,error:layer.dataset.error||null,state:{...state,gesture:state.gesture?{...state.gesture}:null,expressionHold:state.expressionHold?{...state.expressionHold}:null},acting:{attached:Boolean(route?.attached),externalPortal:Boolean(route?.plan?.externalPortal)},brain:brain.snapshot(),companion:companion?.snapshot(),pendingGesture:pendingGesture?.name||null,pendingIntent:pendingGesture?{...pendingGesture}:null,preferences:{reducedMotion,systemReducedMotion:motionPreference.matches,motionOptIn},character:{scene:scenes.snapshot(),game:game?{...game}:null,memory:memory.snapshot(),autonomy:autonomyStatus(),story:character.snapshot(),growth:growth.snapshot(),world:worldKnowledge.snapshot(),worldStory:worldStories.snapshot()},staging:route?.gestureStage?{escape:route.escape,target:{...route.target},egress:{...route.egress}}:null,metrics,actor:actorRect(renderFrame?{x:renderFrame.actor.left,y:renderFrame.actor.top}:state,metrics),
+  return {ready:Boolean(avatar),active,error:layer.dataset.error||null,state:{...state,gesture:state.gesture?{...state.gesture}:null,expressionHold:state.expressionHold?{...state.expressionHold}:null},acting:{attached:Boolean(route?.attached),cardContact:Boolean(route?.attached&&route?.plan?.kind==='perch'&&state.depthTarget>.95),externalPortal:Boolean(route?.plan?.externalPortal)},brain:brain.snapshot(),companion:companion?.snapshot(),pendingGesture:pendingGesture?.name||null,pendingIntent:pendingGesture?{...pendingGesture}:null,preferences:{reducedMotion,systemReducedMotion:motionPreference.matches,motionOptIn},character:{scene:scenes.snapshot(),game:game?{...game}:null,memory:memory.snapshot(),autonomy:autonomyStatus(),story:character.snapshot(),growth:growth.snapshot(),world:worldKnowledge.snapshot(),worldStory:worldStories.snapshot()},staging:route?.gestureStage?{escape:route.escape,target:{...route.target},egress:{...route.egress}}:null,metrics,actor:actorRect(renderFrame?{x:renderFrame.actor.left,y:renderFrame.actor.top}:state,metrics),
    surfaces:world.surfaces.map(({element,...r})=>r),protectedRects:world.protectedRects,director:{...director?.getStatus(),perception:directorSnapshot,activity:directorActivity,lastExecution:directorLastExecution},renderer:avatar?.getDiagnostics(),life:lastLife,stats:{...stats},frozen};
  }
  if(debugEnabled)window.MWorld={
