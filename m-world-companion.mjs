@@ -32,7 +32,10 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  const actions=make('div','m-companion-actions'),moreGestures=make('details','m-companion-more-gestures'),moreSummary=make('summary','','More gestures'),moreActions=make('div','m-companion-more-actions');moreGestures.append(moreSummary,moreActions);
  for(const name of M_LOCAL_GESTURES){const el=button({wave:'Wave',curious:'Curious',surprised:'Surprised',shy:'Shy',playful:'Playful',wink:'Wink',nod:'Nod',sleep:'Sleep',hop:'Hop',think:'Think'}[name]);(M_ASSISTANT_GESTURES.includes(name)?actions:moreActions).append(el);el.addEventListener('click',()=>{refreshMotionControl();const accepted=onGesture(name,{source:'visitor'}),motion=refreshMotionControl();status.textContent=accepted?'Gesture requested. M will respond from a safe resting place.':!motion.active?'Resume M to try a gesture.':motion.reducedMotion?'Motion is off. Enable M motion to try a gesture.':'M cannot perform this gesture yet. Please try again.';makeRoomForCharacter(accepted);});}
  const directorControls=make('div','m-companion-director'),directorHeader=make('div','m-companion-director-header'),directorTitle=make('span','m-companion-director-title','AI play'),directorToggle=button('Pause AI play','m-companion-director-toggle'),directorStatus=make('p','m-companion-director-status');
- directorControls.id='m-companion-director-options';directorToggle.setAttribute('aria-pressed','true');directorStatus.setAttribute('role','status');directorStatus.setAttribute('aria-live','polite');directorHeader.append(directorTitle,directorToggle);directorControls.append(directorHeader,directorStatus,make('p','m-companion-privacy','M’s optional AI play shares public page summaries with OpenAI, never form values or unsent chat drafts. Pause it here at any time.'));
+ directorControls.id='m-companion-director-options';directorToggle.setAttribute('aria-pressed','true');directorStatus.setAttribute('role','status');directorStatus.setAttribute('aria-live','polite');directorHeader.append(directorTitle,directorToggle);const rememberPrivacy=button('Remember M on this device','m-companion-remember-privacy');
+ rememberPrivacy.setAttribute('aria-pressed','false');
+ directorControls.append(directorHeader,directorStatus,rememberPrivacy,
+  make('p','m-companion-privacy','M can remember successful local adventures on this device. Switch off to erase this memory. Optional AI play shares only public page summaries.'));
  const autoPrivacy=make('details','m-companion-auto-privacy'),autoSummary=make('summary','m-companion-privacy','AI shares public summaries'),autoPrivacyNote=make('p','m-companion-privacy','AI play occasionally sends public component headings, types, coarse positions, safe action choices, recent actions and M’s discoveries and current intention to OpenAI, with up to 6 requests per tab. Form values and chat drafts stay private. Pause AI play any time.');autoPrivacy.append(autoSummary,autoPrivacyNote);const options=make('div','m-companion-options');options.append(moreGestures,autoPrivacy);
  const story=make('details','m-companion-story'),storySummary=make('summary','','M’s story'),storyChapter=make('p','m-companion-story-chapter'),storyGoal=make('p','m-companion-story-goal'),storyDiscovery=make('p','m-companion-story-discovery'),storyPreference=make('p','m-companion-story-preference'),storyJournal=make('ol','m-companion-story-journal'),rememberCharacter=button('Remember on this device','m-companion-remember-character'),storyStorage=make('p','m-companion-story-storage');
  story.hidden=true;story.setAttribute('aria-live','off');storyJournal.setAttribute('aria-label','M’s remembered discoveries');rememberCharacter.setAttribute('aria-label','Remember M’s adventures on this device');rememberCharacter.setAttribute('aria-pressed','false');
@@ -90,6 +93,8 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
   const {version,chapter,beat,goal,discovery,preference,recall,favoriteComponent}=snapshot||{};
   const context={version,chapter,beat,goal,discovery,preference,recall,favoriteComponent};
   if(!validateCharacterContext(context)||typeof snapshot.remember!=='boolean'||typeof snapshot.storageAvailable!=='boolean'){story.hidden=true;storyKey=null;return;}
+  rememberPrivacy.textContent='Remember M on this device: '+(snapshot.remember?'On':'Off');
+  rememberPrivacy.setAttribute('aria-pressed',String(snapshot.remember));
   const entries=[];
   const phrases={'light-found':'I caught the little light.','lookout-found':'I found a lookout worth coming back to.','lookout-revisited':'I came back to my familiar lookout.'};
   for(const entry of (Array.isArray(snapshot.journal)?snapshot.journal:[]).slice(-12)){
@@ -128,6 +133,7 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  if(visual?.addEventListener){listen(visual,'resize',refreshViewport);listen(visual,'scroll',refreshViewport);}
  listen(input,'focus',refreshViewport);listen(input,'blur',refreshViewport);
  listen(rememberCharacter,'click',()=>{const current=getCharacterStatus();if(current&&typeof current.remember==='boolean'){onRememberCharacter(!current.remember);refreshStoryControl();}});
+ listen(rememberPrivacy,'click',()=>{const current=getCharacterStatus();if(current&&typeof current.remember==='boolean'){onRememberCharacter(!current.remember);refreshStoryControl();}});
  listen(directorToggle,'click',()=>{const state=getDirectorStatus()||{};onDirectorEnabled(state.enabled===false);refresh();});
  listen(privacyToggle,'click',()=>{
   if(diagnostics)return;
