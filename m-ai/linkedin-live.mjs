@@ -128,7 +128,7 @@ export function createDMALiveReader({
     url.searchParams.set('q','criteria');url.searchParams.set('domain',DMA_SNAPSHOT_DOMAIN);
     url.searchParams.set('start',String(start));
     const response=await fetchImpl(url.href,{
-     method:'GET',redirect:'error',credentials:'omit',cache:'no-store',signal:abort.signal,
+     method:'GET',redirect:'manual',credentials:'omit',cache:'no-store',signal:abort.signal,
      headers:{Authorization:'Bearer '+token,'Linkedin-Version':DMA_SNAPSHOT_VERSION,Accept:'application/json'}
     });
     // The LinkedIn docs say a 404 after the first page can indicate the

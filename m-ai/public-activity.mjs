@@ -89,7 +89,7 @@ export function createPublicActivityReader({fetchImpl=globalThis.fetch,url='',no
    try{
     if(signal?.aborted)return errorState('unavailable');
     const response=await fetchImpl(PUBLIC_ACTIVITY_URL,{
-     method:'GET',redirect:'error',cache:'no-store',credentials:'omit',
+     method:'GET',redirect:'manual',cache:'no-store',credentials:'omit',
      signal:abort.signal,headers:{accept:'application/json'}
     });
     const value=await boundedJson(response);
