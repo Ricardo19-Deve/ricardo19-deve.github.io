@@ -49,7 +49,7 @@ test('V45 accepts official pagination and never fetches other LinkedIn account d
   assert.equal(u.searchParams.get('domain'),'MEMBER_SHARE_INFO');
   assert.equal(opts.headers['Linkedin-Version'],'202312');
   assert.equal(opts.headers.Authorization,'Bearer private-owner-token');
-  assert.equal(opts.redirect,'error');
+  assert.equal(opts.redirect,'manual');
   if(calls===1)return json(snapshot([example()],dataUri(1)));
   if(calls===2)return json(snapshot([example({Date:'2026-11-03',ShareLink:'https://www.linkedin.com/feed/update/urn:li:activity:7382430987654321006'})],dataUri(2)));
   return new Response('No data found for this memberId',{status:404});
