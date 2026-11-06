@@ -4,6 +4,9 @@ export const PORTFOLIO_CONTEXT = Object.freeze({
   owner: 'Ricardo Pinheiro',
   location: 'Leiria, Portugal',
   overview: 'Business Systems Lead Analyst and Salesforce Developer. Builds enterprise CRM systems and independent web, mobile, cloud and AI-enabled products. Personal software projects since 2018; professional industry experience since 2020.',
+  professionalStory: 'Ricardo Pinheiro desenvolveu o seu percurso desde soluções Oracle APEX até desenvolvimento Salesforce, integrações e desenho de sistemas empresariais; atualmente combina análise de negócio e liderança técnica com a criação independente de produtos para web, mobile, cloud e IA. A apresentação deve valorizar o problema que resolve, e não apenas enumerar ferramentas.',
+  waysToHelp: ['Desenho e desenvolvimento de soluções Salesforce e componentes Apex/LWC', 'Integrações entre sistemas empresariais e automatização de processos CRM', 'Arquitetura e desenvolvimento de aplicações web/mobile e produtos independentes', 'Exploração aplicada de Cloudflare e integrações com APIs de IA em projetos próprios'],
+  visitorJourney: 'Ajudar um visitante a compreender rapidamente quem é Ricardo, que experiência e projetos públicos demonstra, em que áreas pode contribuir e onde encontrá-lo. Para contactos, indicar apenas a secção Contact com as ligações públicas LinkedIn e GitHub; não afirmar disponibilidade comercial ou condições contratuais.',
   experience: [
     'Zimmer Biomet: Business Systems Lead Analyst, July 2026 to present. Requirements analysis, Salesforce solution design, stakeholder coordination and integration decisions.',
     'Zimmer Biomet: CRM & Systems Software Engineer, August 2023 to June 2026. Apex, Lightning Web Components and integrations.',
