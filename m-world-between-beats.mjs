@@ -6,7 +6,7 @@
  * interaction. Tiny head/ear/tail reactions follow only existing page-world
  * attention and turn signals. Major gestures, play and rest take priority.
  */
-import {dampChannel} from './m-world-pose-handoff.mjs?v=54';
+import {dampChannel} from './m-world-pose-handoff.mjs?v=55';
 
 const bound=(v,min,max)=>Math.min(max,Math.max(min,Number.isFinite(v)?v:min));
 const norm=v=>bound(v,-1,1);
