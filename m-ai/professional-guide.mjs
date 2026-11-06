@@ -32,7 +32,11 @@ export const PROFESSIONAL_PRESENTATION_RULES = [
  * Fallbacks are sourced exclusively from the public portfolio snapshot.
  */
 export function normalizeProfessionalReply(output,message,language='pt'){
- if(!isProfessionalQuestion(message)||typeof output?.reply!=='string')return output;
+ // Do not rewrite navigation-only answers: an existing section suggestion
+ // must remain intact. This safety net is for presenting the PERSON or
+ // his practical capabilities, not every mention of a page section.
+ const profile=/\b(?:ricardo|pinheiro|quem e ele|who is he|sobre ele|about him|servicos?|services?|consult|contratar|hire|colaborar|collaborat|contactar|contatar|reach ricardo)\b/u.test(fold(message));
+ if(!profile||!isProfessionalQuestion(message)||typeof output?.reply!=='string')return output;
  const stray=/\b(?:luzes?|recantos?|esconderijos|small lights?|little lights?|magical corners?|lookouts?)\b/iu;
  if(!stray.test(fold(output.reply)))return output;
  const q=fold(message),english=language==='en'||/\b(?:who|what|how|can|could|please|services|experience|contact|hire)\b/u.test(q);
@@ -49,5 +53,5 @@ export function normalizeProfessionalReply(output,message,language='pt'){
    : services
     ? 'O Ricardo tem experiência em desenho de soluções Salesforce, Apex/LWC, automatização de CRM e integrações entre sistemas. Também desenvolve projetos próprios em web, mobile, cloud e IA. Podes conhecer o trabalho dele e encontrar os contactos públicos na secção Contact.'
     : 'Ricardo Pinheiro é Business Systems Lead Analyst e Salesforce Developer, com experiência profissional desde 2020 em sistemas empresariais, CRM e integrações. Desenvolve também produtos independentes em web, mobile, cloud e IA. Neste portefólio podes conhecer os seus projetos e encontrar os contactos públicos na secção Contact.';
- return {...output,reply,expression:'neutral',gesture:'none',section:'none'};
+ return {...output,reply,expression:'neutral',gesture:'none'};
 }
