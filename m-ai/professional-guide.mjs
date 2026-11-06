@@ -13,7 +13,7 @@ export function isProfessionalQuestion(message=''){
  if(!q)return false;
  if(/\b(?:quem es tu|quem e a m|who are you|what do you like|o que gostas|a tua historia|your story|pequena luz|little light|recanto|lookout|as tuas aventuras|your adventures)\b/u.test(q)
     && !/\b(?:ricardo|trabalho|servicos|services|professional|career|carreira)\b/u.test(q))return false;
- return /\b(?:ricardo|pinheiro|about him|sobre ele|who is he|his experience|his background|quem e ele|quem e o autor|developer|desenvolvedor|salesforce|consult|servicos?|services?|ajudar|help me with|contratar|hire|collaborat|colaborar|parceria|contact|contat|linkedin|github|percurso|carreira|career|experiencia|experience|competencias|expertise|skills|certificac|certification|projetos?|projects?|portfolio|portefolio|empresa|business systems|software|integrac|integrations?|architect|tecnologia|technology|profissao|profissional|professional)\b/u.test(q);
+ return /\b(?:ricardo|pinheiro|about him|sobre ele|who is he|his experience|his background|quem e ele|quem e o autor|developer|desenvolvedor|salesforce|consult|servicos?|services?|ajudar|help me with|contratar|hire|collaborat|colaborar|parceria|contact\w*|contat\w*|linkedin|github|percurso|carreira|career|experiencia|experience|competencias|expertise|skills|certificac|certification|projetos?|projects?|portfolio|portefolio|empresa|business systems|software|integrac|integrations?|architect|tecnologia|technology|profissao|profissional|professional)\b/u.test(q);
 }
 
 export const PROFESSIONAL_PRESENTATION_RULES = [
@@ -35,7 +35,7 @@ export function normalizeProfessionalReply(output,message,language='pt'){
  // Do not rewrite navigation-only answers: an existing section suggestion
  // must remain intact. This safety net is for presenting the PERSON or
  // his practical capabilities, not every mention of a page section.
- const profile=/\b(?:ricardo|pinheiro|quem e ele|who is he|sobre ele|about him|servicos?|services?|consult|contratar|hire|colaborar|collaborat|contactar|contatar|reach ricardo)\b/u.test(fold(message));
+ const profile=/\b(?:ricardo|pinheiro|quem e ele|who is he|sobre ele|about him|servicos?|services?|consult\w*|contratar|hire|colaborar|collaborat\w*|ajudar|help me|contact\w*|contat\w*|reach ricardo)\b/u.test(fold(message));
  if(!profile||!isProfessionalQuestion(message)||typeof output?.reply!=='string')return output;
  const stray=/\b(?:luzes?|recantos?|esconderijos|small lights?|little lights?|magical corners?|lookouts?)\b/iu;
  if(!stray.test(fold(output.reply)))return output;
