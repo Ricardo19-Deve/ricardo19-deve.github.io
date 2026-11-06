@@ -91,5 +91,5 @@ test('V41 renderer filters all abrupt secondary-layer exits AND the final stage,
  assert.match(renderer,/stage\.scale\.setScalar\(1\+placement\[2\]\)/);
  assert.match(renderer,/mixer\.update\(dt\)/);
  assert.match(renderer,/preserveFullSkinning/);
- assert.match(world,/m-world-3d\.mjs\?v=46/);
+ assert.match(world,/m-world-3d\.mjs\?v=47/);
 });

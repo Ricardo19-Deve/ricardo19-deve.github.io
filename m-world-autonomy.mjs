@@ -1,4 +1,4 @@
-import {worldCandidateWeight} from './m-world-world-rhythm.mjs?v=45';
+import {worldCandidateWeight} from './m-world-world-rhythm.mjs?v=47';
 /** Pure local intentions. Existing scene/spatial executors own every physical effect. */
 export const AUTONOMY_RESERVATION_MS=2000;
 const MAX_TARGETS=64,MAX_HISTORY=24,MAX_RECENT=8;
@@ -37,7 +37,7 @@ export function createAutonomy({seed=18421}={}){
  let serial=0,lastAt=0,nextDecisionAt=0,pending=null,active=null,reason='ready',lastOutcome=null;
  let completedCount=0,failedCount=0,lastAchievementAt=null,achievement=null,lastPlayAt=0;
  let routinesStartedAt=null,lastSleepAt=null;
- const history=new Map(),familyUntil=new Map(),recent=[];
+ const history=new Map(),familyUntil=new Map(),recent=[],recentGestures=[];
  const time=value=>validTime(value)?Math.max(lastAt,value):null;
  const remember=(id,entry)=>{
   history.delete(id);history.set(id,entry);
@@ -78,7 +78,7 @@ export function createAutonomy({seed=18421}={}){
    reservationUntil:pending?.expiresAt??null,nextDecisionAt,reason,lastOutcome:clone(lastOutcome),
    completedCount,failedCount,achievementPending:achievement!==null,
    ...(routinesStartedAt===null?{}:{needs:routineNeeds(lastAt)}),
-   recent:[...recent],targetHistory:[...history].map(([id,entry])=>({id,...entry}))};
+   recent:[...recent],recentGestures:[...recentGestures],targetHistory:[...history].map(([id,entry])=>({id,...entry}))};
  }
  function choose(facts={}){
   facts=object(facts);
@@ -115,7 +115,12 @@ export function createAutonomy({seed=18421}={}){
   // Omitted profile preserves the exact legacy deterministic test behavior.
   const habits=object(facts.habits),learned=object(habits.weights);
   const openers=['explore','play','observe'];
-  const opening=completedCount===0&&openers.includes(habits.opening)?habits.opening:null;
+  const hasOpening=openers.includes(habits.opening);
+  const opening=completedCount===0&&hasOpening?habits.opening:null;
+  // V42: production supplies the opening preference on every visit. Gesture
+  // diversity must keep working AFTER M's first scene; not only on frame one.
+  // The unprofiled deterministic test contract remains unchanged.
+  const variedGestures=hasOpening||Object.keys(learned).length>0;
   const candidates=[];
   const add=(family,score,decision,stableId=null)=>{
    if(at<(familyUntil.get(family)||0))return;
@@ -188,18 +193,24 @@ export function createAutonomy({seed=18421}={}){
   // An independently chosen gesture variant gives each inspection a different
   // emotional beat, without changing the original 31-bone rig or action plan.
   // Explicit/manual actions and unprofiled test simulations are unaffected.
-  if(opening!==null||Object.keys(learned).length){
+  if(variedGestures){
    const palettes={
     inspect:['curious','nod','shy','wink'],peek:['playful','shy','wink'],
     perch:['nod','curious','shy'],orbit:['curious','surprised','nod']
    };
    const gestures=palettes[selected.decision.action];
    if(selected.decision.kind==='scene'&&gestures){
-    const gesture=gestures[Math.floor(random()*gestures.length)];
-    selected.decision.gesture=gesture;
-    selected.decision.expression=['surprised'].includes(gesture)?'surprised':
-     ['shy'].includes(gesture)?'neutral':
-     ['curious'].includes(gesture)?'curious':'happy';
+    // Choose from ALL authentic V6 gestures, but do not repeat the previous
+    // completed scene gesture. Recent movements lower the odds of a repeat.
+    // Failed or rejected gestures never become part of this history.
+    const last=recentGestures.at(-1),available=gestures.filter(g=>g!==last);
+    const options=available.length?available:gestures;
+    const weights=options.map(g=>Math.pow(.48,recentGestures.filter(x=>x===g).length));
+    let roll=random()*weights.reduce((sum,w)=>sum+w,0),chosen=options.at(-1);
+    for(let i=0;i<options.length;i++){roll-=weights[i];if(roll<=0){chosen=options[i];break;}}
+    selected.decision.gesture=chosen;
+    selected.decision.expression=chosen==='surprised'?'surprised':
+     chosen==='shy'?'neutral':chosen==='curious'?'curious':'happy';
    }
   }
   const satisfiesGoal=goal?.id==='follow-light'&&selected.decision.play==='light'||['find-lookout','revisit-lookout'].includes(goal?.id)&&selected.decision.action==='perch'&&selected.decision.targetId===goal.targetId;
@@ -225,6 +236,11 @@ export function createAutonomy({seed=18421}={}){
   lastAt=at;const choice=active;active=null;
   if(!success){fail(choice,safeReason(resultReason,'execution-failed'),at);return true;}
   completedCount=Math.min(1_000_000,completedCount+1);
+  // Only a FINISHED real scene can be remembered as a gesture M performed.
+  if(choice.decision.kind==='scene'&&choice.decision.gesture&&choice.decision.gesture!=='none'){
+   recentGestures.push(choice.decision.gesture);
+   if(recentGestures.length>MAX_RECENT)recentGestures.shift();
+  }
   if(hasTarget(choice)){
    const entry=entryFor(choice.stableId);
    remember(choice.stableId,{lastSuccessAt:at,successes:Math.min(1000,entry.successes+1),
@@ -250,7 +266,7 @@ export function createAutonomy({seed=18421}={}){
  }
  function resetMemory(nowMs=lastAt){
   const at=time(nowMs);if(at===null)return false;lastAt=at;
-  release('memory-reset',at);history.clear();recent.length=0;familyUntil.clear();
+  release('memory-reset',at);history.clear();recent.length=0;recentGestures.length=0;familyUntil.clear();
   achievement=null;lastAchievementAt=null;lastPlayAt=at;nextDecisionAt=at+1600;reason='memory-reset';return true;
  }
  return {choose,resolve,complete,cancel,resetMemory,snapshot};

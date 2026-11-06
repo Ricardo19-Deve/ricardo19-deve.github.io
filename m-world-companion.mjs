@@ -1,5 +1,5 @@
-import {getContextComponent,contextualChatRequest} from './m-world-context.mjs?v=46';
-import {validateCharacterContext} from './m-world-character-context.mjs?v=46';
+import {getContextComponent,contextualChatRequest} from './m-world-context.mjs?v=47';
+import {validateCharacterContext} from './m-world-character-context.mjs?v=47';
 /** V36: public chat answers portfolio questions only. M's autonomous actions and private settings live outside the conversation. */
 export const M_ASSISTANT_GESTURES=Object.freeze(['wave','curious','surprised','shy']);
 export const M_LOCAL_GESTURES=Object.freeze([...M_ASSISTANT_GESTURES,'playful','wink','nod','sleep','hop','think']);

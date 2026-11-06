@@ -42,7 +42,7 @@ test('V30 invalid depth values fail safe to a complete foreground layer',()=>{
 
 test('V30 masked 3D has full rig separation for intermediate depth, no partial anatomical cross-section',()=>{
  const renderer=readFileSync(new URL('m-world-3d.mjs',import.meta.url),'utf8');
- assert.match(renderer,/import \{visualDepthMasks,visualDepthSide\} from '.\/m-world-occlusion.mjs\?v=46'/);
+ assert.match(renderer,/import \{visualDepthMasks,visualDepthSide\} from '.\/m-world-occlusion.mjs\?v=47'/);
  assert.match(renderer,/const visualSide=visualDepthSide\(depth\)/);
  assert.match(renderer,/depthLayerPlacement\(visualSide,halfDepth\)/);
  assert.doesNotMatch(renderer,/const placement=depthLayerPlacement\(depth,halfDepth\)/);
@@ -56,7 +56,7 @@ test('V30 protects text through the unchanged navigator, not visible mask rectan
  assert.match(spatial,/protectedRects:world.protectedRects/);
  assert.match(spatial,/planCardAction/);
  assert.match(spatial,/resolveDepth/);
- assert.match(spatial,/m-world-3d.mjs\?v=46/);
+ assert.match(spatial,/m-world-3d.mjs\?v=47/);
  const index=readFileSync(new URL('index.html',import.meta.url),'utf8');
- assert.match(index,/scroll-buddy.js\?v=46/);
+ assert.match(index,/scroll-buddy.js\?v=47/);
 });
