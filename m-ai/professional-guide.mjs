@@ -33,11 +33,11 @@ export const PROFESSIONAL_PRESENTATION_RULES = [
  */
 export function normalizeProfessionalReply(output,message,language='pt'){
  if(!isProfessionalQuestion(message)||typeof output?.reply!=='string')return output;
- const stray=/\\b(?:luzes?|recantos?|esconderijos|small lights?|little lights?|magical corners?|lookouts?)\\b/iu;
+ const stray=/\b(?:luzes?|recantos?|esconderijos|small lights?|little lights?|magical corners?|lookouts?)\b/iu;
  if(!stray.test(fold(output.reply)))return output;
- const q=fold(message),english=language==='en'||/\\b(?:who|what|how|can|could|please|services|experience|contact|hire)\\b/u.test(q);
- const contact=/\\b(?:contact|contat|linkedin|github|reach|encontrar)\\b/u.test(q);
- const services=/\\b(?:servicos?|services?|ajudar|help|consult|hire|colaborar|contratar)\\b/u.test(q);
+ const q=fold(message),english=language==='en'||/\b(?:who|what|how|can|could|please|services|experience|contact|hire)\b/u.test(q);
+ const contact=/\b(?:contact|contat|linkedin|github|reach|encontrar)\b/u.test(q);
+ const services=/\b(?:servicos?|services?|ajudar|help|consult|hire|colaborar|contratar)\b/u.test(q);
  const reply=english
   ? contact
    ? 'You can reach Ricardo through the public LinkedIn and GitHub links in the Contact section of this portfolio.'
