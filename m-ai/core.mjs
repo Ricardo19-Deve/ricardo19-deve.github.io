@@ -51,7 +51,16 @@ const CHAT_OPERATION = Object.freeze({
     const detail={
      'not-ready':'The official LinkedIn MEMBER_SHARE_INFO snapshot is still being prepared after consent. There is no verified recent-post evidence yet; retry when LinkedIn has finished processing.',
      'not-authorized':'The LinkedIn API could not authorize access with the current integration. No posts can be confirmed until the owner checks authorization.',
-     'unavailable':'The LinkedIn API request failed or the returned snapshot could not be verified. Do not conclude the owner has no publications.',
+     'unavailable':'The LinkedIn API request failed for an unclassified reason. Do not conclude the owner has no publications.',
+     'timeout':'The official LinkedIn snapshot request did not finish within the safe server time limit. This does not mean there are no posts.',
+     'network-error':'The Cloudflare Worker could not complete the outbound LinkedIn network request; verify connectivity or upstream blocking, not post visibility.',
+     'request-rejected':'The LinkedIn API rejected the snapshot request. The request format or permission may need correction; no posts have been verified.',
+     'api-version-error':'LinkedIn returned a version error (HTTP 426). This API requires Linkedin-Version: 202312.',
+     'rate-limited':'LinkedIn refused additional requests due to its API rate limit (HTTP 429). Wait before retrying.',
+     'provider-error':'The LinkedIn server returned a 5xx error. Retry later; this is not proof of an empty profile.',
+     'invalid-response':'LinkedIn returned a response that did not match the documented MEMBER_SHARE_INFO JSON structure. The parser requires checking, not the owner profile.',
+     'invalid-pagination':'LinkedIn returned a continuation that did not match the safely allowed pagination format, or too many pages. No private domains were followed.',
+     'response-too-large':'The LinkedIn snapshot page exceeded the safe response size limit. We need to adjust bounded pagination or parsing.' ,
      'empty':'The LinkedIn snapshot was retrieved but no entries met the public-post verification requirements. This does NOT establish that no posts exist.',
      'not-configured':'A LinkedIn live source is not configured on this instance.'
     };

@@ -22,7 +22,7 @@ test('V46 unavailable member snapshot explains pending/expired/empty errors, nev
  for(const [kind,linkedInResponse,required]of [
   ['pending',()=>new Response('',{status:404}),/still being prepared after consent/],
   ['expired',()=>new Response('',{status:401}),/could not authorize access/],
-  ['server',()=>new Response('',{status:503}),/could not be verified/],
+  ['server',()=>new Response('',{status:503}),/returned a 5xx error/],
   ['no-recognized',()=>new Response(JSON.stringify({
    elements:[{snapshotDomain:DMA_SNAPSHOT_DOMAIN,snapshotData:[]}],
    paging:{links:[]}
