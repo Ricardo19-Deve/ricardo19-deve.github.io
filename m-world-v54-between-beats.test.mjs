@@ -113,7 +113,7 @@ test('V54 rendered with V41 spring and V28 facial crossfade but without extra ro
  assert.match(render,/betweenBeats\.sample\(\{dt,mode:activity/);
  assert.match(render,/handoffs\.ambient\.sample\(lastAmbient\.pose/);
  assert.match(render,/ambientLayer\.apply\(lastAmbient\.pose\)/);
- assert.match(render,/lastPlay\.face\|\|lastAmbient\.face/);
+ assert.match(render,/lastTransition\.face/);
  assert.match(render,/facialContinuity\.sample/);
  assert.match(render,/betweenBeats:betweenBeats\.snapshot/);
  assert.doesNotMatch(source,/\bfetch\s*\(|localStorage|sessionStorage|document\.|window\.|navigator\.|LINKEDIN|OPENAI_/i);
