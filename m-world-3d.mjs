@@ -470,6 +470,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    lastPlay=spontaneousPlay.sample({dt,mode:activity,phase:state.phase||'hold',
     gesture:state.gesture,energy:state.characterEnergy,
     speed:Math.hypot(vx,vy),attached:lastContact.supported,
+    attention:dynamics.attention,turn:state.locomotion?.turn||0,
     reading:Boolean(state.reading),reducedMotion:reduced,
     affectActive:lastAffect.envelope>.04});
    // V41: never drop a live additive quaternion at an action boundary.
