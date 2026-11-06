@@ -1,5 +1,5 @@
 /**
- * M World V51 — spontaneous, individually varied miniature performances on ORIGINAL V6 rig.
+ * M World V53 — spontaneous play with tail momentum on the ORIGINAL V6 rig.
  *
  * Strictly local, seeded, bounded, non-repeating actions. This layer adds
  * gestures BETWEEN the original authored V6 clips; it never controls the
@@ -41,6 +41,19 @@ export function createSpontaneousPlay({seed=1}={}){
  const random=createRandom(seed);
  let countdown=5+random()*6,active=null,lastTwo=[],seconds=0,
   started=0,completed=0,cancelled=0,gazeX=0,gazeY=0,turnFollow=0;
+ const tailMomentum=Array.from({length:10},()=>({position:0,velocity:0}));
+ // Each original joint reacts later than the previous one. Preserve angular
+ // velocity between attention changes so the tail follows, rather than snaps.
+ function followTail(dt,targetForJoint){
+  for(let i=0;i<tailMomentum.length;i++){
+   const u=(i+1)/tailMomentum.length,point=tailMomentum[i];
+   const target=clamp(targetForJoint(i,u),-.036,.036);
+   const omega=1.67834699001666/(.085+.18*u),decay=Math.exp(-omega*dt);
+   const displacement=point.position-target,carry=point.velocity+omega*displacement;
+   point.position=clamp(target+(displacement+carry*dt)*decay,-.045,.045);
+   point.velocity=clamp((point.velocity-omega*carry*dt)*decay,-.5,.5);
+  }
+ }
  const tail=(pose,i,x=0,y=0,z=0)=>{
   const key=TAIL[i];pose[key]=[clamp(x,-.085,.085),
    clamp(y,-.085,.085),clamp(z,-.115,.115)];
@@ -174,7 +187,9 @@ export function createSpontaneousPlay({seed=1}={}){
  function sample({dt=0,mode='float',phase='hold',gesture=null,energy=.65,
   speed=0,attached=false,reading=false,reducedMotion=false,affectActive=false,
   attention={x:0,y:0},turn=0}={}){
-  if(reducedMotion){active=null;countdown=12;return quiet();}
+  if(reducedMotion){active=null;countdown=12;
+   for(const point of tailMomentum){point.position=0;point.velocity=0;}
+   return quiet();}
   const step=clamp(dt,0,.06);
   if(!step)return quiet();
   seconds+=step;
@@ -189,6 +204,9 @@ export function createSpontaneousPlay({seed=1}={}){
    phase!=='hold'||!Number.isFinite(speed)||speed>24||
    ['rest','settle','sleep','perch','perched'].includes(mode)||energy<.24;
   if(blocked){
+   // Return the hidden tail spring to neutral; V41 owns the displayed
+   // velocity-preserving exit from the previous additive joint pose.
+   followTail(step,()=>0);
    if(active){active=null;cancelled++;countdown=8+random()*9;}
    return quiet();
   }
@@ -197,7 +215,7 @@ export function createSpontaneousPlay({seed=1}={}){
    ['float','orbit','swim','glide'].includes(mode)?'explore':'quiet';
   if(!active){
    countdown-=step;
-   if(countdown>0)return quiet();
+   if(countdown>0){followTail(step,()=>0);return quiet();}
    const kind=select(category,clamp(energy));
    active={kind,age:0,duration:DURATIONS[kind]*(.89+.22*random()),
     side:random()<.5?-1:1,style:.86+.26*random()};started++;
@@ -208,13 +226,26 @@ export function createSpontaneousPlay({seed=1}={}){
   const e=smooth(p/.17)*(1-smooth((p-.74)/.26));
   const data=body(active.kind,p,e,{side:active.side,style:active.style,
    gaze:{x:gazeX,y:gazeY},turn:turnFollow});
+  followTail(step,(_,u)=>u*(gazeX*.018+turnFollow*.023+
+   Math.sin(2*Math.PI*(p*1.3-u*.25))*.011));
+  // The small residual tail curve inherits momentum between different
+  // intentions, but the authored envelope still reaches exact zero when
+  // a miniature finishes, keeping the original V6 rig/rest pose intact.
+  for(let i=0;i<10;i++){
+   const joint=TAIL[i],rotation=data.pose[joint];
+   data.pose[joint]=[rotation[0],rotation[1],
+    clamp(rotation[2]+e*tailMomentum[i].position,-.115,.115)];
+  }
   const result={active:true,kind:active.kind,progress:p,...data};
   if(p>=1){active=null;completed++;countdown=9+random()*17;}
   return result;
  }
  function snapshot(){return {active:active?.kind||null,style:active?.style||null,
   side:active?.side||null,attention:{x:gazeX,y:gazeY},turn:turnFollow,
-  started,completed,cancelled,lastTwo:[...lastTwo],cooldown:Math.max(0,countdown),seconds};}
- function reset(){active=null;countdown=6+random()*5;lastTwo=[];gazeX=gazeY=turnFollow=0;}
+  started,completed,cancelled,lastTwo:[...lastTwo],
+  tailMomentum:tailMomentum.map(x=>Math.round(x.position*100000)/100000),
+  cooldown:Math.max(0,countdown),seconds};}
+ function reset(){active=null;countdown=6+random()*5;lastTwo=[];gazeX=gazeY=turnFollow=0;
+  for(const point of tailMomentum){point.position=0;point.velocity=0;}}
  return {sample,snapshot,reset};
 }
