@@ -80,8 +80,8 @@ export function createIntentCrossfade({halfLife=.17}={}){
   // Prevent two overlapping intentions exceeding one full performance.
   const normalizer=Math.max(1,playWeight+ambientWeight);
   const pw=playWeight/normalizer,aw=ambientWeight/normalizer;
-  if(playState?.active&&playState.face)playFace=sanitizeFace(playState.face);
-  if(ambientState?.active&&ambientState.face)ambientFace=sanitizeFace(ambientState.face);
+  if(p&&playState?.face)playFace=sanitizeFace(playState.face);
+  if(a&&ambientState?.face)ambientFace=sanitizeFace(ambientState.face);
   // Retain the last VERIFIED expression briefly as a weight decays;
   // the original V28 continuity then adds the final reversible crossfade.
   const strength=pw+aw;
@@ -98,9 +98,9 @@ export function createIntentCrossfade({halfLife=.17}={}){
   }
   last={leader,play:pw,ambient:aw,face};
   return {
-   playPose:scaleExpressivePose(playState?.pose,pw),
-   ambientPose:scaleExpressivePose(ambientState?.pose,aw),
-   playStage:scaleExpressiveStage(playState?.stage,pw),
+   playPose:blocked?{}:scaleExpressivePose(playState?.pose,pw),
+   ambientPose:blocked?{}:scaleExpressivePose(ambientState?.pose,aw),
+   playStage:blocked?{...ZERO_STAGE}:scaleExpressiveStage(playState?.stage,pw),
    playWeight:pw,ambientWeight:aw,face,leader
   };
  }
