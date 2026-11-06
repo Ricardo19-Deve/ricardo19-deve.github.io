@@ -5,3 +5,7 @@
 .dev.vars.*
 .wrangler/
 node_modules/
+
+# Owner-only LinkedIn exports; the public feed is reviewed separately.
+data/m-public-activity.review.json
+m-ai/Shares.csv

@@ -1,4 +1,4 @@
-import {worldCandidateWeight} from './m-world-world-rhythm.mjs?v=47';
+import {worldCandidateWeight} from './m-world-world-rhythm.mjs?v=48';
 /** Pure local intentions. Existing scene/spatial executors own every physical effect. */
 export const AUTONOMY_RESERVATION_MS=2000;
 const MAX_TARGETS=64,MAX_HISTORY=24,MAX_RECENT=8;

@@ -1,5 +1,5 @@
-import {getContextComponent,contextualChatRequest} from './m-world-context.mjs?v=47';
-import {validateCharacterContext} from './m-world-character-context.mjs?v=47';
+import {getContextComponent,contextualChatRequest} from './m-world-context.mjs?v=48';
+import {validateCharacterContext} from './m-world-character-context.mjs?v=48';
 /** V36: public chat answers portfolio questions only. M's autonomous actions and private settings live outside the conversation. */
 export const M_ASSISTANT_GESTURES=Object.freeze(['wave','curious','surprised','shy']);
 export const M_LOCAL_GESTURES=Object.freeze([...M_ASSISTANT_GESTURES,'playful','wink','nod','sleep','hop','think']);
@@ -36,7 +36,7 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
   privacyToggle.dataset.mOverlay='true';
  }
  enableMotion.hidden=true;close.setAttribute('aria-label','Close M chat');
- const intro=make('p','m-companion-intro',target?'Curious about Ricardo’s work? Ask M anything about the projects and experience on this page.':'M explores the page on her own. Questions will be available when AI chat is connected.');
+ const intro=make('p','m-companion-intro',target?'Curious about Ricardo’s work? Ask M anything about the projects and experience on this page, plus reviewed public LinkedIn posts when available.':'M explores the page on her own. Questions will be available when AI chat is connected.');
  const motionNote=make('p','m-companion-intro','Reduced motion is on. M stays still until you enable motion.');motionNote.hidden=true;
  // One collapsed, sourced observation, not an extra action-button panel.
  const worldNote=make('details','m-companion-world-note'),worldSummary=make('summary','','M’s discovery today'),
