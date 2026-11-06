@@ -74,7 +74,7 @@ test('V45 cannot follow malicious pagination, reflect secrets or silently expose
   assert.ok(!JSON.stringify(result).includes('private-token'));
  }
  const src=readFileSync(new URL('linkedin-live.mjs',import.meta.url),'utf8');
- assert.doesNotMatch(src,/localStorage|sessionStorage|document\.cookie|/);
+ assert.doesNotMatch(src,/localStorage|sessionStorage|document\.cookie/);
  assert.equal(DMA_SNAPSHOT_URL,'https://api.linkedin.com/rest/memberSnapshotData');
  assert.equal(DMA_SNAPSHOT_VERSION,'202312');
 });
