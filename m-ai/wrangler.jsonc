@@ -2,17 +2,34 @@
   "name": "m-portfolio-companion",
   "main": "worker.mjs",
   "compatibility_date": "2026-10-30",
-  "compatibility_flags": ["enable_request_signal"],
+  "compatibility_flags": [
+    "enable_request_signal"
+  ],
   "workers_dev": true,
-  "observability": { "enabled": false },
+  "observability": {
+    "enabled": false
+  },
   "vars": {
     "OPENAI_MODEL": "gpt-5-mini",
-    "AI_AUTOPLAY_ENABLED": "false",
     "PORTFOLIO_ORIGIN": "https://ricardo19-deve.github.io",
     "PUBLIC_ACTIVITY_FEED_URL": "https://ricardo19-deve.github.io/data/m-public-activity.json"
   },
   "durable_objects": {
-    "bindings": [{ "name": "M_QUOTA", "class_name": "PortfolioQuota" }]
+    "bindings": [
+      {
+        "name": "M_QUOTA",
+        "class_name": "PortfolioQuota"
+      }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["PortfolioQuota"] }]
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "PortfolioQuota"
+      ]
+    }
+  ],
+  "keep_vars": true,
+  "account_id": "410b1b4a477dbbb58f255c1e59ecd303"
 }

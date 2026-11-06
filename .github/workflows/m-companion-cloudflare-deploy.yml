@@ -1,0 +1,80 @@
+name: M Companion — Cloudflare production deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'm-ai/**'
+      - 'm-world-context.mjs'
+      - 'm-world-character-context.mjs'
+      - '.github/workflows/m-companion-cloudflare-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: m-portfolio-companion-production
+  cancel-in-progress: false
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify M portfolio Worker source and safety regressions
+        run: |
+          node --check m-ai/worker.mjs
+          node --check m-ai/core.mjs
+          node --check m-ai/linkedin-live.mjs
+          node --test m-ai/*.test.mjs
+
+      - name: Check Cloudflare GitHub deployment authorization
+        id: credentials
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -n "$CF_TOKEN" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=M companion deployment not configured::No GitHub CLOUDFLARE_API_TOKEN secret found. Connect Cloudflare Workers Builds for m-portfolio-companion (root directory m-ai), or configure the CLOUDFLARE_API_TOKEN GitHub Actions secret. GitHub code checks have passed; no Cloudflare deployment was attempted."
+            echo "### Worker NOT deployed" >> "$GITHUB_STEP_SUMMARY"
+            echo "GitHub Actions Cloudflare deployment token is missing. Use the official Cloudflare Workers Builds integration or configure the CLOUDFLARE_API_TOKEN GitHub Actions secret." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Deploy only m-portfolio-companion (preserving dashboard vars)
+        if: steps.credentials.outputs.ready == 'true'
+        working-directory: m-ai
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          npx --yes wrangler@4 deploy --config wrangler.jsonc --keep-vars
+
+      - name: Verify public health after deployment
+        if: steps.credentials.outputs.ready == 'true'
+        env:
+          HEALTH_URL: https://m-portfolio-companion.ricardopacheco-pinheiro.workers.dev/health
+        run: |
+          node --input-type=module -e '
+          const url=process.env.HEALTH_URL;
+          for(let i=0;i<6;i++){
+            try{
+              const res=await fetch(url,{cache:"no-store",signal:AbortSignal.timeout(5000)});
+              if(!res.ok)throw new Error("HTTP "+res.status);
+              const data=await res.json();
+              if(!data.configured||data.linkedin?.enabled!==true)throw new Error("M backend or LinkedIn token not available");
+              console.log("M Worker health OK; LinkedIn reader configured. Snapshot status:",data.linkedin.status);
+              process.exit(0);
+            }catch(error){
+              if(i===5){console.error("Health verification failed:",error.message);process.exit(1);}
+              await new Promise(resolve=>setTimeout(resolve,3000));
+            }
+          }'
+          echo "### M companion deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "Worker deployment and public /health verification succeeded. LinkedIn post freshness still depends on the official DMA snapshot." >> "$GITHUB_STEP_SUMMARY"
