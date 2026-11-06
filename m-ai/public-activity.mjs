@@ -15,7 +15,7 @@ const secureUrl=value=>{
  try{
   const u=new URL(value);
   if(u.protocol!=='https:'||u.username||u.password||u.search||u.hash||!['linkedin.com','www.linkedin.com','pt.linkedin.com'].includes(u.hostname))return null;
-  if(!/^\/(?:posts\/[a-z0-9_-]+\/[a-z0-9%_-]+|feed\/update\/urn:li:(?:activity|ugcPost|share):[0-9]+)\/?$/iu.test(u.pathname))return null;
+  if(!/^\/(?:posts\/[a-z0-9%_-]+|feed\/update\/urn:li:(?:activity|ugcPost|share):[0-9]+)\/?$/iu.test(u.pathname))return null;
   return u.href;
  }catch{return null;}
 };
