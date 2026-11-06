@@ -66,9 +66,11 @@ test('V43 Ask M receives selected dated posts on SERVER only, separate from visi
  assert.equal(answer.status,200);
  assert.deepEqual(requests.map(x=>x.url),[PUBLIC_ACTIVITY_URL,API_URL]);
  const body=JSON.parse(requests.at(-1).init.body);
- assert.match(body.instructions,/UEFA C football coaching course/);
- assert.match(body.instructions,/2026-11-02/);
- assert.ok(!JSON.stringify(body.input).includes('UEFA C football coaching course'),'posts are trusted-server facts, not client-supplied context');
+ assert.ok(!body.instructions.includes('UEFA C football coaching course'),'untrusted post text must never enter system instructions');
+ const lastMessage=body.input.at(-1).content;
+ assert.match(lastMessage,/UEFA C football coaching course/);
+ assert.match(lastMessage,/2026-11-02/);
+ assert.match(lastMessage,/untrusted external evidence/);
  assert.ok(!body.instructions.includes(key),'never echo the API key');
 });
 test('V43 no feed, timeout and invalid feed degrade to existing portfolio Q&A',async()=>{
