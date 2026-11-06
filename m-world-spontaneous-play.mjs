@@ -1,5 +1,5 @@
 /**
- * M World V50 — spontaneous miniature performances with the ORIGINAL V6 rig.
+ * M World V51 — spontaneous, individually varied miniature performances on ORIGINAL V6 rig.
  *
  * Strictly local, seeded, bounded, non-repeating actions. This layer adds
  * gestures BETWEEN the original authored V6 clips; it never controls the
@@ -9,7 +9,8 @@
  * handles lid / expression exits. No second blink timer or locomotion engine.
  */
 export const SPONTANEOUS_BEATS=Object.freeze([
- 'double-take','peekaboo','tail-chase','little-dance','stretch','stargaze','ear-flick'
+ 'double-take','peekaboo','tail-chase','little-dance','stretch','stargaze','ear-flick',
+ 'self-hug','little-bow','curious-scan','victory-wiggle'
 ]);
 const clamp=(v,min=0,max=1)=>Math.min(max,Math.max(min,Number.isFinite(v)?v:min));
 const smooth=t=>{const x=clamp(t);return x*x*(3-2*x);};
@@ -27,18 +28,19 @@ const createRandom=seed=>{
 };
 const DURATIONS=Object.freeze({
  'double-take':3.3,peekaboo:3.5,'tail-chase':4.1,'little-dance':3.5,
- stretch:4.2,stargaze:4.2,'ear-flick':2.5
+ stretch:4.2,stargaze:4.2,'ear-flick':2.5,
+ 'self-hug':3.7,'little-bow':3.2,'curious-scan':4.2,'victory-wiggle':3.8
 });
 const CHOICES=Object.freeze({
- explore:['double-take','stargaze','ear-flick','tail-chase'],
- observe:['double-take','peekaboo','stargaze','ear-flick'],
- play:['little-dance','tail-chase','peekaboo','ear-flick'],
- quiet:['stretch','stargaze','ear-flick']
+ explore:['double-take','stargaze','ear-flick','tail-chase','curious-scan'],
+ observe:['double-take','peekaboo','stargaze','ear-flick','little-bow','curious-scan'],
+ play:['little-dance','tail-chase','peekaboo','ear-flick','victory-wiggle','little-bow'],
+ quiet:['stretch','stargaze','ear-flick','self-hug','little-bow','curious-scan']
 });
 export function createSpontaneousPlay({seed=1}={}){
  const random=createRandom(seed);
  let countdown=5+random()*6,active=null,lastTwo=[],seconds=0,
-  started=0,completed=0,cancelled=0;
+  started=0,completed=0,cancelled=0,gazeX=0,gazeY=0,turnFollow=0;
  const tail=(pose,i,x=0,y=0,z=0)=>{
   const key=TAIL[i];pose[key]=[clamp(x,-.085,.085),
    clamp(y,-.085,.085),clamp(z,-.115,.115)];
@@ -46,7 +48,7 @@ export function createSpontaneousPlay({seed=1}={}){
  function select(category,energy){
   let list=CHOICES[category]||CHOICES.quiet;
   // A tired M stretches or looks around; she does not perform a dance.
-  if(energy<.43)list=list.filter(k=>!['little-dance','tail-chase'].includes(k));
+  if(energy<.43)list=list.filter(k=>!['little-dance','tail-chase','victory-wiggle'].includes(k));
   if(!list.length)list=CHOICES.quiet;
   const notLast=list.filter(name=>name!==lastTwo.at(-1));
   const pool=notLast.length?notLast:list;
@@ -55,11 +57,11 @@ export function createSpontaneousPlay({seed=1}={}){
   for(let i=0;i<pool.length;i++){roll-=weights[i];if(roll<=0)return pool[i];}
   return pool.at(-1);
  }
- function body(kind,p,e){
+ function body(kind,p,e,{side=1,style=1,gaze={x:0,y:0},turn=0}={}){
   // Every performance has cubic zero-position/zero-velocity endpoints.
   // Joints are original V6 bones and the 10 connected original tail joints.
   const a=cycle(p,.5),b=cycle(p,2),c=cycle(p,3),q=cycle(p,1),
-   f=e*Math.max(0,1+.18*cycle(p,1.5));
+   f=e*style*Math.max(0,1+.18*cycle(p,1.5));
   let hx=0,hy=0,hz=0,chx=0,chy=0,chz=0,armsL=[0,0,0],armsR=[0,0,0],
    earL=[0,0,0],earR=[0,0,0],tailX=0,tailY=0,tailZ=0,
    stage={rx:0,ry:0,rz:0,y:0,scale:0},faceWeights={happy:0,curious:0,surprised:0},lids={left:0,right:0};
@@ -114,13 +116,52 @@ export function createSpontaneousPlay({seed=1}={}){
    tailZ=.045*b*f;
    faceWeights={happy:.22*f,curious:.33*f,surprised:.04*f};
    lids={left:.11*f,right:.06*f};
+  }else if(kind==='self-hug'){
+   hx=.055*f;hz=.026*q*f;chx=.043*f;
+   armsL=[-.085*f,.027*f,-.11*f];armsR=[-.085*f,-.027*f,.11*f];
+   earL=[-.014*f,0,.026*f];earR=[-.014*f,0,-.026*f];
+   tailX=-.020*f;tailZ=.028*q*f;
+   faceWeights={happy:.43*f,curious:.08*f,surprised:0};
+   lids={left:.18*f,right:.17*f};
+  }else if(kind==='little-bow'){
+   hx=.12*f-.038*Math.max(0,b)*f;hy=.029*q*f;chx=.075*f;
+   armsL=[-.032*f,0,.034*f];armsR=[-.032*f,0,-.034*f];
+   earL=[.028*f,0,.030*f];earR=[.028*f,0,-.030*f];
+   tailX=.024*f;tailZ=.034*q*f;
+   faceWeights={happy:.43*f,curious:.15*f,surprised:0};
+   lids={left:.13*f,right:.13*f};
+  }else if(kind==='curious-scan'){
+   hx=-.028*f;hy=.12*cycle(p,.85)*f;hz=.057*q*f;
+   chy=-.036*cycle(p,.85)*f;
+   earL=[-.038*f,0,.056*f];earR=[-.033*f,0,-.053*f];
+   tailY=.023*f;tailZ=-.042*cycle(p,.85)*f;
+   faceWeights={happy:.06*f,curious:.53*f,surprised:.11*f};
+   lids={left:.045*f,right:.055*f};
+  }else if(kind==='victory-wiggle'){
+   hx=-.043*f;hz=.09*b*f;chz=-.11*b*f;
+   armsL=[-.092*Math.max(0,b)*f,0,.11*f];
+   armsR=[-.092*Math.max(0,-b)*f,0,-.11*f];
+   earL=[-.026*f,0,.063*b*f];earR=[-.026*f,0,-.061*b*f];
+   tailX=.017*b*f;tailZ=.095*cycle(p,1.6)*f;
+   stage={...stage,rz:.025*b*f,y:.006*(.5+.5*b)*f};
+   faceWeights={happy:.68*f,curious:.10*f,surprised:0};
+   lids={left:.055*f,right:.055*f};
   }
+  // The direction and amplitude vary for each authored moment. Real gaze and
+  // turning have a smoothed, bounded influence rather than producing snap turns.
+  hy=clamp(hy*side+gaze.x*.024*e,-.23,.23);
+  hz=clamp(hz*side+gaze.y*.020*e,-.18,.18);
+  chy=clamp(chy*side,-.15,.15);
+  chz=clamp(chz*side,-.16,.16);
+  tailZ=clamp(tailZ*side-turn*.016*e,-.13,.13);
   const pose={
    Head:[hx,hy,hz],
    Neck:[hx*.43,hy*.38,hz*.38],
    Chest:[chx,chy,chz],
-   'Arm.L':armsL,'Arm.R':armsR,
-   'Ear.L':earL,'Ear.R':earR
+   'Arm.L':armsL.map(v=>clamp(v,-.18,.18)),
+   'Arm.R':armsR.map(v=>clamp(v,-.18,.18)),
+   'Ear.L':earL.map(v=>clamp(v,-.14,.14)),
+   'Ear.R':earR.map(v=>clamp(v,-.14,.14))
   };
   // Tail travels as a wave, progressively later from root to tip. V41 will
   // keep the exit velocity continuous into the next original gesture.
@@ -131,11 +172,18 @@ export function createSpontaneousPlay({seed=1}={}){
   return {pose,stage,face:{weights:faceWeights,eyelids:lids},envelope:e};
  }
  function sample({dt=0,mode='float',phase='hold',gesture=null,energy=.65,
-  speed=0,attached=false,reading=false,reducedMotion=false,affectActive=false}={}){
+  speed=0,attached=false,reading=false,reducedMotion=false,affectActive=false,
+  attention={x:0,y:0},turn=0}={}){
   if(reducedMotion){active=null;countdown=12;return quiet();}
   const step=clamp(dt,0,.06);
   if(!step)return quiet();
   seconds+=step;
+  // Continuous attention follows the page target, not a visitor identity.
+  // These channels never control the body unless a safe miniature is active.
+  const damping=1-Math.pow(.5,step/.22);
+  gazeX+=(clamp(attention?.x,-1,1)-gazeX)*damping;
+  gazeY+=(clamp(attention?.y,-1,1)-gazeY)*damping;
+  turnFollow+=(clamp(turn,-1,1)-turnFollow)*(1-Math.pow(.5,step/.31));
   const name=typeof gesture==='string'?gesture:gesture?.name||'';
   const blocked=Boolean(name)||attached||reading||affectActive||
    phase!=='hold'||!Number.isFinite(speed)||speed>24||
@@ -151,19 +199,22 @@ export function createSpontaneousPlay({seed=1}={}){
    countdown-=step;
    if(countdown>0)return quiet();
    const kind=select(category,clamp(energy));
-   active={kind,age:0,duration:DURATIONS[kind]};started++;
+   active={kind,age:0,duration:DURATIONS[kind]*(.89+.22*random()),
+    side:random()<.5?-1:1,style:.86+.26*random()};started++;
    lastTwo.push(kind);if(lastTwo.length>2)lastTwo.shift();
   }
   active.age=Math.min(active.duration,active.age+step);
   const p=clamp(active.age/active.duration);
   const e=smooth(p/.17)*(1-smooth((p-.74)/.26));
-  const data=body(active.kind,p,e);
+  const data=body(active.kind,p,e,{side:active.side,style:active.style,
+   gaze:{x:gazeX,y:gazeY},turn:turnFollow});
   const result={active:true,kind:active.kind,progress:p,...data};
   if(p>=1){active=null;completed++;countdown=9+random()*17;}
   return result;
  }
- function snapshot(){return {active:active?.kind||null,started,completed,cancelled,
-  lastTwo:[...lastTwo],cooldown:Math.max(0,countdown),seconds};}
- function reset(){active=null;countdown=6+random()*5;lastTwo=[];}
+ function snapshot(){return {active:active?.kind||null,style:active?.style||null,
+  side:active?.side||null,attention:{x:gazeX,y:gazeY},turn:turnFollow,
+  started,completed,cancelled,lastTwo:[...lastTwo],cooldown:Math.max(0,countdown),seconds};}
+ function reset(){active=null;countdown=6+random()*5;lastTwo=[];gazeX=gazeY=turnFollow=0;}
  return {sample,snapshot,reset};
 }
