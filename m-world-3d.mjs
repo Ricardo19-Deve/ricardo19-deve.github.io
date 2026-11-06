@@ -7,23 +7,24 @@ import {preserveFullSkinning} from './m-lab/swim-v3/threejs/full-skinning.js';
 import {createFacialV6} from './m-lab/interactions/facial-v6.mjs?blink=v30';
 import {createMotionV8,motionPose,canonicalBoneName} from './m-lab/interactions/motion-v8.mjs?rig=v16';
 import {performanceStagePoseV15} from './m-lab/interactions/performance-v15.mjs?v16';
-import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=54';
-import {createPresenceDynamics} from './m-world-dynamics.mjs?v=54';
-import {createFacialContinuity} from './m-world-face-continuity.mjs?v=54';
-import {visualDepthMasks,visualDepthSide} from './m-world-occlusion.mjs?v=54';
-import {createMicroMotion} from './m-world-micro-motion.mjs?v=54';
-import {sampleEmbodiedRest} from './m-world-rest-pose.mjs?v=54';
-import {createLivingPerformance} from './m-world-living-performance.mjs?v=54';
-import {createSurfaceContact} from './m-world-surface-contact.mjs?v=54';
-import {createMotionContinuity} from './m-world-motion-continuity.mjs?v=54';
-import {createEmotionalBody} from './m-world-emotional-body.mjs?v=54';
-import {createPoseHandoff} from './m-world-pose-handoff.mjs?v=54';
-import {createLifeBridges} from './m-world-life-bridges.mjs?v=54';
-import {createSpontaneousPlay} from './m-world-spontaneous-play.mjs?v=54';
-import {createBetweenBeats} from './m-world-between-beats.mjs?v=54';
-import {createRenderQualityGovernor} from './m-world-quality.mjs?v=54';
-import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=54';
-import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs?v=54';
+import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=55';
+import {createPresenceDynamics} from './m-world-dynamics.mjs?v=55';
+import {createFacialContinuity} from './m-world-face-continuity.mjs?v=55';
+import {visualDepthMasks,visualDepthSide} from './m-world-occlusion.mjs?v=55';
+import {createMicroMotion} from './m-world-micro-motion.mjs?v=55';
+import {sampleEmbodiedRest} from './m-world-rest-pose.mjs?v=55';
+import {createLivingPerformance} from './m-world-living-performance.mjs?v=55';
+import {createSurfaceContact} from './m-world-surface-contact.mjs?v=55';
+import {createMotionContinuity} from './m-world-motion-continuity.mjs?v=55';
+import {createEmotionalBody} from './m-world-emotional-body.mjs?v=55';
+import {createPoseHandoff} from './m-world-pose-handoff.mjs?v=55';
+import {createLifeBridges} from './m-world-life-bridges.mjs?v=55';
+import {createSpontaneousPlay} from './m-world-spontaneous-play.mjs?v=55';
+import {createBetweenBeats} from './m-world-between-beats.mjs?v=55';
+import {createIntentCrossfade} from './m-world-intent-crossfade.mjs?v=55';
+import {createRenderQualityGovernor} from './m-world-quality.mjs?v=55';
+import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=55';
+import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs?v=55';
 
 const PART_COUNT=19;
 const EXPECTED_SIZE=16899868;
@@ -149,12 +150,12 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   shaderErrors.push(text);throw new Error('M skinning/depth shader compilation failed: '+text);
  };
  let viewportSize=0,pixelRatio=0,disposed=false,environmentTarget=null,clock=0,swimWeight=0,autoBlink=true,depth=1,spatialFrame=null,frameFit=null;
- const presence=createPresenceDynamics(),qualityGovernor=createRenderQualityGovernor(),microMotion=createMicroMotion(),livingPerformance=createLivingPerformance({seed:Math.floor(Math.random()*4294967295)}),surfaceContact=createSurfaceContact(),motionContinuity=createMotionContinuity(),emotionalBody=createEmotionalBody({seed:Math.floor(Math.random()*4294967295)}),lifeBridges=createLifeBridges(),spontaneousPlay=createSpontaneousPlay({seed:Math.floor(Math.random()*4294967295)}),betweenBeats=createBetweenBeats({seed:Math.floor(Math.random()*4294967295)});
+ const presence=createPresenceDynamics(),qualityGovernor=createRenderQualityGovernor(),microMotion=createMicroMotion(),livingPerformance=createLivingPerformance({seed:Math.floor(Math.random()*4294967295)}),surfaceContact=createSurfaceContact(),motionContinuity=createMotionContinuity(),emotionalBody=createEmotionalBody({seed:Math.floor(Math.random()*4294967295)}),lifeBridges=createLifeBridges(),spontaneousPlay=createSpontaneousPlay({seed:Math.floor(Math.random()*4294967295)}),betweenBeats=createBetweenBeats({seed:Math.floor(Math.random()*4294967295)}),intentCrossfade=createIntentCrossfade();
   // Preserve bone poses AND their angular velocity when an autonomous layer
   // hands control to a gesture, sleep, card attachment or another mood.
   const handoffs={living:createPoseHandoff({halfLife:.16}),contact:createPoseHandoff({halfLife:.13}),continuity:createPoseHandoff({halfLife:.16}),emotional:createPoseHandoff({halfLife:.18}),life:createPoseHandoff({halfLife:.15}),play:createPoseHandoff({halfLife:.13}),ambient:createPoseHandoff({halfLife:.19})};
   const stageHandoff=createPoseHandoff({halfLife:.25,limit:1.7});
- let lastContact=surfaceContact.sample(),lastContinuity=motionContinuity.sample(),lastEmotional=emotionalBody.sample({reducedMotion:true}),lastBridge=lifeBridges.sample({reducedMotion:true}),lastPlay=spontaneousPlay.sample({reducedMotion:true}),lastAmbient=betweenBeats.sample({reducedMotion:true});
+ let lastContact=surfaceContact.sample(),lastContinuity=motionContinuity.sample(),lastEmotional=emotionalBody.sample({reducedMotion:true}),lastBridge=lifeBridges.sample({reducedMotion:true}),lastPlay=spontaneousPlay.sample({reducedMotion:true}),lastAmbient=betweenBeats.sample({reducedMotion:true}),lastTransition=intentCrossfade.sample({reducedMotion:true});
  let lastRestPose=sampleEmbodiedRest();
  const scene=new THREE.Scene(),camera=new THREE.OrthographicCamera(-WORLD_SPAN/2,WORLD_SPAN/2,WORLD_SPAN/2,-WORLD_SPAN/2,.03,100);
  camera.position.set(0,0,8);camera.lookAt(0,0,0);camera.updateProjectionMatrix();camera.updateMatrixWorld(true);
@@ -418,7 +419,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    return {bones:31,rigBones:31,tailBones:motion.tailDiagnostics.connected,maxInfluences:skin.maxUsed,skinSets:skin.sets,
     clips:clips.map(c=>c.name),detailMaps:textures.size,detailSlots,viewportSize,pixelRatio,renderPixels:[canvas.width,canvas.height],
     environment:{type:'PMREM RoomEnvironment',intensity:scene.environmentIntensity,toneMapping:'AgX'},
-     quality:qualityGovernor.snapshot(),presence:presence.snapshot(),facialContinuity:facialContinuity.snapshot(),microMotion:microMotion.snapshot(),livingPerformance:{...livingPerformance.snapshot(),mode:lastLiving.mode,idle:lastLiving.idle,reaction:lastLiving.reaction},restPose:{...lastRestPose},contact:{...surfaceContact.snapshot(),supported:lastContact.supported},continuity:{...motionContinuity.snapshot(),mode:lastContinuity.mode},emotionalBody:{...emotionalBody.snapshot(),mood:lastEmotional.mood},handoff:{stage:stageHandoff.snapshot(),living:handoffs.living.snapshot(),contact:handoffs.contact.snapshot(),continuity:handoffs.continuity.snapshot(),emotional:handoffs.emotional.snapshot(),life:handoffs.life.snapshot(),play:handoffs.play.snapshot(),ambient:handoffs.ambient.snapshot()},lifeBridge:lifeBridges.snapshot(),spontaneousPlay:spontaneousPlay.snapshot(),betweenBeats:betweenBeats.snapshot(),
+     quality:qualityGovernor.snapshot(),presence:presence.snapshot(),facialContinuity:facialContinuity.snapshot(),microMotion:microMotion.snapshot(),livingPerformance:{...livingPerformance.snapshot(),mode:lastLiving.mode,idle:lastLiving.idle,reaction:lastLiving.reaction},restPose:{...lastRestPose},contact:{...surfaceContact.snapshot(),supported:lastContact.supported},continuity:{...motionContinuity.snapshot(),mode:lastContinuity.mode},emotionalBody:{...emotionalBody.snapshot(),mood:lastEmotional.mood},handoff:{stage:stageHandoff.snapshot(),living:handoffs.living.snapshot(),contact:handoffs.contact.snapshot(),continuity:handoffs.continuity.snapshot(),emotional:handoffs.emotional.snapshot(),life:handoffs.life.snapshot(),play:handoffs.play.snapshot(),ambient:handoffs.ambient.snapshot()},lifeBridge:lifeBridges.snapshot(),spontaneousPlay:spontaneousPlay.snapshot(),betweenBeats:betweenBeats.snapshot(),intentCrossfade:intentCrossfade.snapshot(),
     framing:{rest:boundsRecord(restBox),envelope:boundsRecord(envelope),framed:boundsRecord(framed),scale:frameFit.scale,samples:frameSamples},
     occlusion:{supported:depthSupported,depth,visualSide:visualDepthSide(depth),worldZ:depthRoot.position.z,surfaceZ:0,protectedZ:depthPlan.protectedZ,surfaceRects:surfaceBatch.rectCount,protectedRects:protectedBatch.rectCount,maskDrawCalls:Number(surfaceBatch.mesh.visible)+Number(protectedBatch.mesh.visible)},
     render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,points:renderer.info.render.points,lines:renderer.info.render.lines,programs:renderer.info.programs.length,textures:renderer.info.memory.textures,geometries:renderer.info.memory.geometries},
@@ -482,6 +483,15 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     gesture:state.gesture,attached:lastContact.supported,
     reading:Boolean(state.reading),miniActive:lastPlay.active,
     affectActive:lastAffect.envelope>.04,reducedMotion:reduced});
+   // V55: the face, eyes, neck and tail must hand off between PLAY and
+   // OBSERVE as one intention. The original V41 bone springs then preserve
+   // velocity across interruptions, sleep and the next authored gesture.
+   lastTransition=intentCrossfade.sample({dt,playState:lastPlay,ambientState:lastAmbient,
+    gestureActive:Boolean(state.gesture)||Boolean(lastGesture.name),
+    resting:calm||lastContact.supported||Boolean(state.reading),
+    priorityAffect:lastAffect.envelope>.04,reducedMotion:reduced});
+   lastPlay={...lastPlay,pose:lastTransition.playPose,stage:lastTransition.playStage};
+   lastAmbient={...lastAmbient,pose:lastTransition.ambientPose};
    // V41: never drop a live additive quaternion at an action boundary.
    // Every secondary layer hands its previous pose/velocity to the next frame.
    lastLiving={...lastLiving,pose:handoffs.living.sample(lastLiving.pose,dt,{immediate:reduced})};
@@ -504,7 +514,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    emotionalLayer.apply(lastEmotional.pose);lifeLayer.apply(lastBridge.pose);playLayer.apply(lastPlay.pose);ambientLayer.apply(lastAmbient.pose);
    source.position.copy(neutralSourcePosition);source.position.y+=lastGesture.lift*characterHeight;
    facial.setGestureBlink(reduced?{left:0,right:0}:lastGesture.blink);
-   const microFace=!reduced&&!state.gesture&&lastAffect.envelope<.04?(lastPlay.face||lastAmbient.face):null;
+   const microFace=!reduced&&!state.gesture&&lastAffect.envelope<.04?lastTransition.face:null;
    const fade=facialContinuity.sample({dt,weights:microFace?.weights||lastAffect.weights,
     eyelids:microFace?.eyelids||lastAffect.eyelids,reducedMotion:reduced,
     gestureActive:Boolean(lastGesture.name)});
