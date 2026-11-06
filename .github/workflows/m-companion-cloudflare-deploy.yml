@@ -38,16 +38,14 @@ jobs:
         id: credentials
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CF_ACCOUNT_VAR: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          if [ -n "$CF_TOKEN" ] && { [ -n "$CF_ACCOUNT" ] || [ -n "$CF_ACCOUNT_VAR" ]; }; then
+          if [ -n "$CF_TOKEN" ]; then
             echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=M companion deployment not configured::No GitHub Cloudflare API credentials found. Configure Cloudflare Workers Builds for m-portfolio-companion (root directory m-ai), or add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID to GitHub Actions secrets. GitHub code checks have passed; no Cloudflare deployment was attempted."
+            echo "::notice title=M companion deployment not configured::No GitHub CLOUDFLARE_API_TOKEN secret found. Connect Cloudflare Workers Builds for m-portfolio-companion (root directory m-ai), or configure the CLOUDFLARE_API_TOKEN GitHub Actions secret. GitHub code checks have passed; no Cloudflare deployment was attempted."
             echo "### Worker NOT deployed" >> "$GITHUB_STEP_SUMMARY"
-            echo "GitHub Actions Cloudflare credentials are missing. Use the official Cloudflare Workers Builds integration or configure the two GitHub secrets." >> "$GITHUB_STEP_SUMMARY"
+            echo "GitHub Actions Cloudflare deployment token is missing. Use the official Cloudflare Workers Builds integration or configure the CLOUDFLARE_API_TOKEN GitHub Actions secret." >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Deploy only m-portfolio-companion (preserving dashboard vars)
@@ -55,7 +53,6 @@ jobs:
         working-directory: m-ai
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           npx --yes wrangler@4 deploy --config wrangler.jsonc --keep-vars
 
