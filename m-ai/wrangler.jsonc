@@ -8,7 +8,8 @@
   "vars": {
     "OPENAI_MODEL": "gpt-5-mini",
     "AI_AUTOPLAY_ENABLED": "false",
-    "PORTFOLIO_ORIGIN": "https://ricardo19-deve.github.io"
+    "PORTFOLIO_ORIGIN": "https://ricardo19-deve.github.io",
+    "PUBLIC_ACTIVITY_FEED_URL": "https://ricardo19-deve.github.io/data/m-public-activity.json"
   },
   "durable_objects": {
     "bindings": [{ "name": "M_QUOTA", "class_name": "PortfolioQuota" }]
