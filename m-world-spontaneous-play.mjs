@@ -158,8 +158,10 @@ export function createSpontaneousPlay({seed=1}={}){
    Head:[hx,hy,hz],
    Neck:[hx*.43,hy*.38,hz*.38],
    Chest:[chx,chy,chz],
-   'Arm.L':armsL,'Arm.R':armsR,
-   'Ear.L':earL,'Ear.R':earR
+   'Arm.L':armsL.map(v=>clamp(v,-.18,.18)),
+   'Arm.R':armsR.map(v=>clamp(v,-.18,.18)),
+   'Ear.L':earL.map(v=>clamp(v,-.14,.14)),
+   'Ear.R':earR.map(v=>clamp(v,-.14,.14))
   };
   // Tail travels as a wave, progressively later from root to tip. V41 will
   // keep the exit velocity continuous into the next original gesture.
