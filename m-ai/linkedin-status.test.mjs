@@ -20,7 +20,7 @@ function input(){
 const quota={ready:true,async reserve(){return {allowed:true,token:'lease'};},async release(){}};
 test('V46 unavailable member snapshot explains pending/expired/empty errors, never claims no posts exist',async()=>{
  for(const [kind,linkedInResponse,required]of [
-  ['pending',()=>new Response('',{status:404}),/still being prepared after consent/],
+  ['pending-or-empty',()=>new Response('',{status:404}),/may still be preparing after consent, OR no data may be available/],
   ['expired',()=>new Response('',{status:401}),/could not authorize access/],
   ['server',()=>new Response('',{status:503}),/returned a 5xx error/],
   ['no-recognized',()=>new Response(JSON.stringify({
@@ -43,7 +43,7 @@ test('V46 unavailable member snapshot explains pending/expired/empty errors, nev
   assert.match(metadata.input.at(-1).content,required,kind);
   assert.match(metadata.input.at(-1).content,/No verified public LinkedIn posts/);
   assert.doesNotMatch(JSON.stringify(metadata),/fake-private-token/,'token cannot reach model');
-  assert.doesNotMatch(metadata.instructions,/The official LinkedIn MEMBER_SHARE_INFO snapshot is still being prepared/,'provider-specific status belongs to untrusted user evidence, never system instructions');
+  assert.doesNotMatch(metadata.instructions,/LinkedIn returned HTTP 404 \(No data found\) for MEMBER_SHARE_INFO/,'provider-specific status belongs to untrusted user evidence, never system instructions');
  }
 });
 test('V46 latest-post explanation from source does not influence unrelated project questions',async()=>{
