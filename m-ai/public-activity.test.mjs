@@ -45,7 +45,7 @@ test('V43 empty feed never implies live access to LinkedIn',async()=>{
  const empty=await reader.get();
  assert.equal(empty.status,'empty');assert.deepEqual(empty.posts,[]);
  const source=readFileSync(new URL('core.mjs',import.meta.url),'utf8');
- assert.match(source,/no verified public LinkedIn posts/);
+ assert.match(source,/no verified public LinkedIn posts/i);
  assert.match(source,/Never claim live LinkedIn access/);
 });
 test('V43 Ask M receives selected dated posts on SERVER only, separate from visitor context',async()=>{
