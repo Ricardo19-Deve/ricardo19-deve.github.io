@@ -21,7 +21,8 @@ function visit({seed=67,frames=60*450,mode='float',energy=.9}={}){
 }
 test('V50 uses seven different original-rig miniature performances, not fake external props',()=>{
  assert.deepEqual(SPONTANEOUS_BEATS,[
-  'double-take','peekaboo','tail-chase','little-dance','stretch','stargaze','ear-flick'
+  'double-take','peekaboo','tail-chase','little-dance','stretch','stargaze','ear-flick',
+  'self-hug','little-bow','curious-scan','victory-wiggle'
  ]);
  const observed=new Set();
  for(const mode of ['float','peek','play','unknown']){
