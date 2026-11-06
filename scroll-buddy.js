@@ -1,25 +1,25 @@
 import './m-analytics-bootstrap.mjs?v=34';
-import {createCharacter,characterReceiptId} from './m-world-character.mjs?v=51';
-import {createAutonomy} from './m-world-autonomy.mjs?v=51';
-import {planBallFlight,sampleBallFlight} from './m-world-ball.mjs?v=51';
-import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=51';
-import {createSessionMemory} from './m-world-memory.mjs?v=51';
-import {createGrowthMemory,makeLivingSeed,growthFamilyForDecision} from './m-world-growth.mjs?v=51';
-import {createWorldKnowledge} from './m-world-world-knowledge.mjs?v=51';
-import {createLivedWorldStories} from './m-world-lived-stories.mjs?v=51';
-import {senseWorldRhythm} from './m-world-world-rhythm.mjs?v=51';
-import {getContextComponent,matchContextComponent} from './m-world-context.mjs?v=51';
-import {M_AFFECTS,AFFECT_DURATIONS} from './m-world-affect.mjs?v=51';
-import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=51';
-import {createWorldObserver} from './m-world-observer.mjs?v=51';
-import {createWorldDirector} from './m-world-director.mjs?v=51';
-import {advanceLocomotion} from './m-world-locomotion.mjs?v=51';
+import {createCharacter,characterReceiptId} from './m-world-character.mjs?v=53';
+import {createAutonomy} from './m-world-autonomy.mjs?v=53';
+import {planBallFlight,sampleBallFlight} from './m-world-ball.mjs?v=53';
+import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=53';
+import {createSessionMemory} from './m-world-memory.mjs?v=53';
+import {createGrowthMemory,makeLivingSeed,growthFamilyForDecision} from './m-world-growth.mjs?v=53';
+import {createWorldKnowledge} from './m-world-world-knowledge.mjs?v=53';
+import {createLivedWorldStories} from './m-world-lived-stories.mjs?v=53';
+import {senseWorldRhythm} from './m-world-world-rhythm.mjs?v=53';
+import {getContextComponent,matchContextComponent} from './m-world-context.mjs?v=53';
+import {M_AFFECTS,AFFECT_DURATIONS} from './m-world-affect.mjs?v=53';
+import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=53';
+import {createWorldObserver} from './m-world-observer.mjs?v=53';
+import {createWorldDirector} from './m-world-director.mjs?v=53';
+import {advanceLocomotion} from './m-world-locomotion.mjs?v=53';
 import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
-import {MWorldBrain} from './m-world-brain.mjs?v=51';
-import {M_GESTURES,GESTURE_DURATIONS,PAW_CONTACT_PROGRESS} from './m-world-acting.mjs?v=51';
-import {createMCompanion} from './m-world-companion.mjs?v=51';
-import {M_WORLD_CONFIG} from './m-world-config.mjs?v=51';
-import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=51';
+import {MWorldBrain} from './m-world-brain.mjs?v=53';
+import {M_GESTURES,GESTURE_DURATIONS,PAW_CONTACT_PROGRESS} from './m-world-acting.mjs?v=53';
+import {createMCompanion} from './m-world-companion.mjs?v=53';
+import {M_WORLD_CONFIG} from './m-world-config.mjs?v=53';
+import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=53';
 
 (() => {
  'use strict';
@@ -771,7 +771,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(loading||avatar)return loading;
   loading=(async()=>{
    try{
-    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=51');
+    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=53');
     avatar=await mountMWorld3D(host,{onProgress(percent){layer.dataset.loadProgress=String(percent);if(active)toggle.textContent='M · '+percent+'%';}});
     metrics=avatar.getMetrics();cache.dirty=true;cache.lastRead=0;
     const world=worldSnapshot();
