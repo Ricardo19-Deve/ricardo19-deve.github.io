@@ -138,7 +138,13 @@ export function createDMALiveReader({
      break;
     }
     if(response.status===401||response.status===403){latest=blank('not-authorized');break;}
-    if(!response.ok)throw Error('upstream');
+    // Retain only safe, finite diagnostic categories. Never read or return
+    // LinkedIn's error response body (it may contain private account data).
+    if(response.status===426){latest=blank('api-version-error');break;}
+    if(response.status===400||response.status===422){latest=blank('request-rejected');break;}
+    if(response.status===429){latest=blank('rate-limited');break;}
+    if(response.status>=500){latest=blank('provider-error');break;}
+    if(!response.ok){latest=blank('request-rejected');break;}
     const body=await boundedJson(response);
     rows.push(...parsePage(body));
     if(rows.length>MAX_ROWS)throw Error('row-limit');
@@ -148,7 +154,17 @@ export function createDMALiveReader({
     start=next;
    }
    return latest;
-  }catch{return blank('unavailable');}
+  }catch(error){
+   if(abort.signal.aborted||error?.name==='AbortError'||error?.name==='TimeoutError')return blank('timeout');
+   // A closed classification list: never expose arbitrary exception messages,
+   // response bodies, bearer token, URLs, or connection identifiers.
+   if(error?.message==='oversize')return blank('response-too-large');
+   if(['invalid-domain','invalid-snapshot','missing-body'].includes(error?.message)||error instanceof SyntaxError)return blank('invalid-response');
+   if(['invalid-pagination','page-limit'].includes(error?.message))return blank('invalid-pagination');
+   if(error?.message==='row-limit')return blank('response-too-large');
+   if(error instanceof TypeError)return blank('network-error');
+   return blank('unavailable');
+  }
   finally{clearTimeout(timer);}
  }
  async function get(){
