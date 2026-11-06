@@ -1,7 +1,7 @@
 import { PORTFOLIO_CONTEXT } from './portfolio-context.mjs';
 import {createPublicActivityReader} from './public-activity.mjs';
 import {createDMALiveReader} from './linkedin-live.mjs';
-import {isPublicationQuestion,isProfessionalQuestion,PROFESSIONAL_PRESENTATION_RULES} from './professional-guide.mjs';
+import {isPublicationQuestion,isProfessionalQuestion,PROFESSIONAL_PRESENTATION_RULES,normalizeProfessionalReply} from './professional-guide.mjs';
 import { DIRECTOR_OPERATION } from './director.mjs';
 import { getContextComponent } from '../m-world-context.mjs';
 import {M_CHARACTER_BIBLE,validateCharacterContext} from '../m-world-character-context.mjs';
@@ -46,7 +46,10 @@ const CHAT_OPERATION = Object.freeze({
   enabled: () => true,
   validateInput,
   validateOutput: (output, _input, secret, source) => validateReply(output, secret, source?.status==='ready'?source.posts?.map(post=>post.url).filter(Boolean):[]),
-  normalizeOutput: (output, input) => ({ ...output, section: requestedSections(input).includes(output.section) ? output.section : 'none' }),
+  normalizeOutput: (output, input) => {
+    const professional=normalizeProfessionalReply(output,input.message,input.context.language);
+    return {...professional,section:requestedSections(input).includes(professional.section)?professional.section:'none'};
+  },
   refusal: input => refusal(input.context.language),
   payload(input,publicActivity=null) {
     const professional=isProfessionalQuestion(input.message);
