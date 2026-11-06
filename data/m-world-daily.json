@@ -1,15 +1,15 @@
 {
   "schema": 1,
-  "date": "2026-11-05",
+  "date": "2026-11-06",
   "source": "Wikipedia — On this day",
-  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/05",
+  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/06",
   "items": [
     {
-      "id": "2026-11-05:2013:science",
-      "year": 2013,
-      "title": "ISRO",
-      "url": "https://en.wikipedia.org/wiki/ISRO",
-      "topic": "science"
+      "id": "2026-11-06:1217:nature",
+      "year": 1217,
+      "title": "Royal forest",
+      "url": "https://en.wikipedia.org/wiki/Royal_forest",
+      "topic": "nature"
     }
   ]
 }
