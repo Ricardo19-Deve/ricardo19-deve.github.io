@@ -43,7 +43,7 @@ test('V46 unavailable member snapshot explains pending/expired/empty errors, nev
   assert.match(metadata.input.at(-1).content,required,kind);
   assert.match(metadata.input.at(-1).content,/No verified public LinkedIn posts/);
   assert.doesNotMatch(JSON.stringify(metadata),/fake-private-token/,'token cannot reach model');
-  assert.doesNotMatch(metadata.instructions,/still being prepared after consent/,'provider status belongs to untrusted user evidence, never system instructions');
+  assert.doesNotMatch(metadata.instructions,/The official LinkedIn MEMBER_SHARE_INFO snapshot is still being prepared/,'provider-specific status belongs to untrusted user evidence, never system instructions');
  }
 });
 test('V46 latest-post explanation from source does not influence unrelated project questions',async()=>{
