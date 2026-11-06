@@ -69,7 +69,7 @@ test('V45 cannot follow malicious pagination, reflect secrets or silently expose
  ]){
   const reader=createDMALiveReader({token:'private-token',fetchImpl:async()=>json(snapshot([example()],next))});
   const result=await reader.get();
-  assert.equal(result.status,'unavailable');
+  assert.equal(result.status,'invalid-pagination');
   assert.deepEqual(result.posts,[]);
   assert.ok(!JSON.stringify(result).includes('private-token'));
  }
