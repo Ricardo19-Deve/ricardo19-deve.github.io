@@ -78,7 +78,7 @@ test('V42 only acknowledged completion creates a recent gesture, never acceptanc
 
 test('V42 no new models, avatar assets, user profiles or API calls',()=>{
  const code=readFileSync(new URL('m-world-autonomy.mjs',import.meta.url),'utf8');
- assert.doesNotMatch(code,/\\bfetch\\s*\\(|localStorage|sessionStorage|document\\.|window\\.|OpenAI|analytics/i);
+ assert.doesNotMatch(code,/\bfetch\s*\(|localStorage|sessionStorage|document\.|window\.|OpenAI|analytics/i);
  assert.match(code,/recentGestures/);
  assert.match(code,/variedGestures/);
  assert.match(code,/completedCount===0&&hasOpening/,'opening itself is only boosted for the first real decision');
