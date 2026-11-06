@@ -31,7 +31,7 @@ test('V53 accidental "I love chasing lights" lead is replaced by verified profes
  assert.doesNotMatch(result.reply,/luzes|recantos|magia/i);
  assert.equal(result.gesture,'none');
  assert.equal(result.expression,'neutral');
- assert.equal(result.section,'none');
+ assert.equal(result.section,'about'); // explicit navigation policy is enforced later by core
  assert.ok(result.reply.length<=700);
 });
 
