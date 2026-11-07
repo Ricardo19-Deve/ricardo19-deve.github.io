@@ -1,14 +1,14 @@
 {
   "schema": 1,
-  "date": "2026-11-06",
+  "date": "2026-11-07",
   "source": "Wikipedia — On this day",
-  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/06",
+  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/07",
   "items": [
     {
-      "id": "2026-11-06:1217:nature",
-      "year": 1217,
-      "title": "Royal forest",
-      "url": "https://en.wikipedia.org/wiki/Royal_forest",
+      "id": "2026-11-07:1949:nature",
+      "year": 1949,
+      "title": "Caspian Sea",
+      "url": "https://en.wikipedia.org/wiki/Caspian_Sea",
       "topic": "nature"
     }
   ]
