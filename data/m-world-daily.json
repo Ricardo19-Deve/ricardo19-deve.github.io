@@ -1,15 +1,15 @@
 {
   "schema": 1,
-  "date": "2026-11-07",
+  "date": "2026-11-08",
   "source": "Wikipedia — On this day",
-  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/07",
+  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/08",
   "items": [
     {
-      "id": "2026-11-07:1949:nature",
-      "year": 1949,
-      "title": "Caspian Sea",
-      "url": "https://en.wikipedia.org/wiki/Caspian_Sea",
-      "topic": "nature"
+      "id": "2026-11-08:1520:history",
+      "year": 1520,
+      "title": "Christian II of Denmark",
+      "url": "https://en.wikipedia.org/wiki/Christian_II_of_Denmark",
+      "topic": "history"
     }
   ]
 }
