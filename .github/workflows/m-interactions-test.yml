@@ -7,6 +7,10 @@ on:
       - '.github/workflows/m-interactions-test.yml'
       - 'm-world*'
       - 'm-ai/**'
+      - 'analytics/worker.mjs'
+      - 'analytics/m-linkedin-cron.test.mjs'
+      - 'analytics/wrangler.toml'
+      - 'wrangler.toml'
       - 'scripts/update-m-linkedin-post*'
       - '.github/workflows/m-linkedin-reviewed-post.yml'
       - 'scroll-buddy.js'
@@ -18,6 +22,10 @@ on:
       - '.github/workflows/m-interactions-test.yml'
       - 'm-world*'
       - 'm-ai/**'
+      - 'analytics/worker.mjs'
+      - 'analytics/m-linkedin-cron.test.mjs'
+      - 'analytics/wrangler.toml'
+      - 'wrangler.toml'
       - 'scripts/update-m-linkedin-post*'
       - '.github/workflows/m-linkedin-reviewed-post.yml'
       - 'scroll-buddy.js'
@@ -37,4 +45,4 @@ jobs:
         with:
           node-version: '22'
       - name: Test M facial, motion, spatial world and production integration
-        run: node --test m-lab/interactions/*.test.mjs m-world*.test.mjs m-ai/*.test.mjs scripts/update-m-linkedin-post.test.mjs
+        run: node --test m-lab/interactions/*.test.mjs m-world*.test.mjs m-ai/*.test.mjs scripts/update-m-linkedin-post.test.mjs analytics/m-linkedin-cron.test.mjs
