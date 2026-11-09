@@ -57,18 +57,16 @@ test('V61 cron publishes only safely verified explicit-public posts, never conne
  const writes=[];
  const env={LINKEDIN_DMA_ACCESS_TOKEN:'dma-owner-approved-token'};
  const fetchImpl=async url=>{assert.match(url,/memberSnapshotData/);
-  return response([{Date:'2026-11-08 14:00:00',
-   ShareLink:'https://www.linkedin.com/feed/update/urn:li:share:7523386814880047114',
-   ShareCommentary:'Public Salesforce post',
-   Visibility:'PUBLIC'},
-   {Date:'2026-11-09 11:00:00',
-   ShareLink:'https://www.linkedin.com/feed/update/urn:li:share:7523386814880047115',
-   ShareCommentary:'Never publish my private post',
-   Visibility:'MEMBER_NETWORK'}]).then===undefined
-    ? new Response(JSON.stringify({elements:[{snapshotDomain:'MEMBER_SHARE_INFO',snapshotData:[
-      {Date:'2026-11-08 14:00:00',ShareLink:'https://www.linkedin.com/feed/update/urn:li:share:7523386814880047114',ShareCommentary:'Public Salesforce post',Visibility:'PUBLIC'},
-      {Date:'2026-11-09 11:00:00',ShareLink:'https://www.linkedin.com/feed/update/urn:li:share:7523386814880047115',ShareCommentary:'Never publish my private post',Visibility:'MEMBER_NETWORK'}]}],paging:{links:[]}}))
-    : null;
+  return new Response(JSON.stringify({elements:[{
+   snapshotDomain:'MEMBER_SHARE_INFO',
+   snapshotData:[
+    {Date:'2026-11-08 14:00:00',
+     ShareLink:'https://www.linkedin.com/feed/update/urn:li:share:7523386814880047114',
+     ShareCommentary:'Public Salesforce post',Visibility:'PUBLIC'},
+    {Date:'2026-11-09 11:00:00',
+     ShareLink:'https://www.linkedin.com/feed/update/urn:li:share:7523386814880047115',
+     ShareCommentary:'Never publish my private post',Visibility:'MEMBER_NETWORK'}
+   ]}],paging:{links:[]}}));
  };
  const result=await refreshAutomaticLinkedIn(env,{fetchImpl,now,store:async(_env,posts)=>{writes.push(posts);return true;}});
  assert.equal(result.state,'updated');assert.equal(result.provider,'dma');
