@@ -27,7 +27,7 @@ Once the owner authorizes the official source, updates need no manual GitHub act
 - Project: Cloudflare Worker `m-portfolio-companion`, with root directory `m-ai`.
 - `wrangler.jsonc`: `triggers.crons` and `M_VERIFIED_POSTS` Durable Object are declared here. The `v2` migration creates the new SQLite class.
 - Deploy using the **existing Cloudflare Workers Builds GitHub integration**, or an authorized Wrangler deploy with `--keep-vars` to preserve secrets and existing environment settings.
-- Public `/health` exposes only bounded status metadata: `linkedin` (existing DMA) and `memberPosts` (official API enabled/status); it never exposes an access token, private data or post text.
+- Public `/health` remains backward-compatible. Add `?sync=1` to see bounded `memberPosts` official API status alongside `linkedin` (existing DMA). Neither endpoint exposes an access token, private data or post text.
 - Verify the active Worker deployment, the Cloudflare Cron trigger, the Durable Object binding and the `memberPosts.enabled` field before claiming full automatic synchronization is active.
 - Run `node --test m-ai/*.test.mjs` for regression checks. The V61 suite covers authorization, source allowlists, privacy, cache expiry, Cron and public-post reply context.
 
