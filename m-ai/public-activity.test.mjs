@@ -85,3 +85,16 @@ test('V43 no feed, timeout and invalid feed degrade to existing portfolio Q&A',a
   assert.equal(calls.at(-1),API_URL);
  }
 });
+
+// The owner confirmed that the existing 'Meet M!!' LinkedIn publication uses
+// the Anyone audience. This exact reviewed permalink is a safe public fallback
+// while MEMBER_NETWORK values in automatic exports remain ambiguous.
+test('V57 curated Meet M publication is a dated, validated, owner-confirmed public fallback',()=>{
+ const raw=JSON.parse(readFileSync(new URL('../data/m-public-activity.json',import.meta.url),'utf8'));
+ const valid=validatePublicActivity(raw);
+ assert.equal(valid.status,'ready');
+ assert.equal(valid.asOf,'2026-11-09');
+ assert.equal(valid.posts[0].publishedAt,'2026-11-03');
+ assert.equal(valid.posts[0].url,'https://www.linkedin.com/feed/update/urn:li:activity:7523386814880047107/');
+ assert.match(valid.posts[0].text,/Meet M!!/);
+});
