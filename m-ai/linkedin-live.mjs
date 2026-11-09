@@ -61,9 +61,9 @@ function extractPublicPosts(rows,{nowMs=Date.now()}={}){
   const visibility=typeof visibilityValue==='string'?visibilityValue.trim().toUpperCase():'';
   // Accept public posts only when LinkedIn explicitly marked them as public.
   // Do not mistake missing/unknown visibility for known connections-only data:
-  // both stay private, but the diagnostic must distinguish them.
+  // both stay excluded, but the diagnostic must distinguish them.\n  // MEMBER_NETWORK in the owner's Shares export is NOT proven to mean\n  // CONNECTIONS_ONLY. Keep it unverified until this exact post's public\n  // audience is independently established by the owner.
   if(!['PUBLIC','EVERYONE','ANYONE'].includes(visibility)){
-   const explicitlyRestricted=['MEMBER_NETWORK','CONNECTIONS','CONNECTIONS_ONLY','PRIVATE','ONLY_ME','SELF','LOGGED_IN','LOGGED_IN_ONLY'].includes(visibility);
+   const explicitlyRestricted=['CONNECTIONS','CONNECTIONS_ONLY','PRIVATE','ONLY_ME','SELF','LOGGED_IN','LOGGED_IN_ONLY'].includes(visibility);
    if(!explicitlyRestricted)unverifiedVisibilityRows++;
    continue;
   }
