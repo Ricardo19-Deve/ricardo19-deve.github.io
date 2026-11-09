@@ -87,7 +87,7 @@ test('V45 initial 404 is pending, expired token blocks, unknown audience never b
   assert.deepEqual(output.posts,[]);
  }
  const unknown=await pageFilter([example({Visibility:null})]);
- assert.equal(unknown.status,'empty');
+ assert.equal(unknown.status,'no-public-posts');
  assert.deepEqual(unknown.posts,[]);
 });
 
