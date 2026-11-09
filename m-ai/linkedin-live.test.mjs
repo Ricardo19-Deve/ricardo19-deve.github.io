@@ -35,7 +35,8 @@ test('V45 retrieves only explicitly public authored posts, with date, source and
  assert.equal(result.status,'ready');
  assert.equal(result.posts.length,3); // includes an explicitly public share without commentary
  assert.equal(result.posts[0].publishedAt,'2026-11-05');
- assert.equal(result.posts[1].publishedAt,'2026-11-04');
+ assert.equal(result.posts[1].publishedAt,'2026-11-05');
+ assert.equal(result.posts[2].publishedAt,'2026-11-04');
  assert.ok(result.posts.every(post=>post.source==='member-export'&&post.url.startsWith('https://www.linkedin.com/')));
 });
 
