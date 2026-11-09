@@ -197,8 +197,10 @@ export function createDMALiveReader({
   pending=refresh();
   try{
    const result=await pending;
-   if(result.status==='ready'||result.status==='empty')cached=result;
-   else if(cached.status!=='ready')cached=result;
+   // Always replace the old public-post snapshot. Keeping a former READY
+   // result forever on a later 404/restricted response risks publishing
+   // outdated data after privacy or authorization changes.
+   cached=result;
    expires=now()+(result.status==='ready'||result.status==='empty'?Math.max(1000,ttlMs):RETRY_TTL_MS);
    return cached;
   }finally{pending=null;}
