@@ -14,8 +14,11 @@ async function run(input=INPUT,output=ANSWER){
  const quota=new MemoryQuota(),reserve=quota.reserve.bind(quota);
  quota.reserve=(...args)=>{claims++;return reserve(...args);};
  const handler=createHandler({env:{OPENAI_API_KEY:KEY},quota,fetchImpl:async(_url,options)=>{
-  calls++;sent=JSON.parse(options.body);
-  return new Response(JSON.stringify({status:'completed',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(output)}]}]}));
+  calls++;if(!sent)sent=JSON.parse(options.body);
+  // The original fixture is Portuguese; for English questions, language
+  // repair must translate it without affecting navigation section policy.
+  const translated=calls>1?{...output,reply:'I discovered a small light and found a peaceful lookout. I enjoy observing the small details.'}:output;
+  return new Response(JSON.stringify({status:'completed',output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(translated)}]}]}));
  }});
  const response=await handler(new Request('https://worker.invalid/api/m/respond',{method:'POST',headers:{Origin:'https://ricardo19-deve.github.io','Content-Type':'application/json'},body:JSON.stringify(input)}),{clientIp:'offline-fixture'});
  return {status:response.status,output:await response.json(),sent,calls,claims};
@@ -96,7 +99,7 @@ test('explicit English and Portuguese section requests retain the requested sugg
 test('a requested section cannot be replaced by an unrelated section from the model',async()=>{
  const result=await run({...INPUT,message:'Show me projects.'},{...ANSWER,section:'contact'});
  assert.deepEqual(sectionEnum(result.sent),['none','projects']);
- assert.equal(result.output.section,'none');assert.equal(result.output.reply,ANSWER.reply);
+ assert.equal(result.output.section,'none');assert.match(result.output.reply,/I discovered a small light/);
 });
 
 test('questions, fictional memories, negations and old history do not imply navigation',async()=>{
