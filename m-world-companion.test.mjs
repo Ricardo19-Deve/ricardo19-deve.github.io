@@ -369,21 +369,23 @@ test('new routines remain optional local controls and never widen the assistant 
 });
 
 
-test('V36 public Ask M contains ONLY portfolio conversation and a composer, no M action controls',t=>{
+test('V58 public Ask M has only one external launcher and a compact internal header',t=>{
  const f=companionFixture({publicUI:true});t.after(()=>f.companion.destroy());
- const {panel,settingsPanel,privacyToggle}=f.companion.elements;
+ const {panel,settingsPanel,privacyToggle,toolMenu}=f.companion.elements;
  assert.equal(panel.dataset.mode,'questions');
  const header=panel.childNodes.find(x=>x.className==='m-companion-header');
  const body=panel.childNodes.find(x=>x.className==='m-companion-body');
  const form=panel.childNodes.find(x=>x.className==='m-companion-form');
- assert.deepEqual(header.childNodes.map(x=>x.tag),['h2','button'],'header must not contain an AI/gesture/settings toolbar');
+ assert.deepEqual(header.childNodes.map(x=>x.tag),['h2','button','button']);
  assert.deepEqual(body.childNodes.map(x=>x.className),
   ['m-companion-intro','m-companion-log','m-companion-status','m-companion-privacy']);
  assert.deepEqual(form.childNodes.map(x=>x.tag),['label','textarea','button']);
  assert.equal(body.childNodes.some(x=>/action|director|gesture|story|auto-privacy|world-note|prompts/.test(x.className)),false);
- assert.equal(f.status.textContent,'','no AI-play counters or artificial statuses in the public conversation');
- assert.equal(f.document.body.childNodes.includes(settingsPanel),true);
- assert.equal(f.document.body.childNodes.includes(privacyToggle),true);
+ assert.equal(f.status.textContent,'');
+ assert.deepEqual(f.document.body.childNodes.map(x=>x.className),['m-companion-toggle','m-companion']);
+ assert.equal(settingsPanel.parent,panel);
+ assert.equal(privacyToggle.parent,toolMenu);
+ assert.equal(toolMenu.hidden,true);
  assert.equal(settingsPanel.hidden,true);
  assert.equal(privacyToggle['aria-label'],'M settings and privacy');
  assert.equal(f.input.placeholder,'Ask M a question…');
@@ -421,7 +423,7 @@ test('V36 public contextual chat answers page questions without commanding M to 
  assert.equal(f.companion.snapshot().messages,2);
 });
 
-test('V36 M privacy and optional AI budget remain controllable OUTSIDE the chat',t=>{
+test('V58 preferences remain minimal and open inside the same Ask M panel',t=>{
  let remembered=characterStatus(),director={enabled:true,available:true,attempts:2,limit:6},reset=0;
  const history=[];
  const f=companionFixture({publicUI:true,
@@ -431,33 +433,29 @@ test('V36 M privacy and optional AI budget remain controllable OUTSIDE the chat'
   onDirectorEnabled:value=>{director={...director,enabled:value};history.push('AI '+value);},
   onResetMemory:()=>{reset++;}
  });t.after(()=>f.companion.destroy());
- const {settingsPanel,privacyToggle,directorToggle,panel,settingsClose}=f.companion.elements;
+ const {settingsPanel,privacyToggle,directorToggle,panel,settingsClose,moreButton,toolMenu}=f.companion.elements;
  const chatBody=panel.childNodes.find(x=>x.className==='m-companion-body');
  assert.equal(settingsPanel.hidden,true);
+ f.companion.elements.toggle.dispatchEvent(new Event('click'));
+ moreButton.dispatchEvent(new Event('click'));assert.equal(toolMenu.hidden,false);
  privacyToggle.dispatchEvent(new Event('click'));
- assert.equal(settingsPanel.hidden,false);
+ assert.equal(toolMenu.hidden,true);assert.equal(settingsPanel.hidden,false);
+ assert.equal(panel.hidden,false,'settings overlay does not dismiss the chat');
  assert.deepEqual(settingsPanel.childNodes.map(x=>x.className),
-  ['m-companion-settings-header','m-companion-remember-privacy','m-companion-director-toggle'],
-  'public settings must contain only memory and AI play, not logs, discoveries or reset');
+  ['m-companion-settings-header','m-companion-remember-privacy','m-companion-director-toggle']);
  assert.equal(privacyToggle['aria-expanded'],'true');
  assert.equal(chatBody.childNodes.length,4,'opening preferences must not add chat buttons');
  const memory=f.gesture('Memory · On');
- assert.ok(memory);
- memory.dispatchEvent(new Event('click'));
- assert.deepEqual(history,[false]);
- assert.equal(memory.textContent,'Memory · Off');
+ assert.ok(memory);memory.dispatchEvent(new Event('click'));
+ assert.deepEqual(history,[false]);assert.equal(memory.textContent,'Memory · Off');
  directorToggle.dispatchEvent(new Event('click'));
  assert.deepEqual(history,[false,'AI false']);
  assert.equal(directorToggle.textContent,'AI play · Off');
  assert.equal(settingsPanel.childNodes.some(x=>x.textContent==='Reset character memory'),false);
- assert.equal(reset,0,'Reset is not presented in ordinary preferences; Memory off clears persisted history');
- assert.equal(f.requests.length,0,'settings actions cannot call the chat API');
+ assert.equal(reset,0);assert.equal(f.requests.length,0);
  settingsClose.dispatchEvent(new Event('click'));
- assert.equal(settingsPanel.hidden,true);
- assert.equal(privacyToggle['aria-expanded'],'false');
- f.companion.elements.toggle.dispatchEvent(new Event('click'));
+ assert.equal(settingsPanel.hidden,true);assert.equal(privacyToggle['aria-expanded'],'false');
  assert.equal(f.companion.isOpen(),true);
- assert.equal(settingsPanel.hidden,true,'chat and private settings are separate surfaces');
 });
 
 test('V36 CSS honors the hidden attribute even when a legacy display:flex selector exists',()=>{
@@ -474,32 +472,30 @@ test('V36 CSS honors the hidden attribute even when a legacy display:flex select
 });
 
 
-test('V36 even ?m-debug=1 leaves Ask M exclusively a content conversation',t=>{
+test('V58 developer controls are only available inside the menu in debug mode',t=>{
  const gestures=[],f=companionFixture({onGesture:name=>{gestures.push(name);return true;}});
  t.after(()=>f.companion.destroy());
- const {panel,debugPanel,debugToggle,settingsPanel}=f.companion.elements;
+ const {panel,debugPanel,debugToggle,settingsPanel,moreButton,toolMenu,debugClose}=f.companion.elements;
  const conversation=panel.childNodes.find(x=>x.className==='m-companion-body');
  const form=panel.childNodes.find(x=>x.className==='m-companion-form');
- assert.equal(panel.dataset.mode,'questions');
  assert.deepEqual(conversation.childNodes.map(x=>x.className),
   ['m-companion-intro','m-companion-log','m-companion-status','m-companion-privacy']);
  assert.deepEqual(form.childNodes.map(x=>x.tag),['label','textarea','button']);
- assert.equal(debugPanel.parent,f.document.body);
- assert.equal(debugToggle.parent,f.document.body);
- assert.equal(debugPanel.hidden,true,'dev controls must remain closed unless requested');
- assert.equal(debugToggle.hidden,false,'debug mode exposes a separate developer entry point');
- debugToggle.dispatchEvent(new Event('click'));
- assert.equal(debugPanel.hidden,false);
- assert.equal(panel.hidden,true,'opening developer tools does not open the chat');
+ assert.equal(debugPanel.parent,panel);assert.equal(debugToggle.parent,toolMenu);
+ assert.equal(debugPanel.hidden,true);assert.equal(debugToggle.hidden,false);
+ assert.equal(toolMenu.hidden,true,'no exterior developer entry point');
+ f.companion.elements.toggle.dispatchEvent(new Event('click'));
+ moreButton.dispatchEvent(new Event('click'));debugToggle.dispatchEvent(new Event('click'));
+ assert.equal(debugPanel.hidden,false);assert.equal(panel.hidden,false);
  assert.equal(settingsPanel.hidden,true);
  f.gesture('Wave').dispatchEvent(new Event('click'));
- assert.deepEqual(gestures,['wave'],'developer tool can still test original rig outside conversation');
+ assert.deepEqual(gestures,['wave']);
  assert.deepEqual(conversation.childNodes.map(x=>x.className),
   ['m-companion-intro','m-companion-log','m-companion-status','m-companion-privacy']);
- f.companion.elements.toggle.dispatchEvent(new Event('click'));
- assert.equal(debugPanel.hidden,true,'opening content chat closes developer panel');
+ debugClose.dispatchEvent(new Event('click'));
+ assert.equal(debugPanel.hidden,true);
  assert.equal(f.companion.isOpen(),true);
- assert.equal(f.requests.length,0,'no chat request generated by debug gesture');
+ assert.equal(f.requests.length,0);
 });
 
 test('V36 developer controls are never constructed in the chat at any route',()=>{
@@ -519,7 +515,9 @@ test('V37 user preferences stay genuinely minimal while daily discovery continue
  const f=companionFixture({publicUI:true,getWorldDiscovery:()=>discovery,
   getWorldStory:()=>({available:true,narrative:'M has explored today'})});
  t.after(()=>f.companion.destroy());
- const {settingsPanel,panel,worldNote}=f.companion.elements;
+ const {settingsPanel,panel,worldNote,moreButton}=f.companion.elements;
+ f.companion.elements.toggle.dispatchEvent(new Event('click'));
+ moreButton.dispatchEvent(new Event('click'));
  f.companion.elements.privacyToggle.dispatchEvent(new Event('click'));
  assert.deepEqual(settingsPanel.childNodes.map(x=>x.className),
   ['m-companion-settings-header','m-companion-remember-privacy','m-companion-director-toggle']);
@@ -539,4 +537,39 @@ test('V37 reset remains owner-diagnostic-only, not a third public setting',t=>{
  const css=readFileSync(new URL('m-world.css',import.meta.url),'utf8');
  assert.match(css,/\.m-companion-settings>\.m-companion-remember-privacy/);
  assert.match(css,/\.m-companion-settings>\.m-companion-director-toggle/);
+});
+
+test('V58 Pause and Resume M are internal controls independent of the chat',t=>{
+ let active=true,changes=0;
+ const f=companionFixture({publicUI:true,getMotionStatus:()=>({active,reducedMotion:false}),
+  onToggleMotion:()=>{active=!active;changes++;return active;}});
+ t.after(()=>f.companion.destroy());
+ const {toggle,panel,moreButton,toolMenu,motionToggle,privacyToggle,debugToggle}=f.companion.elements;
+ assert.deepEqual(f.document.body.childNodes.map(x=>x.className),['m-companion-toggle','m-companion']);
+ assert.equal(toggle.textContent,'M');
+ assert.equal(panel.hidden,true);
+ toggle.dispatchEvent(new Event('click'));
+ assert.equal(panel.hidden,false);
+ assert.equal(moreButton['aria-expanded'],'false');
+ moreButton.dispatchEvent(new Event('click'));
+ assert.equal(toolMenu.hidden,false);
+ assert.deepEqual(toolMenu.childNodes.map(x=>x.className),['m-companion-motion-toggle','m-companion-settings-toggle']);
+ assert.equal(privacyToggle.parent,toolMenu);
+ assert.equal(debugToggle.parent,undefined);
+ motionToggle.dispatchEvent(new Event('click'));
+ assert.equal(changes,1);assert.equal(active,false);assert.equal(motionToggle.textContent,'Resume M');
+ assert.equal(toolMenu.hidden,true);
+ assert.equal(panel.hidden,false);
+});
+
+test('V58 mobile drawer CSS avoids horizontal overflow and input zoom',()=>{
+ const css=readFileSync(new URL('m-world.css',import.meta.url),'utf8');
+ const code=readFileSync(new URL('scroll-buddy.js',import.meta.url),'utf8');
+ assert.match(css,/\.m-world-toggle,\.m-world-toggle\[hidden\]\{display:none!important\}/);
+ assert.match(css,/\.m-companion\[data-mode="questions"\] \.m-companion-form textarea\{[\s\S]*?flex:1 1 auto;width:0;min-width:0/);
+ assert.match(css,/@media\(max-width:720px\)[\s\S]*?\.m-companion\[data-mode="questions"\]\{[\s\S]*?left:calc\(8px \+ env\(safe-area-inset-left/);
+ assert.match(css,/padding:9px 5px;font-size:16px/);
+ assert.match(css,/--m-companion-visible-height,100dvh/);
+ assert.match(code,/onToggleMotion:/);
+ assert.match(code,/toggle.hidden=true;toggle.tabIndex=-1/);
 });

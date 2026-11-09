@@ -324,3 +324,131 @@ body>header.top.glass-nav{z-index:92!important}
 @media(max-width:720px){
  .m-companion-settings{width:min(266px,calc(100vw - 24px));padding:12px}
 }
+
+/* V58 — one visible launcher; all secondary controls stay inside Ask M. */
+.m-world-toggle,.m-world-toggle[hidden]{display:none!important}
+.m-companion-toggle{
+ position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));
+ z-index:110;display:flex;align-items:center;justify-content:center;
+ width:58px;height:52px;min-height:48px;min-width:58px;padding:0;
+ border:1px solid rgba(145,221,238,.6);border-radius:999px;
+ background:linear-gradient(145deg,#20394b,#112435);color:#e7faff;
+ box-shadow:0 9px 28px rgba(0,0,0,.35);font-size:16px;font-weight:700;
+}
+.m-companion[data-mode="questions"]{
+ box-sizing:border-box;max-width:calc(100vw - 24px);
+ bottom:calc(78px + env(safe-area-inset-bottom,0px));
+}
+.m-companion[data-mode="questions"]>*,
+.m-companion[data-mode="questions"] .m-companion-body>*{
+ min-width:0;box-sizing:border-box;
+}
+.m-companion[data-mode="questions"] .m-companion-header{
+ flex-wrap:nowrap;gap:8px;min-height:44px;
+}
+.m-companion[data-mode="questions"] .m-companion-header h2{margin-right:auto;min-width:0}
+.m-companion[data-mode="questions"] .m-companion-header .m-companion-menu-toggle,
+.m-companion[data-mode="questions"] .m-companion-header .m-companion-close{
+ flex:0 0 auto;min-height:40px;
+}
+.m-companion[data-mode="questions"] .m-companion-header .m-companion-menu-toggle{
+ width:42px;padding:4px;border-radius:50%;font-size:24px;line-height:1;
+}
+.m-companion[data-mode="questions"] .m-companion-form{
+ display:flex;align-items:flex-end;flex-shrink:0;
+ width:100%;max-width:100%;min-width:0;box-sizing:border-box;
+}
+.m-companion[data-mode="questions"] .m-companion-form textarea{
+ flex:1 1 auto;width:0;min-width:0;max-width:100%;
+ box-sizing:border-box;resize:none;overflow:auto;overflow-wrap:anywhere;
+}
+.m-companion[data-mode="questions"] .m-companion-send{flex:0 0 64px;min-width:0}
+.m-companion[data-mode="questions"]>.m-companion-body{
+ min-height:0;min-width:0;flex:1 1 auto;overflow-x:hidden;overscroll-behavior:contain;
+}
+.m-companion[data-mode="questions"] .m-companion-log,
+.m-companion[data-mode="questions"] .m-companion-message{
+ min-width:0;max-width:100%;overflow-wrap:anywhere;
+}
+.m-companion[data-mode="questions"] .m-companion-message.visitor{margin-left:14px}
+.m-companion[data-mode="questions"] .m-companion-message.assistant{margin-right:8px}
+.m-companion-tool-menu[hidden]{display:none!important}
+.m-companion-tool-menu{
+ position:absolute;z-index:6;top:67px;right:12px;
+ display:flex;flex-direction:column;gap:7px;
+ width:min(220px,calc(100% - 24px));max-width:calc(100% - 24px);
+ padding:10px;border-radius:16px;border:1px solid #52697e;
+ background:#182b3c;box-shadow:0 18px 45px #0009;
+}
+.m-companion .m-companion-tool-menu button,
+.m-companion .m-companion-tool-menu .m-companion-settings-toggle,
+.m-companion .m-companion-tool-menu .m-companion-debug-toggle{
+ position:static;display:block;flex:none;
+ width:100%;height:auto;min-height:44px;max-width:100%;
+ padding:10px 12px;text-align:left;
+ font:600 13px/1.3 'DM Sans',sans-serif;
+ border:1px solid #536d84;border-radius:12px;
+ background:#24384b;color:#e9f5ff;box-shadow:none;
+}
+.m-companion[data-mode="questions"]>.m-companion-settings,
+.m-companion[data-mode="questions"]>.m-companion-debug-panel{
+ position:absolute;inset:8px;z-index:9;
+ width:auto;max-width:none;max-height:none;
+ min-width:0;min-height:0;box-sizing:border-box;
+ overflow-y:auto;overscroll-behavior:contain;
+ border-radius:17px;padding:15px;
+ background:linear-gradient(155deg,#1a2e43,#101d30);
+}
+.m-companion[data-mode="questions"]>.m-companion-settings[hidden],
+.m-companion[data-mode="questions"]>.m-companion-debug-panel[hidden]{display:none!important}
+@media(max-width:720px){
+ .m-companion-toggle{
+  right:calc(12px + env(safe-area-inset-right,0px));
+  bottom:calc(12px + env(safe-area-inset-bottom,0px));
+  width:54px;height:50px;
+ }
+ .m-companion[data-mode="questions"]{
+  left:calc(8px + env(safe-area-inset-left,0px));
+  right:calc(8px + env(safe-area-inset-right,0px));
+  bottom:calc(8px + env(safe-area-inset-bottom,0px));
+  width:auto;min-width:0;max-width:none;
+  height:min(690px,calc(100dvh - 22px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px)));
+  max-height:calc(100dvh - 22px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+  padding:12px;gap:10px;border-radius:20px;
+ }
+ .m-companion[data-mode="questions"] .m-companion-header{
+  flex-wrap:nowrap;gap:6px;min-height:42px;
+ }
+ .m-companion[data-mode="questions"] .m-companion-form{
+  gap:6px;padding:7px 8px;min-width:0;
+ }
+ .m-companion[data-mode="questions"] .m-companion-form textarea{
+  width:0;flex:1 1 auto;min-width:0;
+  min-height:44px;max-height:108px;height:44px;
+  padding:9px 5px;font-size:16px;line-height:1.45;
+ }
+ .m-companion[data-mode="questions"] .m-companion-send{
+  flex:0 0 56px;min-width:0;min-height:44px;
+  padding:8px 6px;font-size:12px;
+ }
+ .m-companion[data-mode="questions"] .m-companion-log{
+  min-height:0;max-height:none;
+ }
+ .m-companion[data-mode="questions"][data-keyboard-open="true"]{
+  left:calc(8px + env(safe-area-inset-left,0px));
+  right:calc(8px + env(safe-area-inset-right,0px));
+  bottom:calc(var(--m-companion-keyboard-inset,0px) + 8px);
+  width:auto;max-width:none;min-width:0;
+  height:min(610px,calc(var(--m-companion-visible-height,100dvh) - 18px));
+  max-height:calc(var(--m-companion-visible-height,100dvh) - 18px);
+  padding:10px;
+ }
+ .m-companion[data-mode="questions"] .m-companion-message.visitor{margin-left:8px}
+ .m-companion[data-mode="questions"] .m-companion-message.assistant{margin-right:0}
+ .m-companion-tool-menu{top:58px;right:8px}
+}
+@media(max-width:360px){
+ .m-companion[data-mode="questions"]{padding:9px}
+ .m-companion[data-mode="questions"] .m-companion-send{flex-basis:50px}
+ .m-companion[data-mode="questions"] .m-companion-header .m-companion-close{padding-inline:9px}
+}
