@@ -88,8 +88,25 @@ test('V45 initial 404 is pending, expired token blocks, unknown audience never b
   assert.deepEqual(output.posts,[]);
  }
  const unknown=await pageFilter([example({Visibility:null})]);
- assert.equal(unknown.status,'no-public-posts');
+ assert.equal(unknown.status,'visibility-unverified');
  assert.deepEqual(unknown.posts,[]);
+});
+
+test('V56 distinguishes confirmed restricted shares from missing or unknown visibility',async()=>{
+ const restricted=await pageFilter([
+  example({Visibility:'MEMBER_NETWORK'}),
+  example({Visibility:'Connections'}),
+  example({Visibility:'Private'})
+ ]);
+ assert.equal(restricted.status,'no-public-posts');
+ assert.equal(restricted.posts.length,0);
+
+ const unknown=await pageFilter([
+  example({Visibility:'MEMBER_NETWORK'}),
+  example({Visibility:''})
+ ]);
+ assert.equal(unknown.status,'visibility-unverified');
+ assert.equal(unknown.posts.length,0);
 });
 
 test('V45 caching avoids repeated LinkedIn reads; fresh post after expiry wins',async()=>{

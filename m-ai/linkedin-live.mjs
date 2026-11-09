@@ -53,14 +53,20 @@ const linkedinPermalink=value=>{
 };
 function extractPublicPosts(rows,{nowMs=Date.now()}={}){
  const seen=new Set(),posts=[];
- let shareRows=0,publicRows=0;
+ let shareRows=0,publicRows=0,unverifiedVisibilityRows=0;
  for(const raw of rows){
   if(!raw||typeof raw!=='object'||Array.isArray(raw))continue;
   shareRows++;
-  const visibility=String(lookup(raw,'Visibility','Audience','Privacy')||'').trim().toUpperCase();
-  // LinkedIn export "MEMBER_NETWORK" means connections-only. Never make
-  // these rows visible to portfolio visitors, even with a valid post link.
-  if(!['PUBLIC','EVERYONE','ANYONE'].includes(visibility))continue;
+  const visibilityValue=lookup(raw,'Visibility','Audience','Privacy');
+  const visibility=typeof visibilityValue==='string'?visibilityValue.trim().toUpperCase():'';
+  // Accept public posts only when LinkedIn explicitly marked them as public.
+  // Do not mistake missing/unknown visibility for known connections-only data:
+  // both stay private, but the diagnostic must distinguish them.
+  if(!['PUBLIC','EVERYONE','ANYONE'].includes(visibility)){
+   const explicitlyRestricted=['MEMBER_NETWORK','CONNECTIONS','CONNECTIONS_ONLY','PRIVATE','ONLY_ME','SELF','LOGGED_IN','LOGGED_IN_ONLY'].includes(visibility);
+   if(!explicitlyRestricted)unverifiedVisibilityRows++;
+   continue;
+  }
   publicRows++;
   const rawText=lookup(raw,'ShareCommentary','Shared Comments','Commentary','Content','Post Text','Text');
   const publishedAt=dateString(lookup(raw,'Date','Date/Time','CreatedAt','Created Date','PublishedAt','Published Date'));
@@ -78,7 +84,7 @@ function extractPublicPosts(rows,{nowMs=Date.now()}={}){
  // Distinguish no rows, restricted-only posts and a genuinely unknown
  // public-record shape. Only these categories leave the Worker, never
  // private rows, author info, raw URLs, field names or LinkedIn responses.
- if(!posts.length)return blank(shareRows===0?'empty':publicRows===0?'no-public-posts':'unrecognized-public');
+ if(!posts.length)return blank(shareRows===0?'empty':publicRows===0?(unverifiedVisibilityRows?'visibility-unverified':'no-public-posts'):'unrecognized-public');
  // The shared V43 validator limits the grounded context to eight posts and
  // 6,200 total chars. Always honor the same public-source trust boundary.
  const result=validatePublicActivity({version:1,owner:'Ricardo Pinheiro',
