@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
- isProfessionalQuestion,isPublicationQuestion,normalizeProfessionalReply,
+ isProfessionalQuestion,isPublicationQuestion,isPublicationFollowUp,normalizeProfessionalReply,
  PROFESSIONAL_PRESENTATION_RULES
 } from './professional-guide.mjs';
 import {createHandler,API_URL} from './core.mjs';
@@ -117,4 +117,14 @@ test('V59 M answers ordinary LinkedIn questions naturally while keeping provenan
  const general=await query('O que faz o Ricardo?');
  assert.match(general.prompt.instructions,/knowledgeable portfolio guide/);
  assert.match(general.prompt.instructions,/one or two short sentences/);
+});
+
+test('V60 contextual LinkedIn follow-ups require a preceding post question',()=>{
+ const history=[{role:'user',content:'Qual foi o último post no LinkedIn?'},{role:'assistant',content:'O Ricardo apresentou a M em novembro.'}];
+ for(const question of ['E o link?','Conta-me mais','Qual foi o anterior?','E a data?','Tell me more','Outros posts?'])
+  assert.equal(isPublicationFollowUp(question,history),true,question);
+ assert.equal(isPublicationFollowUp('E o link?',[]),false);
+ assert.equal(isPublicationFollowUp('E o meu email pessoal?',history),false);
+ assert.equal(isPublicationFollowUp('Dá-me o link de uma conta privada do LinkedIn',history),false);
+ assert.equal(isPublicationFollowUp('O que faz Ricardo na Salesforce?',history),false);
 });

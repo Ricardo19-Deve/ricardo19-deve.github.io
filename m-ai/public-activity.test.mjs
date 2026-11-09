@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {PUBLIC_ACTIVITY_URL,LINKEDIN_PROFILE_URL,validatePublicActivity,createPublicActivityReader} from './public-activity.mjs';
+import {PUBLIC_ACTIVITY_URL,LINKEDIN_PROFILE_URL,validatePublicActivity,createPublicActivityReader,mergeVerifiedActivities} from './public-activity.mjs';
 import {createHandler,API_URL} from './core.mjs';
 
 const post=(x={})=>({id:'post-1',publishedAt:'2026-11-02',
@@ -97,4 +97,47 @@ test('V57 curated Meet M publication is a dated, validated, owner-confirmed publ
  assert.equal(valid.posts[0].publishedAt,'2026-11-03');
  assert.equal(valid.posts[0].url,'https://www.linkedin.com/feed/update/urn:li:activity:7523386814880047107/');
  assert.match(valid.posts[0].text,/Meet M!!/);
+});
+
+test('V60 combines verified public DMA posts and reviewed posts without duplicate link or private records',()=>{
+ const reviewed=validatePublicActivity(feed([post({
+  id:'meet-m',publishedAt:'2026-11-03',text:'Meet M, a 3D portfolio companion.',
+  url:'https://www.linkedin.com/feed/update/urn:li:activity:7523386814880047107/'
+ })]));
+ const live=validatePublicActivity(feed([
+  post({id:'dma-new',publishedAt:'2026-11-08',
+   text:'A new public update about Salesforce and AI.',
+   url:'https://www.linkedin.com/feed/update/urn:li:activity:7523386814880047110/',source:'member-export'}),
+  post({id:'dma-old',publishedAt:'2026-11-03',text:'Less complete raw share',
+   url:'https://www.linkedin.com/feed/update/urn:li:activity:7523386814880047107/',source:'member-export'})
+ ]));
+ const result=mergeVerifiedActivities(live,reviewed);
+ assert.equal(result.status,'ready');
+ assert.deepEqual(result.posts.map(p=>p.publishedAt),['2026-11-08','2026-11-03']);
+ assert.equal(result.posts[1].text,'Meet M, a 3D portfolio companion.');
+ assert.equal(result.posts.length,2);
+});
+test('V60 a short LinkedIn follow-up gets the verified feed, never an arbitrary link',async()=>{
+ const requests=[];
+ const linked='https://www.linkedin.com/posts/ricardoappinheiro_coaching-activity-7381000012345678900-ABcd';
+ const handler=createHandler({env:{OPENAI_API_KEY:'mock-key',PUBLIC_ACTIVITY_FEED_URL:PUBLIC_ACTIVITY_URL},
+  quota:{ready:true,async reserve(){return {allowed:true,token:'lease'};},async release(){}},
+  fetchImpl:async(url,init)=>{
+   requests.push({url,init});
+   if(url===PUBLIC_ACTIVITY_URL)return json(feed());
+   if(url===API_URL)return json({status:'completed',output:[{type:'message',content:[{type:'output_text',
+    text:JSON.stringify({reply:linked,expression:'neutral',gesture:'none',section:'none'})}]}]});
+   throw Error('Unexpected outbound URL');
+  }});
+ const input={message:'E o link?',history:[
+  {role:'user',content:'Qual foi o último post no LinkedIn?'},
+  {role:'assistant',content:'O Ricardo falou do curso de treinadores e da tecnologia.'}
+ ],context:{section:'home',language:'pt'}};
+ const res=await handler(new Request('https://local.test/api/m/respond',
+  {method:'POST',headers:{origin:'https://ricardo19-deve.github.io','content-type':'application/json'},body:JSON.stringify(input)}));
+ assert.equal(res.status,200);assert.equal((await res.json()).reply,linked);
+ assert.deepEqual(requests.map(x=>x.url),[PUBLIC_ACTIVITY_URL,API_URL]);
+ const prompt=JSON.parse(requests.at(-1).init.body);
+ assert.match(prompt.instructions,/FOLLOW-UP:/);
+ assert.match(prompt.input.at(-1).content,/UEFA C football coaching course/);
 });

@@ -8,6 +8,21 @@ const fold=value=>String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g
 export function isPublicationQuestion(message=''){
  return /(?:linkedin|\bposts?\b|publica(?:c)(?:ao|oes)|publicou|published|publication|recent updates)/iu.test(fold(message));
 }
+/**
+ * Keep a visitor's immediately preceding LinkedIn discussion in context.
+ * Only text that clearly asks for a detail or continuation qualifies; long
+ * unrelated questions never inherit LinkedIn retrieval or link access.
+ * Chat history is visitor-controlled and conveys intent only, not trust.
+ */
+export function isPublicationFollowUp(message='',history=[]){
+ const q=fold(message).trim();
+ if(!q||q.length>140||!Array.isArray(history))return false;
+ const detail=/^(?:(?:e|and)\s+)?(?:(?:o|a)\s+)?(?:link(?:\s+(?:do|da)\s+(?:post|publicacao))?|url|ligacao|data|assunto|tema|when|where|date|topic|what about|sobre o que|conta[- ]?me mais|tell me more|mais detalhes|more details|mais|what else|outros posts|outras publicacoes|ha outros|mais posts|qual foi o anterior|e antes|previous post)(?:[\s?.!]*)$/u;
+ const extended=/^(?:podes\s+(?:dar|enviar)|can you\s+(?:send|share))\s+(?:o\s+)?(?:link|url)(?:\s+(?:do|da)\s+(?:post|publicacao))?[?.!]*$/u;
+ if(!detail.test(q)&&!extended.test(q))return false;
+ return history.slice(-6).some(item=>item?.role==='user'&&isPublicationQuestion(item.content));
+}
+
 export function isProfessionalQuestion(message=''){
  const q=fold(message).trim();
  if(!q)return false;

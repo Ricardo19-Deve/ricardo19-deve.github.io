@@ -1,0 +1,66 @@
+name: M — Add a verified public LinkedIn post
+
+on:
+  workflow_dispatch:
+    inputs:
+      post_url:
+        description: 'Link permanente do post público do Ricardo, sem tracking'
+        required: true
+        type: string
+      published_at:
+        description: 'Data real da publicação (AAAA-MM-DD)'
+        required: true
+        type: string
+      summary:
+        description: 'Texto ou resumo público confirmado (12 a 1500 caracteres)'
+        required: true
+        type: string
+      audience:
+        description: 'Confirmas que este post está visível para Anyone / Qualquer pessoa?'
+        required: true
+        type: choice
+        default: NOT_PUBLIC
+        options:
+          - NOT_PUBLIC
+          - PUBLIC_CONFIRMED
+
+permissions:
+  contents: write
+
+concurrency:
+  group: m-reviewed-linkedin-post
+  cancel-in-progress: false
+
+jobs:
+  publish-reviewed-post:
+    if: github.ref == 'refs/heads/main' && github.actor == 'Ricardo19-Deve'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate owner-approved public post
+        env:
+          M_POST_URL: ${{ inputs.post_url }}
+          M_POST_DATE: ${{ inputs.published_at }}
+          M_POST_SUMMARY: ${{ inputs.summary }}
+          M_POST_AUDIENCE: ${{ inputs.audience }}
+        run: |
+          node scripts/update-m-linkedin-post.mjs
+          node --test scripts/update-m-linkedin-post.test.mjs m-ai/public-activity.test.mjs
+      - name: Publish approved post to GitHub Pages
+        run: |
+          if git diff --quiet -- data/m-public-activity.json; then
+            echo "No changes to publish."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/m-public-activity.json
+          git commit -m "data(M): publish owner-confirmed public LinkedIn update"
+          git push origin HEAD:main
+          echo "The published feed is available after GitHub Pages deploy and M cache refresh."
