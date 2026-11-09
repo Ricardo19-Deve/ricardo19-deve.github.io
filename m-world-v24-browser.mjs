@@ -74,9 +74,9 @@ async function shot(page,name){
   if(softwareGPU)await page.evaluate(()=>{globalThis.__v24RasterSuppressed=true;}).catch(()=>{});
  }
 }
-async function openPanel(page){if(!await page.locator('.m-companion').isVisible())await page.getByRole('button',{name:'Talk to M',exact:true}).click();}
-async function closePanel(page){if(await page.locator('.m-companion').isVisible())await page.getByRole('button',{name:'Close',exact:true}).click();}
-async function openTools(page){await openPanel(page);const details=page.locator('.m-companion-character');if(!await details.evaluate(el=>el.open))await details.locator('summary').click();}
+async function openPanel(page){if(!await page.locator('.m-companion').isVisible())await page.locator('.m-companion-toggle').click();}
+async function closePanel(page){if(!await page.locator('.m-companion').isVisible())return;if(await page.locator('.m-companion-debug-panel').isVisible())await page.locator('.m-companion-debug-close').click();if(await page.locator('.m-companion-settings').isVisible())await page.locator('.m-companion-settings-close').click();await page.locator('.m-companion-close').click();}
+async function openTools(page){await openPanel(page);if(!await page.locator('.m-companion-debug-panel').isVisible()){await page.locator('.m-companion-menu-toggle').click();await page.locator('.m-companion-debug-toggle').click();}const details=page.locator('.m-companion-character');if(!await details.evaluate(el=>el.open))await details.locator('summary').click();}
 async function scrollProjects(page){await closePanel(page);await page.locator('#projects .card').first().scrollIntoViewIfNeeded();await page.waitForTimeout(1600);}
 async function readyForAction(page){await page.waitForFunction(()=>{const s=MWorld.snapshot();return !s.state.gesture&&!s.state.expressionHold;},undefined,{timeout:15000});}
 async function stopPlay(page){const stop=page.getByRole('button',{name:'Stop play',exact:true});if(await stop.isVisible())await stop.click();}
@@ -188,12 +188,12 @@ async function games(page,name,profile){
  profile.lightTrace=lightRows;
  await stopPlay(page);
  await openTools(page);await readyForAction(page);await page.getByRole('button',{name:'Follow a light',exact:true}).click();
- await page.getByRole('button',{name:'Pause M',exact:true}).click();await page.waitForTimeout(250);
+ await page.locator('.m-companion-debug-close').click();await page.locator('.m-companion-menu-toggle').click();await page.locator('.m-companion-motion-toggle').click();await page.waitForTimeout(250);
  check(name+': pausing M cancels optional play',!await page.locator('.m-play-dock').isVisible()&&!(await read(page)).active,(await read(page)).character.game);
- await page.getByRole('button',{name:'Resume M',exact:true}).click();
+ await page.locator('.m-companion-menu-toggle').click();await page.locator('.m-companion-motion-toggle').click();
 }
 async function contextualChat(page,name,profile){
- await scrollProjects(page);await page.locator('#projects .card').first().hover();await openPanel(page);
+ await scrollProjects(page);await page.locator('#projects .card').first().hover();await openTools(page);
  const row=page.locator('.m-companion-context');
  await row.waitFor({state:'visible',timeout:5000});const label=await row.innerText();
  const count=profile.chats.length;
@@ -201,6 +201,7 @@ async function contextualChat(page,name,profile){
  await page.waitForFunction(()=>document.querySelector('.m-companion-log')?.textContent.includes('V24 contextual fixture answer.'),undefined,{timeout:10000});
  const call=profile.chats[count],context=call?.context;
  check(name+': Explain this card sends one stable public component',profile.chats.length===count+1&&Boolean(getContextComponent(context?.component))&&Object.keys(context).sort().join(',')==='component,language,section'&&!JSON.stringify(call).includes(sentinel),{label,call});
+ await page.locator('.m-companion-debug-close').click();
  const input=page.getByLabel('Message M',{exact:true});await input.fill('Keyboard check');await input.press('Shift+Enter');
  check(name+': Shift Enter retains newline',await input.inputValue()==='Keyboard check\n');
  await input.press('Enter');await page.waitForFunction(()=>document.querySelectorAll('.m-companion-message.assistant').length>=2,undefined,{timeout:10000});
@@ -234,7 +235,7 @@ async function motionNeutral(page,name,profile){
 async function touchControls(page,profile){
  await closePanel(page);
  await page.evaluate(()=>{globalThis.__v24TouchCount=0;document.addEventListener('pointerdown',event=>{if(event.pointerType==='touch')globalThis.__v24TouchCount++;});});
- await page.getByRole('button',{name:'Talk to M',exact:true}).tap();
+ await page.locator('.m-companion-toggle').tap();await page.locator('.m-companion-menu-toggle').tap();await page.locator('.m-companion-debug-toggle').tap();
  const details=page.locator('.m-companion-character');if(!await details.evaluate(el=>el.open))await details.locator('summary').tap();
  await readyForAction(page);
  await page.getByRole('button',{name:'Follow a light',exact:true}).tap();
@@ -281,7 +282,7 @@ async function profile(browser,name,options){
   page=await context.newPage();page.on('pageerror',error=>result.errors.push(String(error)));page.on('response',response=>{if(response.status()>=400&&response.url().startsWith(new URL(base).origin))result.assetErrors.push({url:response.url(),status:response.status()});});
   const url=new URL(base);url.searchParams.set('m-debug','1');await page.goto(url.href);await page.waitForFunction(()=>window.MWorld?.snapshot().ready,undefined,{timeout:90000});await beginTrace(page);
   const initial=await read(page);result.initial=compact(initial);
-  check(name+': v29 entry point',await page.locator('script[src*="scroll-buddy.js?v=31"]').count()===1);
+  check(name+': V58 single M launcher',await page.locator('script[src*="scroll-buddy.js?v=55"]').count()===1&&await page.locator('.m-companion-toggle').isVisible()&&await page.locator('.m-world-toggle').isHidden());
   check(name+': unchanged original actor and full skinning',initial.renderer.bones===31&&initial.renderer.tailBones===10&&initial.renderer.maxInfluences===14&&initial.renderer.skinSets===4&&initial.renderer.detailMaps===10&&initial.renderer.clips.length===6&&initial.renderer.shaderErrors.length===0,{bones:initial.renderer.bones,tail:initial.renderer.tailBones,maxInfluences:initial.renderer.maxInfluences,skinSets:initial.renderer.skinSets,maps:initial.renderer.detailMaps,clips:initial.renderer.clips});
   check(name+': native sharp framebuffer remains bounded',initial.renderer.renderPixels.every(n=>n===(name==='desktop'?544:416))&&await page.locator('.m-world-canvas').evaluate(el=>getComputedStyle(el).filter==='none'),initial.renderer.renderPixels);
   result.performance=await page.evaluate(async()=>{const start=performance.now(),before=MWorld.snapshot().stats.frames,times=[],cpu=[];let last=start;while(performance.now()-start<3000){await new Promise(requestAnimationFrame);const now=performance.now();times.push(now-last);cpu.push(MWorld.snapshot().stats.lastFrameMs);last=now;}const q=a=>[...a].sort((x,y)=>x-y)[Math.floor(a.length*.95)];return {fps:(MWorld.snapshot().stats.frames-before)*1000/(performance.now()-start),frameP95:q(times),cpuP95:q(cpu),heap:performance.memory?.usedJSHeapSize};});
