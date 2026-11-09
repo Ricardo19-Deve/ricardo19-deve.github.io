@@ -7,6 +7,8 @@ on:
       - '.github/workflows/m-interactions-test.yml'
       - 'm-world*'
       - 'm-ai/**'
+      - 'scripts/update-m-linkedin-post*'
+      - '.github/workflows/m-linkedin-reviewed-post.yml'
       - 'scroll-buddy.js'
       - 'scroll-buddy.css'
       - 'index.html'
@@ -16,6 +18,8 @@ on:
       - '.github/workflows/m-interactions-test.yml'
       - 'm-world*'
       - 'm-ai/**'
+      - 'scripts/update-m-linkedin-post*'
+      - '.github/workflows/m-linkedin-reviewed-post.yml'
       - 'scroll-buddy.js'
       - 'scroll-buddy.css'
       - 'index.html'
@@ -33,4 +37,4 @@ jobs:
         with:
           node-version: '22'
       - name: Test M facial, motion, spatial world and production integration
-        run: node --test m-lab/interactions/*.test.mjs m-world*.test.mjs m-ai/*.test.mjs
+        run: node --test m-lab/interactions/*.test.mjs m-world*.test.mjs m-ai/*.test.mjs scripts/update-m-linkedin-post.test.mjs
