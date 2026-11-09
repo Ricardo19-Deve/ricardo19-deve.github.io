@@ -17,9 +17,9 @@ export function isPublicationQuestion(message=''){
 export function isPublicationFollowUp(message='',history=[]){
  const q=fold(message).trim();
  if(!q||q.length>140||!Array.isArray(history))return false;
- const detail=/^(?:(?:e|and)\s+)?(?:o\s+)?(?:link|url|ligacao|link da publicacao|data|assunto|tema|when|where|date|topic|what about|sobre o que|conta[- ]?me mais|tell me more|mais detalhes|more details|e mais|what else|outros posts|outras publicacoes|ha outros|mais posts|qual foi o anterior|e antes|previous post)(?:[\s?.!]*)$/u;
- const dateDetail=/\b(?:link|url|ligacao|data|assunto|tema|mais detalhes|outras publicacoes|outros posts|post anterior|previous post)\b/u;
- if(!detail.test(q)&&!(q.length<=85&&dateDetail.test(q)))return false;
+ const detail=/^(?:(?:e|and)\s+)?(?:(?:o|a)\s+)?(?:link(?:\s+(?:do|da)\s+(?:post|publicacao))?|url|ligacao|data|assunto|tema|when|where|date|topic|what about|sobre o que|conta[- ]?me mais|tell me more|mais detalhes|more details|mais|what else|outros posts|outras publicacoes|ha outros|mais posts|qual foi o anterior|e antes|previous post)(?:[\s?.!]*)$/u;
+ const extended=/^(?:podes\s+(?:dar|enviar)|can you\s+(?:send|share))\s+(?:o\s+)?(?:link|url)(?:\s+(?:do|da)\s+(?:post|publicacao))?[?.!]*$/u;
+ if(!detail.test(q)&&!extended.test(q))return false;
  return history.slice(-6).some(item=>item?.role==='user'&&isPublicationQuestion(item.content));
 }
 
