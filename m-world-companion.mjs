@@ -31,7 +31,7 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  privacyToggle.setAttribute('aria-controls','m-companion-settings');
  privacyToggle.setAttribute('aria-label','M settings and privacy');
  enableMotion.hidden=true;close.setAttribute('aria-label','Close M chat');
- const intro=make('p','m-companion-intro',target?'Curious about Ricardo’s work? Ask M anything about the projects and experience on this page, plus reviewed public LinkedIn posts when available.':'M explores the page on her own. Questions will be available when AI chat is connected.');
+ const intro=make('p','m-companion-intro',target?'Ask M anything about the projects and experience behind Ricardo’s work, or his verified public posts.':'M explores the page on her own. Questions will be available when AI chat is connected.');
  const motionNote=make('p','m-companion-intro','Reduced motion is on. M stays still until you enable motion.');motionNote.hidden=true;
  // One collapsed, sourced observation, not an extra action-button panel.
  const worldNote=make('details','m-companion-world-note'),worldSummary=make('summary','','M’s discovery today'),
@@ -91,7 +91,7 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  const suggestion=button('Explore projects','m-companion-section');suggestion.hidden=true;
  const form=make('form','m-companion-form'),label=make('label','','Message M'),input=make('textarea');input.id='m-companion-message';input.name='message';input.maxLength=1200;input.rows=2;input.wrap='soft';input.placeholder=target?'Ask M a question…':'AI chat will be available once connected';input.disabled=!target;label.htmlFor=input.id;
  const send=button('Send','m-companion-send');send.type='submit';send.disabled=!target;
- const clear=button('Clear chat','m-companion-clear'),privacy=make('p','m-companion-privacy',target?'AI-powered answers about public portfolio information. Chat stays in this tab.':'Chat is not connected yet.');
+ const clear=button('Clear chat','m-companion-clear'),privacy=make('p','m-companion-privacy',target?'Answers about Ricardo’s public work. This chat stays in this tab.':'Chat is not connected yet.');
  form.append(label,input,send);form.hidden=!target;
  const conversation=make('div','m-companion-body');
  const settingsPanel=make('section','m-companion-settings');
@@ -197,17 +197,30 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
     toolMenu.hidden=true;moreButton.setAttribute('aria-expanded','false');
    }
    open=Boolean(value);panel.hidden=!open;toggle.setAttribute('aria-expanded',String(open));onEngagement(open);
-   if(open)(target?input:close).focus();else{if(cancelPending)pending?.abort();toggle.focus();}
+   const view=document.defaultView,compact=Boolean(view?.matchMedia?.('(max-width: 720px)')?.matches||(Number.isFinite(view?.innerWidth)&&view.innerWidth<=720));
+   // Avoid iOS Safari's premature textarea-focus scroll/zoom.
+   // Mobile visitors open the keyboard by tapping the composer explicitly.
+   if(open){if(compact)close.focus({preventScroll:true});else (target?input:close).focus({preventScroll:true});}
+   else{if(cancelPending)pending?.abort();toggle.focus({preventScroll:true});}
    refreshViewport();
   }
   function append(role,text){prompts.hidden=true;const row=make('p','m-companion-message '+role);row.textContent=text;log.append(row);while(log.childNodes.length>12)log.firstChild.remove();log.scrollTop=role==='assistant'&&Number.isFinite(row.offsetTop)?row.offsetTop:log.scrollHeight;if(open)conversation.scrollTop=0;}
  function refreshViewport(){
   const view=document.defaultView,visual=view?.visualViewport,height=visual?.height||view?.innerHeight;
   if(!panel.style?.setProperty||!Number.isFinite(height)||height<=0)return;
-  const offset=Number.isFinite(visual?.offsetTop)?visual.offsetTop:0,inset=Math.max(0,(view?.innerHeight||height)-offset-height);
+  const offset=Number.isFinite(visual?.offsetTop)?Math.max(0,visual.offsetTop):0;
+  const left=Number.isFinite(visual?.offsetLeft)?Math.max(0,visual.offsetLeft):0;
+  const width=Number.isFinite(visual?.width)&&visual.width>0?visual.width:(view?.innerWidth||0);
+  const inset=Math.max(0,(view?.innerHeight||height)-offset-height);
   const set=(name,value)=>{if(panel.style.getPropertyValue?.(name)!==value)panel.style.setProperty(name,value);};
-  set('--m-companion-visible-height',height+'px');set('--m-companion-keyboard-inset',inset+'px');
-  panel.dataset.keyboardOpen=open&&document.activeElement===input&&inset>100?'true':'false';
+  set('--m-companion-visible-height',height+'px');set('--m-companion-visible-top',offset+'px');
+  set('--m-companion-visible-left',left+'px');
+  if(Number.isFinite(width)&&width>0)set('--m-companion-visible-width',width+'px');
+  set('--m-companion-keyboard-inset',inset+'px');
+  // iOS in-app browsers may shrink innerHeight too, leaving inset at zero.
+  // Input focus therefore controls compact visual-viewport positioning.
+  const compact=Boolean(view?.matchMedia?.('(max-width: 720px)')?.matches||(Number.isFinite(view?.innerWidth)&&view.innerWidth<=720));
+  panel.dataset.keyboardOpen=open&&document.activeElement===input&&(compact||inset>100)?'true':'false';
  }
  const view=document.defaultView,visual=view?.visualViewport;
  if(view?.addEventListener)listen(view,'resize',refreshViewport);
@@ -271,7 +284,7 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
     suggestion.hidden=false;
    }
   }catch(error){if(!destroyed)status.textContent=controller.signal.aborted?'Chat request cancelled.':String(error.message||'M could not answer.');}
-  finally{clearTimeout(timeout);if(pending===controller){pending=null;send.disabled=!target;input.disabled=!target;if(open&&!destroyed)input.focus();}}
+  finally{clearTimeout(timeout);if(pending===controller){pending=null;send.disabled=!target;input.disabled=!target;if(open&&!destroyed){input.focus({preventScroll:true});refreshViewport();}}}
  });
  refresh();
  return {elements:{toggle,panel,moreButton,toolMenu,motionToggle,settingsPanel,settingsClose,debugToggle,debugPanel,debugClose,directorToggle,directorStatus,moreGestures,story,rememberCharacter,prompts,privacyToggle,worldNote,worldNarrative},refresh,refreshMotionControl,refreshDirectorControl,isOpen:()=>open,snapshot:()=>({open,configured:Boolean(target),pending:Boolean(pending),messages:history.length,settingsOpen:!settingsPanel.hidden}),destroy(){destroyed=true;pending?.abort();for(const remove of listeners)remove();onEngagement(false);toggle.remove();privacyToggle.remove();settingsPanel.remove();debugToggle.remove();debugPanel.remove();panel.remove();}};

@@ -452,3 +452,34 @@ body>header.top.glass-nav{z-index:92!important}
  .m-companion[data-mode="questions"] .m-companion-send{flex-basis:50px}
  .m-companion[data-mode="questions"] .m-companion-header .m-companion-close{padding-inline:9px}
 }
+
+/* V59: iOS in-app/Safari keyboard geometry. The browser may shrink both
+   innerHeight and visualViewport (so keyboard inset stays zero). Use the
+   visual viewport's top, left, width and height directly while typing. */
+.m-companion-toggle,
+.m-companion .m-companion-header button,
+.m-companion .m-companion-tool-menu button{touch-action:manipulation}
+@media(max-width:720px){
+ .m-companion[data-mode="questions"][data-keyboard-open="true"]{
+  position:fixed;
+  top:calc(var(--m-companion-visible-top,0px) + 8px);
+  left:calc(var(--m-companion-visible-left,0px) + 8px);
+  right:auto;
+  bottom:auto;
+  width:calc(var(--m-companion-visible-width,100vw) - 16px);
+  max-width:none;
+  height:calc(var(--m-companion-visible-height,100dvh) - 16px);
+  max-height:calc(var(--m-companion-visible-height,100dvh) - 16px);
+  min-height:0;
+  padding:10px;
+ }
+ .m-companion[data-mode="questions"][data-keyboard-open="true"]>.m-companion-body{
+  min-height:0;overflow-y:auto;overflow-x:hidden;
+ }
+ .m-companion[data-mode="questions"][data-keyboard-open="true"] .m-companion-intro{
+  display:none;
+ }
+ .m-companion[data-mode="questions"][data-keyboard-open="true"] .m-companion-form{
+  margin-top:auto;flex-shrink:0;
+ }
+}

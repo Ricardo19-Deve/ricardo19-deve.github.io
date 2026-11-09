@@ -107,3 +107,14 @@ test('V53 professional question about LinkedIn still receives only a verified pu
  assert.equal(isProfessionalQuestion('Qual foi o último post do Ricardo no LinkedIn?'),true);
  assert.equal(isPublicationQuestion('Qual foi o último post do Ricardo no LinkedIn?'),true);
 });
+
+test('V59 M answers ordinary LinkedIn questions naturally while keeping provenance on demand',async()=>{
+ const {prompt}=await query('Qual foi o último post do Ricardo no LinkedIn?');
+ assert.match(prompt.instructions,/1–2 natural short sentences/);
+ assert.match(prompt.instructions,/O Ricardo apresentou-me/);
+ assert.match(prompt.instructions,/Mention the review\/capture date and technical limitations only if/);
+ assert.match(prompt.instructions,/never imply LinkedIn processed a new post instantly/i);
+ const general=await query('O que faz o Ricardo?');
+ assert.match(general.prompt.instructions,/knowledgeable portfolio guide/);
+ assert.match(general.prompt.instructions,/one or two short sentences/);
+});
