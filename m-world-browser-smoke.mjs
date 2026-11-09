@@ -267,13 +267,23 @@ try{
     return {currentOverflow:current,baselineOverflow:without,addedByM:current-without};
    });
    check(name+': M adds no horizontal overflow',result.overflow.addedByM<=2,result.overflow);
-   const beforeChunks=modelChunkRequests;const toggle=page.locator('.m-world-toggle');
-   if(name==='mobile')await toggle.tap();else await toggle.click();
+   const beforeChunks=modelChunkRequests;
+   const launcher=page.locator('.m-companion-toggle'),optionsButton=page.locator('.m-companion-menu-toggle'),motionButton=page.locator('.m-companion-motion-toggle');
+   const interact=async locator=>name==='mobile'?locator.tap():locator.click();
+   check(name+': exactly one visible external M launcher',await launcher.isVisible()&&await page.locator('.m-world-toggle').isHidden()&&await page.locator('.m-companion-settings-toggle').isHidden());
+   await interact(launcher);
+   const chatBounds=await page.evaluate(()=>{
+    const rect=selector=>{const r=document.querySelector(selector).getBoundingClientRect();return {left:r.left,right:r.right,width:r.width,top:r.top,bottom:r.bottom};};
+    return {panel:rect('.m-companion'),form:rect('.m-companion-form'),input:rect('#m-companion-message'),send:rect('.m-companion-send'),viewportWidth:innerWidth,textareaFont:parseFloat(getComputedStyle(document.querySelector('#m-companion-message')).fontSize)};
+   });
+   check(name+': Ask M chat, composer and send button fit the viewport',chatBounds.panel.left>=-1&&chatBounds.panel.right<=chatBounds.viewportWidth+1&&chatBounds.form.right<=chatBounds.panel.right+1&&chatBounds.input.width>90&&chatBounds.input.right<chatBounds.send.left+3&&(name!=='mobile'||chatBounds.textareaFont>=16),chatBounds);
+   await interact(optionsButton);await interact(motionButton);
    await page.waitForFunction(()=>document.querySelector('.mascot-world-v9').hidden);
-   check(name+': real pause hides M',await toggle.getAttribute('aria-pressed')==='false');
-   if(name==='mobile')await toggle.tap();else await toggle.click();
+   check(name+': internal Pause M hides the character',await motionButton.getAttribute('aria-pressed')==='false');
+   await interact(optionsButton);await interact(motionButton);
    await page.waitForFunction(()=>!document.querySelector('.mascot-world-v9').hidden);
-   check(name+': real resume reuses loaded model',await toggle.getAttribute('aria-pressed')==='true'&&beforeChunks===modelChunkRequests,{beforeChunks,afterChunks:modelChunkRequests});
+   check(name+': internal Resume M reuses the loaded model',await motionButton.getAttribute('aria-pressed')==='true'&&beforeChunks===modelChunkRequests,{beforeChunks,afterChunks:modelChunkRequests});
+   await interact(page.locator('.m-companion-close'));
    result.modelChunkRequests=modelChunkRequests;
    result.resources=await page.evaluate(()=>{
     const resources=performance.getEntriesByType('resource').filter(e=>e.name.includes('/assets/m-v6')).map(e=>({url:e.name,transferSize:e.transferSize,encodedBodySize:e.encodedBodySize,decodedBodySize:e.decodedBodySize}));
