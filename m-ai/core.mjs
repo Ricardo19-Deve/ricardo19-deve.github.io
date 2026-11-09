@@ -1,5 +1,5 @@
 import { PORTFOLIO_CONTEXT } from './portfolio-context.mjs';
-import {createPublicActivityReader} from './public-activity.mjs';
+import {createPublicActivityReader,mergeVerifiedActivities} from './public-activity.mjs';
 import {createDMALiveReader} from './linkedin-live.mjs';
 import {isPublicationQuestion,isPublicationFollowUp,isProfessionalQuestion,PROFESSIONAL_PRESENTATION_RULES,normalizeProfessionalReply} from './professional-guide.mjs';
 import { DIRECTOR_OPERATION } from './director.mjs';
@@ -279,21 +279,20 @@ export function createHandler({ env = {}, fetchImpl = globalThis.fetch, quota, t
         // If unavailable, portfolio chat still works with explicit knowledge limits.
         let activity=null;
         if(operation===CHAT_OPERATION){
-         // Only requests about publications need a fresh OAuth snapshot. An
-         // unrelated project question remains fast, local and unaffected.
+         // Only publication questions (including tightly-scoped follow-ups)
+         // require the secret LinkedIn DMA read. Curated public entries and
+         // explicitly PUBLIC DMA rows are independently validated and merged.
          const aboutPosts=isPublicationQuestion(input.message)||isPublicationFollowUp(input.message,input.history);
-         let liveStatus=null;
+         let liveStatus=null,liveVerified=null;
          if(aboutPosts&&linkedinActivity.enabled){
           const live=await linkedinActivity.get();
-          if(live.status==='ready')activity=live;
+          if(live.status==='ready')liveVerified=live;
           else liveStatus=live.status;
          }
-         if(!activity){
-          activity=await publicActivity.get(controller.signal);
-          // The retrieval state is server-generated metadata; never include
-          // the token, member ID, response body, or arbitrary error text.
-          if(aboutPosts&&liveStatus)activity={...activity,linkedinStatus:liveStatus};
-         }
+         const reviewed=await publicActivity.get(controller.signal);
+         activity=liveVerified?mergeVerifiedActivities(liveVerified,reviewed):reviewed;
+         // Only a bounded status string leaves DMA; never raw/private rows.
+         if(aboutPosts&&liveStatus)activity={...activity,linkedinStatus:liveStatus};
         }
         if(controller.signal.aborted)return failure(request.signal.aborted?'cancelled':'timeout',request.signal.aborted?499:504,origin);
         const response = await fetchImpl(API_URL, {
