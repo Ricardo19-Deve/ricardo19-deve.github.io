@@ -24,7 +24,9 @@ test('Git-triggered deployment cannot replace the existing M quota or dashboard 
  assert.ok(!Object.hasOwn(worker.vars,'AI_AUTOPLAY_ENABLED'));
  assert.deepEqual(worker.durable_objects.bindings,[{name:'M_QUOTA',class_name:'PortfolioQuota'},{name:'M_VERIFIED_POSTS',class_name:'MVerifiedPosts'}]);
  assert.deepEqual(worker.migrations,[{tag:'v1',new_sqlite_classes:['PortfolioQuota']},{tag:'v2',new_sqlite_classes:['MVerifiedPosts']}]);
- assert.deepEqual(worker.triggers.crons,['17 */3 * * *']);
+ assert.deepEqual(worker.triggers.crons,[]);
+ assert.match(analytics,/entrypoint = "MLinkedInSyncService"/);
+ assert.match(analytics,/crons = \["15 2,5,8,11,14,17,20,23 \* \* \*"\]/);
  assert.ok(!Object.hasOwn(worker.vars,'LINKEDIN_DMA_ACCESS_TOKEN'));
  assert.ok(!Object.hasOwn(worker.vars,'OPENAI_API_KEY'));
  assert.match(workflow,/secrets\.CLOUDFLARE_API_TOKEN/);
