@@ -17,7 +17,7 @@ import {advanceLocomotion} from './m-world-locomotion.mjs?v=55';
 import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
 import {MWorldBrain} from './m-world-brain.mjs?v=55';
 import {M_GESTURES,GESTURE_DURATIONS,PAW_CONTACT_PROGRESS} from './m-world-acting.mjs?v=55';
-import {createMCompanion} from './m-world-companion.mjs?v=55';
+import {createMCompanion} from './m-world-companion.mjs?v=58';
 import {M_WORLD_CONFIG} from './m-world-config.mjs?v=55';
 import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=55';
 
@@ -32,6 +32,8 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  const toggle=document.createElement('button');
  toggle.type='button';toggle.className='m-world-toggle';toggle.dataset.mOverlay='true';
  toggle.textContent='M · Loading';toggle.setAttribute('aria-label','Pause M');toggle.setAttribute('aria-pressed','true');
+  // V58: the only public entry point is Ask M; motion lives in its options menu.
+  toggle.hidden=true;toggle.tabIndex=-1;toggle.setAttribute('aria-hidden','true');
  document.body.append(layer,toggle);
  // Every visit gets a distinct opening; growth remembers only opted-in outcomes.
  const livingSeed=makeLivingSeed();
@@ -886,7 +888,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  };
  observer=createWorldObserver({getComponents:()=>directorComponents});
  director=createWorldDirector({getCharacterContext:()=>character.getContext(),endpoint:M_WORLD_CONFIG.directorEndpoint||'',onIntent:applyDirectorIntent,onStatus:()=>companion?.refresh()});
- companion=createMCompanion({getCharacterStatus:()=>character.snapshot(),onRememberCharacter:value=>{const accepted=character.setRemember(value);if(accepted){growth.setRemember(value);worldKnowledge.setRemember(value);worldStories.setRemember(value);}return accepted;},getWorldDiscovery:()=>worldKnowledge.snapshot().discovery,getWorldStory:()=>worldStories.snapshot(),getAutonomyStatus:autonomyStatus,onAffect:name=>M_AFFECTS.includes(name)&&queueIntent({name:null,affect:name,source:'visitor',expression:'neutral',queuedAt:state.clock}),onScene:()=>beginCharacterScene(),onGame:startPlay,onResetMemory:resetCharacterMemory,onContextResponse:(id,reply)=>{cancelAutonomy('assistant-response');const world=worldSnapshot(),target=world.surfaces.find(r=>publicComponent(r)?.id===id);if(target){stopPlay('context-response');return beginCharacterScene({source:'assistant',targetId:target.id,action:'inspect',gesture:reply.gesture==='none'?'nod':reply.gesture,expression:reply.expression});}return false;},getDirectorStatus:()=>director.getStatus(),onDirectorEnabled:enabled=>{director.setEnabled(enabled);if(!enabled)directorActivity=null;updateDirector(performance.now(),worldSnapshot(),true);},endpoint:M_WORLD_CONFIG.assistantEndpoint,onGesture:queueGesture,onExpression:queueExpression,getMotionStatus:()=>({active,reducedMotion}),onEnableMotion:enableMotion,getContext:activeChatContext,onSection:name=>{document.getElementById(name)?.scrollIntoView({behavior:reducedMotion?'instant':'smooth',block:'start'});},onEngagement:open=>{if(!open)interest.hoverGuardUntil=performance.now()+250;invalidate();}});
+ companion=createMCompanion({getCharacterStatus:()=>character.snapshot(),onRememberCharacter:value=>{const accepted=character.setRemember(value);if(accepted){growth.setRemember(value);worldKnowledge.setRemember(value);worldStories.setRemember(value);}return accepted;},getWorldDiscovery:()=>worldKnowledge.snapshot().discovery,getWorldStory:()=>worldStories.snapshot(),getAutonomyStatus:autonomyStatus,onAffect:name=>M_AFFECTS.includes(name)&&queueIntent({name:null,affect:name,source:'visitor',expression:'neutral',queuedAt:state.clock}),onScene:()=>beginCharacterScene(),onGame:startPlay,onResetMemory:resetCharacterMemory,onContextResponse:(id,reply)=>{cancelAutonomy('assistant-response');const world=worldSnapshot(),target=world.surfaces.find(r=>publicComponent(r)?.id===id);if(target){stopPlay('context-response');return beginCharacterScene({source:'assistant',targetId:target.id,action:'inspect',gesture:reply.gesture==='none'?'nod':reply.gesture,expression:reply.expression});}return false;},getDirectorStatus:()=>director.getStatus(),onDirectorEnabled:enabled=>{director.setEnabled(enabled);if(!enabled)directorActivity=null;updateDirector(performance.now(),worldSnapshot(),true);},endpoint:M_WORLD_CONFIG.assistantEndpoint,onGesture:queueGesture,onExpression:queueExpression,getMotionStatus:()=>({active,reducedMotion}),onToggleMotion:()=>{if(layer.dataset.error&&!avatar){delete layer.dataset.error;active=true;layer.hidden=false;load();}else setActive(!active);return active;},onEnableMotion:enableMotion,getContext:activeChatContext,onSection:name=>{document.getElementById(name)?.scrollIntoView({behavior:reducedMotion?'instant':'smooth',block:'start'});},onEngagement:open=>{if(!open)interest.hoverGuardUntil=performance.now()+250;invalidate();}});
  try{if(localStorage.getItem('m-world-enabled')==='no')active=false;}catch{}
  life.setEnabled(active&&!reducedMotion);setActive(active,false);
  // One bounded, public same-origin knowledge read per page load, never a
