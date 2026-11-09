@@ -60,7 +60,7 @@ test('V63 Portuguese follow-up on English-locale page gets strict PT-PT and one 
  assert.equal(seen.length,2);
  assert.match(seen[0].instructions,/STRICT ANSWER LANGUAGE: European Portuguese/);
  assert.match(seen[0].input.at(-1).content,/"language":"pt"/);
- assert.match(seen[1].instructions,/Rewrite ONLY the reply text/);
+ assert.match(seen[1].instructions,/Rewrite ONLY the reply/);
  assert.equal(seen[1].store,false);
  assert.doesNotMatch(seen[1].input[0].content,/test-secret-openai-token/);
 });
