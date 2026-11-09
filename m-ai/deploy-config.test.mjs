@@ -16,7 +16,8 @@ test('Git-triggered deployment targets only original M companion Worker',()=>{
  assert.match(workflow,/'m-ai\/\*\*'/);
  assert.match(analytics,/name = "ricardo19-deve-github-io"/);
  assert.match(analytics,/analytics\/worker.mjs/);
- assert.ok(!workflow.includes('analytics/wrangler.toml'));
+ assert.match(workflow,/--dry-run --config wrangler\.toml/);
+ assert.doesNotMatch(workflow,/deploy --config analytics\/wrangler\.toml --keep-vars/);
 });
 
 test('Git-triggered deployment cannot replace the existing M quota or dashboard secrets',()=>{
