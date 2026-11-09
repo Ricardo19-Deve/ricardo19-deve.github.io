@@ -102,7 +102,9 @@ export default {
   // Reuse the existing analytics Cron to refresh verified-public LinkedIn
   // posts via a private Service Binding, without adding a sixth Cron Trigger.
   const cleanup=async()=>{
-   if(!env?.ANALYTICS_DB)return;
+   // Keep the original analytics retention cleanup once daily at 02:15 UTC.
+   const hour=new Date(_event?.scheduledTime??Date.now()).getUTCHours();
+   if(!env?.ANALYTICS_DB||hour!==2)return;
    const cutoff=new Date(Date.now()-35*86400000).toISOString().slice(0,10);
    await env.ANALYTICS_DB.prepare('DELETE FROM daily_sessions WHERE day<?').bind(cutoff).run();
   };
