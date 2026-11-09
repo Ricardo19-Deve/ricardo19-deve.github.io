@@ -611,6 +611,6 @@ test('V59 mobile CSS anchors the entire open chat to the real visible viewport',
  assert.match(css,/--m-companion-visible-width,100vw/);
  assert.match(css,/top:calc\(var\(--m-companion-visible-top,0px\) \+ 8px\)/);
  assert.match(css,/bottom:auto/);
- assert.match(source,/panel.dataset.keyboardOpen=open&&document.activeElement===input\?'true':'false'/);
+ assert.match(source,/panel.dataset.keyboardOpen=open&&document.activeElement===input&&\(compact\|\|inset>100\)/);
  assert.match(source,/if\(compact\)close.focus\(\{preventScroll:true\}\)/);
 });
