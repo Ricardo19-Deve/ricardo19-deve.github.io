@@ -27,7 +27,10 @@ const dateString=raw=>{
   return Number.isFinite(date.valueOf())?date.toISOString().slice(0,10):null;
  }
  if(typeof raw!=='string')return null;
- const match=raw.trim().match(/^(\d{4}-\d{2}-\d{2})(?:[T ]\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?)?$/u);
+ // LinkedIn Shares.csv uses full UTC timestamps WITHOUT an offset, e.g.
+ // "2026-11-07 15:44:45". Our V45 matcher mistakenly required a timezone
+ // whenever a time was supplied and dropped every such legitimate post.
+ const match=raw.trim().match(/^(\d{4}-\d{2}-\d{2})(?:[T ]\d{2}:\d{2}(?::\d{2})?(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2}| ?UTC)?)?$/iu);
  if(!match)return null;
  const d=new Date(match[1]+'T00:00:00Z');
  return Number.isFinite(d.valueOf())&&d.toISOString().slice(0,10)===match[1]?match[1]:null;
@@ -36,27 +39,46 @@ const linkedinPermalink=value=>{
  if(typeof value!=='string')return null;
  try{
   const url=new URL(value);
-  if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash||
+  if(url.protocol!=='https:'||url.username||url.password||url.port&&url.port!=='443'||
     !['linkedin.com','www.linkedin.com','pt.linkedin.com'].includes(url.hostname))return null;
-  if(!/^\/(?:posts\/[a-z0-9%_-]+|feed\/update\/urn:li:(?:activity|ugcPost|share):\d+)\/?$/iu.test(url.pathname))return null;
-  return url.href;
+  // A real LinkedIn Shares.csv contains encoded URNs such as
+  // /feed/update/urn%3Ali%3Ashare%3A123. Decode only the PATH once,
+  // then verify it against an exact LinkedIn post allowlist.
+  const path=decodeURIComponent(url.pathname);
+  if(!/^\/(?:posts\/[a-z0-9%_-]+|feed\/update\/urn:li:(?:activity|ugcPost|share):\d+)\/?$/iu.test(path))return null;
+  // Always discard tracking parameters/fragments and normalize to an exact
+  // HTTPS post permalink; no redirects, user info, or other endpoints.
+  return 'https://www.linkedin.com'+path;
  }catch{return null;}
 };
 function extractPublicPosts(rows,{nowMs=Date.now()}={}){
  const seen=new Set(),posts=[];
+ let shareRows=0,publicRows=0;
  for(const raw of rows){
   if(!raw||typeof raw!=='object'||Array.isArray(raw))continue;
+  shareRows++;
   const visibility=String(lookup(raw,'Visibility','Audience','Privacy')||'').trim().toUpperCase();
-  if(visibility!=='PUBLIC'&&visibility!=='EVERYONE')continue;
-  const text=lookup(raw,'ShareCommentary','Shared Comments','Commentary','Content','Post Text','Text');
-  const publishedAt=dateString(lookup(raw,'Date','CreatedAt','Created Date','PublishedAt','Published Date'));
+  // LinkedIn export "MEMBER_NETWORK" means connections-only. Never make
+  // these rows visible to portfolio visitors, even with a valid post link.
+  if(!['PUBLIC','EVERYONE','ANYONE'].includes(visibility))continue;
+  publicRows++;
+  const rawText=lookup(raw,'ShareCommentary','Shared Comments','Commentary','Content','Post Text','Text');
+  const publishedAt=dateString(lookup(raw,'Date','Date/Time','CreatedAt','Created Date','PublishedAt','Published Date'));
   const url=linkedinPermalink(lookup(raw,'ShareLink','Share URL','Post URL','PostUrl','Permalink','URL'));
-  if(typeof text!=='string'||!text.trim()||text.length>1500||!publishedAt||!url||seen.has(url))continue;
+  if(!publishedAt||!url||seen.has(url))continue;
+  // Reposts may contain no original text. State that accurately instead of
+  // rejecting the entire PUBLIC share; never invent the reposted article.
+  let text=typeof rawText==='string'?rawText.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/gu,' ').trim():'';
+  text=text?text.length>1500?text.slice(0,1499)+'…':text:'Partilha pública sem comentário próprio.';
   if(new Date(publishedAt+'T00:00:00Z').valueOf()>nowMs+86400000)continue;
   seen.add(url);
   posts.push({id:'dma-'+(posts.length+1),publishedAt,text:text.trim(),url,visibility:'public',source:'member-export'});
  }
  posts.sort((a,b)=>b.publishedAt.localeCompare(a.publishedAt)||a.url.localeCompare(b.url));
+ // Distinguish no rows, restricted-only posts and a genuinely unknown
+ // public-record shape. Only these categories leave the Worker, never
+ // private rows, author info, raw URLs, field names or LinkedIn responses.
+ if(!posts.length)return blank(shareRows===0?'empty':publicRows===0?'no-public-posts':'unrecognized-public');
  // The shared V43 validator limits the grounded context to eight posts and
  // 6,200 total chars. Always honor the same public-source trust boundary.
  const result=validatePublicActivity({version:1,owner:'Ricardo Pinheiro',
