@@ -15,7 +15,7 @@ database_id = "f0049534-9f80-4cf3-adb5-3e9e568e643a"
 migrations_dir = "migrations"
 
 [triggers]
-crons = ["15 2 * * *"]
+crons = ["15 2,5,8,11,14,17,20,23 * * *"]
 [[services]]
 binding = "M_LINKEDIN_SYNC"
 service = "m-portfolio-companion"
