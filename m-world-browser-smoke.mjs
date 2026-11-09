@@ -37,6 +37,40 @@ async function scrollElementTo(page,selector,top){
  await page.evaluate(({selector,top})=>{const el=document.querySelector(selector);if(!el)throw Error('Missing spatial fixture '+selector);scrollTo({top:scrollY+el.getBoundingClientRect().top-top,behavior:'instant'});},{selector,top});
  await settleScroll(page);
 }
+async function captureColorBuffer(page,depth,file,blank=false){
+ // Read in the same task as the draw: preserveDrawingBuffer is intentionally
+ // false. A screenshot alone also includes DOM/compositor/reference changes.
+ const result=await page.evaluate(({depth,blank})=>{
+  const snapshot=window.MWorld.setDepth(depth),canvas=document.querySelector('.m-world-canvas'),gl=window.__mSmokeGL.find(row=>row.canvas===canvas)?.gl;
+  if(!gl||gl.getParameter(gl.FRAMEBUFFER_BINDING)!==null)throw Error('Expected default M color framebuffer');
+  if(gl.READ_FRAMEBUFFER_BINDING!==undefined&&gl.getParameter(gl.READ_FRAMEBUFFER_BINDING)!==null)throw Error('Expected default M read framebuffer');
+  if(blank){
+   // Keep the exact DOM, active controller and composited canvas layer. Hiding
+   // M also cancels scenes and removes a layer, which is a different baseline.
+   const mask=gl.getParameter(gl.COLOR_WRITEMASK),clear=gl.getParameter(gl.COLOR_CLEAR_VALUE),scissor=gl.isEnabled(gl.SCISSOR_TEST);
+   gl.disable(gl.SCISSOR_TEST);gl.colorMask(true,true,true,true);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
+   gl.colorMask(...mask);gl.clearColor(...clear);if(scissor)gl.enable(gl.SCISSOR_TEST);
+  }
+  const width=gl.drawingBufferWidth,height=gl.drawingBufferHeight,pixels=new Uint8Array(width*height*4),r=canvas.getBoundingClientRect();
+  gl.readPixels(0,0,width,height,gl.RGBA,gl.UNSIGNED_BYTE,pixels);
+  const error=gl.getError();if(error!==gl.NO_ERROR)throw Error('Color-buffer diagnostic GL error '+error);
+  let visible=0,protectedPixels=0,protectedNonzeroAlpha=0,maxProtectedAlpha=0;
+  const flipped=new Uint8ClampedArray(pixels.length);
+  for(let y=0;y<height;y++){
+   flipped.set(pixels.subarray((height-1-y)*width*4,(height-y)*width*4),y*width*4);
+   for(let x=0;x<width;x++){
+    const alpha=pixels[((height-1-y)*width+x)*4+3],cx=r.left+(x+.5)*r.width/width,cy=r.top+(y+.5)*r.height/height;
+    if(alpha>0)visible++;
+    if(snapshot.protectedRects.some(q=>cx>=q.left+2&&cx<q.right-2&&cy>=q.top+2&&cy<q.bottom-2)){
+     protectedPixels++;if(alpha>0)protectedNonzeroAlpha++;maxProtectedAlpha=Math.max(maxProtectedAlpha,alpha);
+    }
+   }
+  }
+  const image=document.createElement('canvas');image.width=width;image.height=height;image.getContext('2d').putImageData(new ImageData(flipped,width,height),0,0);
+  return {snapshot,proof:{blank,width,height,rect:{left:r.left,top:r.top,width:r.width,height:r.height},visible,protectedPixels,protectedNonzeroAlpha,maxProtectedAlpha,attributes:gl.getContextAttributes(),glError:error},png:image.toDataURL('image/png').split(',')[1]};
+ },{depth,blank});
+ writeFileSync(file,Buffer.from(result.png,'base64'));return {snapshot:result.snapshot,proof:result.proof};
+}
 async function pixelEvidence(page,label,selector,artifactPaths){
  await scrollElementTo(page,selector,Math.min(400,page.viewportSize().height*.45));
  const planned=await page.evaluate(async selector=>{
@@ -74,25 +108,28 @@ async function pixelEvidence(page,label,selector,artifactPaths){
  // foreground overlap. V30 protects text through navigation, not text meshes.
  const plannedState=initial.snapshot;
  const plannedFile=path.join(artifactDir,label+'-planned.png');
+ const plannedRaw=await captureColorBuffer(page,plannedState.state.depth,path.join(artifactDir,label+'-planned-raw.png'));
  const plannedImage=await page.screenshot({path:plannedFile,animations:'disabled'});
- const frontState=await page.evaluate(()=>window.MWorld.setDepth(1));
+ const frontRaw=await captureColorBuffer(page,1,path.join(artifactDir,label+'-front-raw.png')),frontState=frontRaw.snapshot;
  const frontFile=path.join(artifactDir,label+'-front.png'),behindFile=path.join(artifactDir,label+'-behind.png'),emptyFile=path.join(artifactDir,label+'-without-M.png');
  const front=await page.screenshot({path:frontFile,animations:'disabled'});
- const behindState=await page.evaluate(()=>window.MWorld.setDepth(-1));
+ const behindRaw=await captureColorBuffer(page,-1,path.join(artifactDir,label+'-behind-raw.png')),behindState=behindRaw.snapshot;
  const behind=await page.screenshot({path:behindFile,animations:'disabled'});
- await page.evaluate(()=>window.MWorld.setActive(false,false));
+ const emptyRaw=await captureColorBuffer(page,-1,path.join(artifactDir,label+'-empty-raw.png'),true);
  const empty=await page.screenshot({path:emptyFile,animations:'disabled'});
- artifactPaths.push(plannedFile,frontFile,behindFile,emptyFile);
- const pixels=await page.evaluate(async({planned,front,behind,empty,snapshot})=>{
+ await page.evaluate(()=>window.MWorld.setActive(false,false));
+ const hiddenFile=path.join(artifactDir,label+'-layer-hidden.png'),hidden=await page.screenshot({path:hiddenFile,animations:'disabled'});
+ artifactPaths.push(plannedFile,frontFile,behindFile,emptyFile,hiddenFile);
+ const pixels=await page.evaluate(async({planned,front,behind,empty,hidden,snapshot})=>{
   async function decode(base64){const image=new Image();image.src='data:image/png;base64,'+base64;await image.decode();const c=document.createElement('canvas');c.width=image.width;c.height=image.height;const context=c.getContext('2d');context.drawImage(image,0,0);return {width:c.width,height:c.height,data:context.getImageData(0,0,c.width,c.height).data};}
-  const p=await decode(planned),f=await decode(front),b=await decode(behind),e=await decode(empty),sx=f.width/innerWidth,sy=f.height/innerHeight;
+  const p=await decode(planned),f=await decode(front),b=await decode(behind),e=await decode(empty),h=await decode(hidden),sx=f.width/innerWidth,sy=f.height/innerHeight;
   const inside=(x,y,r,inset=0)=>x>=r.left+inset&&x<r.right-inset&&y>=r.top+inset&&y<r.bottom-inset;
   const names=['actor','card','cardBoundary','outsideCard','protected','protectedInterior'];
-  const groups=Object.fromEntries(names.map(k=>[k,{pixels:0,plannedEmptyChanged:0,frontBackChanged:0,frontEmptyChanged:0,behindEmptyChanged:0,maxPlannedEmpty:0,maxFrontEmpty:0,maxBehindEmpty:0}]));
+  const groups=Object.fromEntries(names.map(k=>[k,{pixels:0,hiddenEmptyChanged:0,plannedEmptyChanged:0,frontBackChanged:0,frontEmptyChanged:0,behindEmptyChanged:0,maxPlannedEmpty:0,maxFrontEmpty:0,maxBehindEmpty:0}]));
   const actor=snapshot.actor,card=snapshot.surfaces.find(r=>r.id===snapshot.state.targetId),visible={left:Infinity,top:Infinity,right:-Infinity,bottom:-Infinity};
   for(let py=Math.max(0,Math.floor(actor.top*sy));py<Math.min(f.height,Math.ceil(actor.bottom*sy));py++)for(let px=Math.max(0,Math.floor(actor.left*sx));px<Math.min(f.width,Math.ceil(actor.right*sx));px++){
-   const x=(px+.5)/sx,y=(py+.5)/sy,off=(py*f.width+px)*4;let pe=0,fb=0,fe=0,be=0;
-   for(let k=0;k<3;k++){pe=Math.max(pe,Math.abs(p.data[off+k]-e.data[off+k]));fb=Math.max(fb,Math.abs(f.data[off+k]-b.data[off+k]));fe=Math.max(fe,Math.abs(f.data[off+k]-e.data[off+k]));be=Math.max(be,Math.abs(b.data[off+k]-e.data[off+k]));}
+   const x=(px+.5)/sx,y=(py+.5)/sy,off=(py*f.width+px)*4;let he=0,pe=0,fb=0,fe=0,be=0;
+   for(let k=0;k<3;k++){he=Math.max(he,Math.abs(h.data[off+k]-e.data[off+k]));pe=Math.max(pe,Math.abs(p.data[off+k]-e.data[off+k]));fb=Math.max(fb,Math.abs(f.data[off+k]-b.data[off+k]));fe=Math.max(fe,Math.abs(f.data[off+k]-e.data[off+k]));be=Math.max(be,Math.abs(b.data[off+k]-e.data[off+k]));}
    const roundedInside=(r,inset=0)=>{
     if(!inside(x,y,r,inset))return false;
     const radius=Math.max(0,(r.radius||0)-inset),cx=Math.max(r.left+inset+radius,Math.min(x,r.right-inset-radius)),cy=Math.max(r.top+inset+radius,Math.min(y,r.bottom-inset-radius));
@@ -105,13 +142,14 @@ async function pixelEvidence(page,label,selector,artifactPaths){
    // The full boundary counts remain in the separate protected group.
    if(snapshot.protectedRects.some(r=>inside(x,y,r,2)))memberships.push('protectedInterior');
    if(fe>=12){visible.left=Math.min(visible.left,x);visible.top=Math.min(visible.top,y);visible.right=Math.max(visible.right,x);visible.bottom=Math.max(visible.bottom,y);}
-   for(const name of memberships){const g=groups[name];g.pixels++;g.plannedEmptyChanged+=pe>=12;g.frontBackChanged+=fb>=12;g.frontEmptyChanged+=fe>=12;g.behindEmptyChanged+=be>=12;g.maxPlannedEmpty=Math.max(g.maxPlannedEmpty,pe);g.maxFrontEmpty=Math.max(g.maxFrontEmpty,fe);g.maxBehindEmpty=Math.max(g.maxBehindEmpty,be);}
+   for(const name of memberships){const g=groups[name];g.pixels++;g.hiddenEmptyChanged+=he>=12;g.plannedEmptyChanged+=pe>=12;g.frontBackChanged+=fb>=12;g.frontEmptyChanged+=fe>=12;g.behindEmptyChanged+=be>=12;g.maxPlannedEmpty=Math.max(g.maxPlannedEmpty,pe);g.maxFrontEmpty=Math.max(g.maxFrontEmpty,fe);g.maxBehindEmpty=Math.max(g.maxBehindEmpty,be);}
   }
   return {groups,dpr:[sx,sy],threshold:12,protectedInteriorInsetCSS:2,visibleFrontBounds:Number.isFinite(visible.left)?{...visible,width:visible.right-visible.left,height:visible.bottom-visible.top}:null};
- },{planned:plannedImage.toString('base64'),front:front.toString('base64'),behind:behind.toString('base64'),empty:empty.toString('base64'),snapshot:frontState});
+ },{planned:plannedImage.toString('base64'),front:front.toString('base64'),behind:behind.toString('base64'),empty:empty.toString('base64'),hidden:hidden.toString('base64'),snapshot:frontState});
  const actorShift=Math.hypot(frontState.actor.left-behindState.actor.left,frontState.actor.top-behindState.actor.top);
  await page.evaluate(()=>window.MWorld.setActive(true,false));
  return {available:true,selector,side:planned.side,progress:selectedProgress,sampledNeutralOverlap,actorShift,pixels,
+  raw:{planned:plannedRaw.proof,front:frontRaw.proof,behind:behindRaw.proof,empty:emptyRaw.proof},
   planned:{state:plannedState.state,actor:plannedState.actor,occlusion:plannedState.renderer.occlusion},
   front:{state:frontState.state,actor:frontState.actor,occlusion:frontState.renderer.occlusion},
   behind:{state:behindState.state,actor:behindState.actor,occlusion:behindState.renderer.occlusion}};
@@ -323,6 +361,7 @@ try{
     if(result.textPixels.available){const p=result.textPixels,g=p.pixels.groups;
      const protectedArea=g.protectedInterior,front=p.front.occlusion,behind=p.behind.occlusion;
      check('Desktop planned text-card reveal preserves paragraph pixels',p.actorShift<=.5&&p.planned.state.depth<0&&protectedArea.pixels>500&&protectedArea.plannedEmptyChanged===0&&protectedArea.behindEmptyChanged===0&&g.actor.frontEmptyChanged>100,p);
+     check('Desktop planned and behind text contain no M color-buffer samples',p.raw.planned.protectedPixels>500&&p.raw.planned.protectedNonzeroAlpha===0&&p.raw.behind.protectedNonzeroAlpha===0&&p.raw.empty.visible===0&&p.raw.front.visible>100,p.raw);
      check('Desktop forced foreground has no obsolete rectangular text cutouts',front.protectedRects===0&&behind.protectedRects===0&&front.surfaceRects===0&&behind.surfaceRects>0&&protectedArea.frontEmptyChanged>100,{scope:'Debug forced foreground is deliberately unsafe for text; only the separately captured planned pose proves sampled navigation safety.',front,behind,pixels:p.pixels});
     }else check('Desktop text fixture available',false,result.textPixels);
    }

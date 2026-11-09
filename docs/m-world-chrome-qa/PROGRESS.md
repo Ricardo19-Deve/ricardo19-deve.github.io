@@ -67,6 +67,29 @@ Native captures/reports are retained in the chat workspace under
 `work/M_Current_20261109_QA/`; hosted CI uploads portable screenshots and the
 full smoke report. Hosted checks must pass before asking for publication.
 
+## First hosted result and causal pixel isolation
+
+Run42620418100 passed35/36 rendering checks, including both configured chat
+and mobile touch flows. The planned/behind text comparison found one changed
+pixel (delta29). The previous empty reference hid the entire M layer and also
+cancelled its scenes, changing more than the character pixels. No production
+depth/shader/material change or tolerance relaxation is justified by that alone.
+
+The harness now reads RGBA synchronously after the draw, using the default
+framebuffer, actual buffer/CSS dimensions, a vertical flip and strict nonzero
+alpha checks. It saves raw PNGs and requires zero M samples in the protected
+planned/behind regions, with a positive foreground witness. A fully transparent
+color-buffer clear supplies the empty screenshot while retaining the same DOM,
+controller and composited canvas layer; GL state is restored. The former hidden
+layer reference is also retained for diagnosis. Pixel thresholds/insets remain
+unchanged. The focused native check passed: zero protected alpha, no GL error,
+and zero composited-reference differences. Linux evidence is still required.
+
+Two external Cloudflare branch-build statuses also failed and expose only
+dashboard links through GitHub. No Worker source/configuration is changed in
+this PR. Do not claim all hosted checks are green or deploy to bypass these
+statuses; coordinate with the owner's separate backend work.
+
 Suggested commit: `fix(m-world): preserve mobile header taps and align Chrome QA`.
 Every new merge/publication requires explicit owner approval. No Worker deploy
 is necessary for this change.
