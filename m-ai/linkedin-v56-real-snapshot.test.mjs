@@ -43,7 +43,7 @@ test('V56 normalizes encoded activity and ugcPost permalinks, dropping tracker p
  assert.equal(result.posts[2].url,'https://www.linkedin.com/posts/ricardo-collaboration-activity-7382430987654321003-AbCd');
 });
 
-test('V56 private-only exports are NEVER passed to M: MEMBER_NETWORK, CONNECTIONS and unknown visibility',async()=>{
+test('V56 restricted and unknown-visibility exports are NEVER passed to M',async()=>{
  const result=await reader([
   exportRow({Visibility:'MEMBER_NETWORK'}),
   exportRow({Visibility:'CONNECTIONS',ShareCommentary:'private text'}),
@@ -51,7 +51,7 @@ test('V56 private-only exports are NEVER passed to M: MEMBER_NETWORK, CONNECTION
   exportRow({Visibility:'LOGGED_IN'}),
   exportRow({Visibility:undefined}),
  ]).get();
- assert.equal(result.status,'no-public-posts');
+ assert.equal(result.status,'visibility-unverified');
  assert.deepEqual(result.posts,[]);
  assert.doesNotMatch(JSON.stringify(result),/secret|private text/);
 });
