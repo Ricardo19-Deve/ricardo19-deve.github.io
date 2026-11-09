@@ -43,8 +43,6 @@
   "keep_vars": true,
   "account_id": "410b1b4a477dbbb58f255c1e59ecd303",
   "triggers": {
-    "crons": [
-      "17 */3 * * *"
-    ]
+    "crons": []
   }
 }
