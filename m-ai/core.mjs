@@ -304,8 +304,9 @@ export function createHandler({ env = {}, fetchImpl = globalThis.fetch, quota, t
          if(official)activity=mergeVerifiedActivities(official,activity);
          if(dma)activity=mergeVerifiedActivities(dma,activity);
          if(aboutPosts){
-          const directChecked=Boolean(official||dma||liveStatus==='visibility-unverified'||liveStatus==='no-public-posts');
-          if(!directChecked){
+          const transient=['timeout','network-error','provider-error','rate-limited','unavailable'];
+          const cacheAllowed=!official&&!dma&&(memberPosts.enabled||linkedinActivity.enabled)&&transient.includes(liveStatus);
+          if(cacheAllowed){
            // Read the strictly validated, short-lived automatic cron cache.
            // An earlier cache is NEVER used after a fresh explicit privacy
            // restriction, empty feed or successful live replacement.
