@@ -441,7 +441,7 @@ test('Cloudflare adapter keeps abort cleanup alive and releases the persisted le
 });
 
 test('Worker entry exports only runtime handlers and config retains native cancellation support', async () => {
-  assert.deepEqual(Object.keys(workerExports).sort(), ['MVerifiedPosts','PortfolioQuota', 'default']);
+  assert.deepEqual(Object.keys(workerExports).sort(), ['MLinkedInSyncService','MVerifiedPosts','PortfolioQuota', 'default']);
   const { readFile } = await import('node:fs/promises');
   const config = JSON.parse(await readFile(new URL('./wrangler.jsonc', import.meta.url), 'utf8'));
   assert.equal(config.compatibility_flags.includes('enable_request_signal'), true);
