@@ -70,6 +70,11 @@ async function pixelEvidence(page,label,selector,artifactPaths){
  selectedProgress=initial.progress;sampledNeutralOverlap=initial.overlap;
  if(!initial.snapshot?.plan?.available)return {available:false,selector,reason:'Plan no longer available',snapshot:initial.snapshot};
  if(!await page.evaluate(()=>typeof window.MWorld.setDepth==='function'))throw Error('Debug setDepth is required for frozen-pose pixel comparison');
+ // Preserve the plan's own depth before deliberately forcing an unsafe
+ // foreground overlap. V30 protects text through navigation, not text meshes.
+ const plannedState=initial.snapshot;
+ const plannedFile=path.join(artifactDir,label+'-planned.png');
+ const plannedImage=await page.screenshot({path:plannedFile,animations:'disabled'});
  const frontState=await page.evaluate(()=>window.MWorld.setDepth(1));
  const frontFile=path.join(artifactDir,label+'-front.png'),behindFile=path.join(artifactDir,label+'-behind.png'),emptyFile=path.join(artifactDir,label+'-without-M.png');
  const front=await page.screenshot({path:frontFile,animations:'disabled'});
@@ -77,17 +82,17 @@ async function pixelEvidence(page,label,selector,artifactPaths){
  const behind=await page.screenshot({path:behindFile,animations:'disabled'});
  await page.evaluate(()=>window.MWorld.setActive(false,false));
  const empty=await page.screenshot({path:emptyFile,animations:'disabled'});
- artifactPaths.push(frontFile,behindFile,emptyFile);
- const pixels=await page.evaluate(async({front,behind,empty,snapshot})=>{
+ artifactPaths.push(plannedFile,frontFile,behindFile,emptyFile);
+ const pixels=await page.evaluate(async({planned,front,behind,empty,snapshot})=>{
   async function decode(base64){const image=new Image();image.src='data:image/png;base64,'+base64;await image.decode();const c=document.createElement('canvas');c.width=image.width;c.height=image.height;const context=c.getContext('2d');context.drawImage(image,0,0);return {width:c.width,height:c.height,data:context.getImageData(0,0,c.width,c.height).data};}
-  const f=await decode(front),b=await decode(behind),e=await decode(empty),sx=f.width/innerWidth,sy=f.height/innerHeight;
+  const p=await decode(planned),f=await decode(front),b=await decode(behind),e=await decode(empty),sx=f.width/innerWidth,sy=f.height/innerHeight;
   const inside=(x,y,r,inset=0)=>x>=r.left+inset&&x<r.right-inset&&y>=r.top+inset&&y<r.bottom-inset;
   const names=['actor','card','cardBoundary','outsideCard','protected','protectedInterior'];
-  const groups=Object.fromEntries(names.map(k=>[k,{pixels:0,frontBackChanged:0,frontEmptyChanged:0,behindEmptyChanged:0,maxFrontEmpty:0,maxBehindEmpty:0}]));
+  const groups=Object.fromEntries(names.map(k=>[k,{pixels:0,plannedEmptyChanged:0,frontBackChanged:0,frontEmptyChanged:0,behindEmptyChanged:0,maxPlannedEmpty:0,maxFrontEmpty:0,maxBehindEmpty:0}]));
   const actor=snapshot.actor,card=snapshot.surfaces.find(r=>r.id===snapshot.state.targetId),visible={left:Infinity,top:Infinity,right:-Infinity,bottom:-Infinity};
   for(let py=Math.max(0,Math.floor(actor.top*sy));py<Math.min(f.height,Math.ceil(actor.bottom*sy));py++)for(let px=Math.max(0,Math.floor(actor.left*sx));px<Math.min(f.width,Math.ceil(actor.right*sx));px++){
-   const x=(px+.5)/sx,y=(py+.5)/sy,off=(py*f.width+px)*4;let fb=0,fe=0,be=0;
-   for(let k=0;k<3;k++){fb=Math.max(fb,Math.abs(f.data[off+k]-b.data[off+k]));fe=Math.max(fe,Math.abs(f.data[off+k]-e.data[off+k]));be=Math.max(be,Math.abs(b.data[off+k]-e.data[off+k]));}
+   const x=(px+.5)/sx,y=(py+.5)/sy,off=(py*f.width+px)*4;let pe=0,fb=0,fe=0,be=0;
+   for(let k=0;k<3;k++){pe=Math.max(pe,Math.abs(p.data[off+k]-e.data[off+k]));fb=Math.max(fb,Math.abs(f.data[off+k]-b.data[off+k]));fe=Math.max(fe,Math.abs(f.data[off+k]-e.data[off+k]));be=Math.max(be,Math.abs(b.data[off+k]-e.data[off+k]));}
    const roundedInside=(r,inset=0)=>{
     if(!inside(x,y,r,inset))return false;
     const radius=Math.max(0,(r.radius||0)-inset),cx=Math.max(r.left+inset+radius,Math.min(x,r.right-inset-radius)),cy=Math.max(r.top+inset+radius,Math.min(y,r.bottom-inset-radius));
@@ -96,17 +101,18 @@ async function pixelEvidence(page,label,selector,artifactPaths){
    const memberships=['actor',card&&roundedInside(card,1)?'card':'outsideCard'];
    if(card&&inside(x,y,card)&&!roundedInside(card,1))memberships.push('cardBoundary');
    if(snapshot.protectedRects.some(r=>inside(x,y,r)))memberships.push('protected');
-   // Two CSS pixels exclude the rounded plane edge and raster antialiasing;
-   // the full boundary counts remain in the separate protected group.
+   // Keep the original two-CSS-pixel text inset and delta12 threshold.
+   // The full boundary counts remain in the separate protected group.
    if(snapshot.protectedRects.some(r=>inside(x,y,r,2)))memberships.push('protectedInterior');
    if(fe>=12){visible.left=Math.min(visible.left,x);visible.top=Math.min(visible.top,y);visible.right=Math.max(visible.right,x);visible.bottom=Math.max(visible.bottom,y);}
-   for(const name of memberships){const g=groups[name];g.pixels++;g.frontBackChanged+=fb>=12;g.frontEmptyChanged+=fe>=12;g.behindEmptyChanged+=be>=12;g.maxFrontEmpty=Math.max(g.maxFrontEmpty,fe);g.maxBehindEmpty=Math.max(g.maxBehindEmpty,be);}
+   for(const name of memberships){const g=groups[name];g.pixels++;g.plannedEmptyChanged+=pe>=12;g.frontBackChanged+=fb>=12;g.frontEmptyChanged+=fe>=12;g.behindEmptyChanged+=be>=12;g.maxPlannedEmpty=Math.max(g.maxPlannedEmpty,pe);g.maxFrontEmpty=Math.max(g.maxFrontEmpty,fe);g.maxBehindEmpty=Math.max(g.maxBehindEmpty,be);}
   }
   return {groups,dpr:[sx,sy],threshold:12,protectedInteriorInsetCSS:2,visibleFrontBounds:Number.isFinite(visible.left)?{...visible,width:visible.right-visible.left,height:visible.bottom-visible.top}:null};
- },{front:front.toString('base64'),behind:behind.toString('base64'),empty:empty.toString('base64'),snapshot:frontState});
+ },{planned:plannedImage.toString('base64'),front:front.toString('base64'),behind:behind.toString('base64'),empty:empty.toString('base64'),snapshot:frontState});
  const actorShift=Math.hypot(frontState.actor.left-behindState.actor.left,frontState.actor.top-behindState.actor.top);
  await page.evaluate(()=>window.MWorld.setActive(true,false));
  return {available:true,selector,side:planned.side,progress:selectedProgress,sampledNeutralOverlap,actorShift,pixels,
+  planned:{state:plannedState.state,actor:plannedState.actor,occlusion:plannedState.renderer.occlusion},
   front:{state:frontState.state,actor:frontState.actor,occlusion:frontState.renderer.occlusion},
   behind:{state:behindState.state,actor:behindState.actor,occlusion:behindState.renderer.occlusion}};
 }
@@ -174,7 +180,13 @@ try{
  ]){
   if(!report.selectedProfiles.includes(name))continue;
   const context=await browser.newContext({...options,reducedMotion:'no-preference'});
-  await context.route('**/m-world-config.mjs*',route=>route.fulfill({contentType:'text/javascript',body:"export const M_WORLD_CONFIG={assistantEndpoint:'',directorEndpoint:''};"}));
+  // An empty endpoint intentionally hides the composer. Exercise the configured
+  // UI using a browser-local mock; never contact the real Worker or OpenAI.
+  const mockEndpoint=new URL('/api/m/respond',base).href,mockRequests=[];
+  const mockReply='Browser-only QA response. '+('M keeps the conversation readable while the original character explores the page. '.repeat(8)).slice(0,560);
+  await context.route('**/m-world-config.mjs*',route=>route.fulfill({contentType:'text/javascript',body:'export const M_WORLD_CONFIG='+JSON.stringify({assistantEndpoint:mockEndpoint,directorEndpoint:''})+';'}));
+  await context.route(new URL('/health',base).href,route=>route.fulfill({json:{configured:true,contextualChat:{version:1},character:{version:1}}}));
+  await context.route(mockEndpoint,route=>{mockRequests.push(route.request().postDataJSON());return route.fulfill({json:{reply:mockReply,expression:'neutral',gesture:'none',section:'none'}});});
   const result={name,options,emulatedMobile:name==='mobile',consoleErrors:[],pageErrors:[],httpErrors:[],failedRequests:[],resourceWarnings:[]};
   const page=await context.newPage();let modelChunkRequests=0;
   page.on('pageerror',error=>result.pageErrors.push(String(error.stack||error)));
@@ -272,11 +284,19 @@ try{
    const interact=async locator=>name==='mobile'?locator.tap():locator.click();
    check(name+': exactly one visible external M launcher',await launcher.isVisible()&&await page.locator('.m-world-toggle').isHidden()&&await page.locator('.m-companion-settings-toggle').isHidden());
    await interact(launcher);
+   await page.locator('.m-companion-form').waitFor({state:'visible'});
    const chatBounds=await page.evaluate(()=>{
     const rect=selector=>{const r=document.querySelector(selector).getBoundingClientRect();return {left:r.left,right:r.right,width:r.width,top:r.top,bottom:r.bottom};};
     return {panel:rect('.m-companion'),form:rect('.m-companion-form'),input:rect('#m-companion-message'),send:rect('.m-companion-send'),viewportWidth:innerWidth,textareaFont:parseFloat(getComputedStyle(document.querySelector('#m-companion-message')).fontSize)};
    });
    check(name+': Ask M chat, composer and send button fit the viewport',chatBounds.panel.left>=-1&&chatBounds.panel.right<=chatBounds.viewportWidth+1&&chatBounds.form.right<=chatBounds.panel.right+1&&chatBounds.input.width>90&&chatBounds.input.right<chatBounds.send.left+3&&(name!=='mobile'||chatBounds.textareaFont>=16),chatBounds);
+   await page.locator('#m-companion-message').fill('Tell me about this portfolio.');
+   await page.locator('#m-companion-message').press('Enter');
+   await page.waitForFunction(reply=>document.querySelector('.m-companion-message.assistant')?.textContent===reply,mockReply);
+   const reading=await page.evaluate(()=>{const panel=document.querySelector('.m-companion'),body=panel.querySelector('.m-companion-body'),send=panel.querySelector('.m-companion-send'),r=send.getBoundingClientRect();return {height:body.clientHeight,overflow:panel.scrollWidth-panel.clientWidth,sendHittable:send.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2))};});
+   result.chat={mockRequests,mockReplyLength:mockReply.length,bounds:chatBounds,reading};
+   check(name+': Enter submits one mocked reply with readable space and reachable composer',mockRequests.length===1&&mockRequests[0].message==='Tell me about this portfolio.'&&reading.height>=120&&reading.overflow<=1&&reading.sendHittable,result.chat);
+   const chatFile=path.join(artifactDir,name+'-configured-chat.png');await page.screenshot({path:chatFile,animations:'disabled'});report.artifacts.push(chatFile);
    await interact(optionsButton);await interact(motionButton);
    await page.waitForFunction(()=>document.querySelector('.mascot-world-v9').hidden);
    check(name+': internal Pause M hides the character',await motionButton.getAttribute('aria-pressed')==='false');
@@ -301,7 +321,9 @@ try{
    if(name==='desktop'){
     result.textPixels=await pixelEvidence(page,name+'-text','.about-statement',report.artifacts);
     if(result.textPixels.available){const p=result.textPixels,g=p.pixels.groups;
-     check('Desktop text shield preserves actual paragraph pixels',p.actorShift<=.5&&g.protectedInterior.pixels>500&&g.protectedInterior.frontEmptyChanged===0&&g.actor.frontEmptyChanged>100,p);
+     const protectedArea=g.protectedInterior,front=p.front.occlusion,behind=p.behind.occlusion;
+     check('Desktop planned text-card reveal preserves paragraph pixels',p.actorShift<=.5&&p.planned.state.depth<0&&protectedArea.pixels>500&&protectedArea.plannedEmptyChanged===0&&protectedArea.behindEmptyChanged===0&&g.actor.frontEmptyChanged>100,p);
+     check('Desktop forced foreground has no obsolete rectangular text cutouts',front.protectedRects===0&&behind.protectedRects===0&&front.surfaceRects===0&&behind.surfaceRects>0&&protectedArea.frontEmptyChanged>100,{scope:'Debug forced foreground is deliberately unsafe for text; only the separately captured planned pose proves sampled navigation safety.',front,behind,pixels:p.pixels});
     }else check('Desktop text fixture available',false,result.textPixels);
    }
    result.qaTotalModelRequests=modelChunkRequests;

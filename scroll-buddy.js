@@ -17,7 +17,7 @@ import {advanceLocomotion} from './m-world-locomotion.mjs?v=55';
 import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
 import {MWorldBrain} from './m-world-brain.mjs?v=55';
 import {M_GESTURES,GESTURE_DURATIONS,PAW_CONTACT_PROGRESS} from './m-world-acting.mjs?v=55';
-import {createMCompanion} from './m-world-companion.mjs?v=55&ui=59';
+import {createMCompanion} from './m-world-companion.mjs?v=55&ui=61';
 import {M_WORLD_CONFIG} from './m-world-config.mjs?v=55';
 import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=55';
 

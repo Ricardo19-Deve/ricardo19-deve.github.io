@@ -225,7 +225,13 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  const view=document.defaultView,visual=view?.visualViewport;
  if(view?.addEventListener)listen(view,'resize',refreshViewport);
  if(visual?.addEventListener){listen(visual,'resize',refreshViewport);listen(visual,'scroll',refreshViewport);}
- listen(input,'focus',refreshViewport);listen(input,'blur',refreshViewport);
+ listen(input,'focus',refreshViewport);
+ // A touch click is dispatched after focus changes. Reframing on blur moves
+ // header controls away from that touch before its click can reach them.
+ listen(input,'blur',()=>{
+  if(view?.requestAnimationFrame)view.requestAnimationFrame(()=>{if(!destroyed)refreshViewport();});
+  else refreshViewport();
+ });
  listen(rememberCharacter,'click',()=>{const current=getCharacterStatus();if(current&&typeof current.remember==='boolean'){onRememberCharacter(!current.remember);refreshStoryControl();}});
  listen(rememberPrivacy,'click',()=>{const current=getCharacterStatus();if(current&&typeof current.remember==='boolean'){onRememberCharacter(!current.remember);refreshStoryControl();}});
  listen(directorToggle,'click',()=>{const state=getDirectorStatus()||{};onDirectorEnabled(state.enabled===false);refresh();});
