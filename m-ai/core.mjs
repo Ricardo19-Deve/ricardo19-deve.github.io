@@ -236,7 +236,7 @@ export function createHandler({ env = {}, fetchImpl = globalThis.fetch, quota, t
     const configured = Boolean(env.OPENAI_API_KEY?.trim() && origins && quota?.ready);
     const origin = request.headers.get('origin') || '';
     const allowed = Boolean(origins?.has(origin));
-    if (url.pathname === '/health' && request.method === 'GET') return jsonResponse({ configured, director: { version: 1, enabled: configured && DIRECTOR_OPERATION.enabled(env) }, contextualChat: { version: 1 }, character: { version: 1 }, linkedin: linkedinActivity.snapshot(), memberPosts: memberPosts.snapshot() }, 200, allowed ? origin : '');
+    if (url.pathname === '/health' && request.method === 'GET') return jsonResponse({ configured, director: { version: 1, enabled: configured && DIRECTOR_OPERATION.enabled(env) }, contextualChat: { version: 1 }, character: { version: 1 }, linkedin: linkedinActivity.snapshot(), ...(url.searchParams.get('sync')==='1'?{memberPosts:memberPosts.snapshot()}: {}) }, 200, allowed ? origin : '');
     const operation = url.pathname === '/api/m/direct' ? DIRECTOR_OPERATION : CHAT_OPERATION;
     if (!['/api/m/respond', '/api/m/direct'].includes(url.pathname)) return failure('not_found', 404, allowed ? origin : '');
     if (!allowed) return failure('forbidden_origin', 403, '');
@@ -303,6 +303,7 @@ export function createHandler({ env = {}, fetchImpl = globalThis.fetch, quota, t
          // can be merged from any official LinkedIn reader.
          if(official)activity=mergeVerifiedActivities(official,activity);
          if(dma)activity=mergeVerifiedActivities(dma,activity);
+         if(!liveStatus&&activity?.status!=='ready'&&[official,dma].some(source=>source?.status==='empty'))liveStatus='empty';
          if(aboutPosts){
           const transient=['timeout','network-error','provider-error','rate-limited','unavailable'];
           const cacheAllowed=!official&&!dma&&(memberPosts.enabled||linkedinActivity.enabled)&&transient.includes(liveStatus);
