@@ -573,3 +573,44 @@ test('V58 mobile drawer CSS avoids horizontal overflow and input zoom',()=>{
  assert.match(code,/onToggleMotion:/);
  assert.match(code,/toggle.hidden=true;toggle.tabIndex=-1/);
 });
+
+test('V59 iPhone webview stays correctly framed when keyboard shrinks both viewport heights',()=>{
+ const visual=new EventTarget();visual.height=844;visual.width=390;visual.offsetTop=0;visual.offsetLeft=0;
+ const view=new EventTarget();view.innerWidth=390;view.innerHeight=844;
+ view.matchMedia=()=>({matches:true});view.visualViewport=visual;
+ const f=companionFixture({viewportWindow:view});const {panel,moreButton,toolMenu}=f.companion.elements;
+ f.companion.elements.toggle.dispatchEvent(new Event('click'));
+ assert.equal(f.companion.isOpen(),true);
+ assert.equal(f.document.activeElement.className,'m-companion-close',
+  'mobile opening must not focus textarea and trigger premature iOS keyboard zoom');
+ assert.equal(panel.dataset.keyboardOpen,'false');
+ f.input.focus();f.input.dispatchEvent(new Event('focus'));
+ assert.equal(panel.dataset.keyboardOpen,'true');
+ // Some iOS in-app browsers change innerHeight with the keyboard: inset=0.
+ view.innerHeight=354;visual.height=354;visual.width=386;visual.offsetTop=29;visual.offsetLeft=2;
+ visual.dispatchEvent(new Event('resize'));
+ assert.equal(panel.dataset.keyboardOpen,'true','focus must drive keyboard mode even with zero inset');
+ assert.equal(panel.style.getPropertyValue('--m-companion-keyboard-inset'),'0px');
+ assert.equal(panel.style.getPropertyValue('--m-companion-visible-top'),'29px');
+ assert.equal(panel.style.getPropertyValue('--m-companion-visible-left'),'2px');
+ assert.equal(panel.style.getPropertyValue('--m-companion-visible-width'),'386px');
+ assert.equal(panel.style.getPropertyValue('--m-companion-visible-height'),'354px');
+ visual.offsetTop=51;visual.dispatchEvent(new Event('scroll'));
+ assert.equal(panel.style.getPropertyValue('--m-companion-visible-top'),'51px');
+ moreButton.dispatchEvent(new Event('click'));assert.equal(toolMenu.hidden,false);
+ f.companion.destroy();
+ visual.offsetTop=99;visual.dispatchEvent(new Event('scroll'));
+ assert.equal(panel.style.getPropertyValue('--m-companion-visible-top'),'51px');
+});
+
+test('V59 mobile CSS anchors the entire open chat to the real visible viewport',()=>{
+ const css=readFileSync(new URL('m-world.css',import.meta.url),'utf8');
+ const source=readFileSync(new URL('m-world-companion.mjs',import.meta.url),'utf8');
+ assert.match(css,/--m-companion-visible-top,0px/);
+ assert.match(css,/--m-companion-visible-left,0px/);
+ assert.match(css,/--m-companion-visible-width,100vw/);
+ assert.match(css,/top:calc\(var\(--m-companion-visible-top,0px\) \+ 8px\)/);
+ assert.match(css,/bottom:auto/);
+ assert.match(source,/panel.dataset.keyboardOpen=open&&document.activeElement===input\?'true':'false'/);
+ assert.match(source,/if\(compact\)close.focus\(\{preventScroll:true\}\)/);
+});
