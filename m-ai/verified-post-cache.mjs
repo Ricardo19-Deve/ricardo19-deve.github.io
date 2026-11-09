@@ -7,7 +7,8 @@ import {validatePublicActivity,LINKEDIN_PROFILE_URL} from './public-activity.mjs
 
 const TTL_MS=4*60*60*1000;
 function validated(value){
- if(!value||!Array.isArray(value.posts)||value.posts.length>8)return null;
+ if(!value||!['ready','empty'].includes(value.status)||!Array.isArray(value.posts)||value.posts.length>8)return null;
+ if((value.status==='ready'&&value.posts.length===0)||(value.status==='empty'&&value.posts.length!==0))return null;
  const posts=value.posts.map((p,i)=>({
   id:'cache-'+i,publishedAt:p.publishedAt,text:p.text,url:p.url,
   source:p.source,visibility:'public'
