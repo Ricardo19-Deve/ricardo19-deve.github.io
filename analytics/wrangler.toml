@@ -16,3 +16,7 @@ migrations_dir = "migrations"
 
 [triggers]
 crons = ["15 2 * * *"]
+[[services]]
+binding = "M_LINKEDIN_SYNC"
+service = "m-portfolio-companion"
+entrypoint = "MLinkedInSyncService"
