@@ -99,8 +99,24 @@ export default {
   }
  },
  async scheduled(_event,env){
-  if(!env?.ANALYTICS_DB)return;
-  const cutoff=new Date(Date.now()-35*86400000).toISOString().slice(0,10);
-  await env.ANALYTICS_DB.prepare('DELETE FROM daily_sessions WHERE day<?').bind(cutoff).run();
+  // Reuse the existing analytics Cron to refresh verified-public LinkedIn
+  // posts via a private Service Binding, without adding a sixth Cron Trigger.
+  const cleanup=async()=>{
+   // Keep the original analytics retention cleanup once daily at 02:15 UTC.
+   const hour=new Date(_event?.scheduledTime??Date.now()).getUTCHours();
+   if(!env?.ANALYTICS_DB||hour!==2)return;
+   const cutoff=new Date(Date.now()-35*86400000).toISOString().slice(0,10);
+   await env.ANALYTICS_DB.prepare('DELETE FROM daily_sessions WHERE day<?').bind(cutoff).run();
+  };
+  const refresh=async()=>{
+   if(typeof env?.M_LINKEDIN_SYNC?.refresh!=='function')return;
+   const result=await env.M_LINKEDIN_SYNC.refresh();
+   if(!result?.stored&&result?.state!=='not-configured')
+    console.warn('m-linkedin-sync-not-updated',String(result?.state||'unknown').slice(0,40));
+  };
+  const outcomes=await Promise.allSettled([cleanup(),refresh()]);
+  // A LinkedIn outage never prevents analytics cleanup, or vice versa.
+  if(outcomes[0].status==='rejected')console.warn('analytics-cleanup-failed',outcomes[0].reason?.name||'Error');
+  if(outcomes[1].status==='rejected')console.warn('m-linkedin-sync-failed',outcomes[1].reason?.name||'Error');
  }
 };

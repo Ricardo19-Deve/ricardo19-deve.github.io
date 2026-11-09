@@ -5,6 +5,7 @@ name = "ricardo19-deve-github-io"
 main = "analytics/worker.mjs"
 compatibility_date = "2026-11-01"
 workers_dev = true
+keep_vars = true
 
 [vars]
 PUBLIC_ORIGIN = "https://ricardo19-deve.github.io"
@@ -16,4 +17,8 @@ database_id = "f0049534-9f80-4cf3-adb5-3e9e568e643a"
 migrations_dir = "analytics/migrations"
 
 [triggers]
-crons = ["15 2 * * *"]
+crons = ["15 2,5,8,11,14,17,20,23 * * *"]
+[[services]]
+binding = "M_LINKEDIN_SYNC"
+service = "m-portfolio-companion"
+entrypoint = "MLinkedInSyncService"

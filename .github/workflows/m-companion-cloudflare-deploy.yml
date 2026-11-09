@@ -5,6 +5,10 @@ on:
     branches: [main]
     paths:
       - 'm-ai/**'
+      - 'analytics/worker.mjs'
+      - 'analytics/wrangler.toml'
+      - 'analytics/m-linkedin-cron.test.mjs'
+      - 'wrangler.toml'
       - 'm-world-context.mjs'
       - 'm-world-character-context.mjs'
       - '.github/workflows/m-companion-cloudflare-deploy.yml'
@@ -32,11 +36,14 @@ jobs:
           node --check m-ai/worker.mjs
           node --check m-ai/core.mjs
           node --check m-ai/linkedin-live.mjs
-          node --test m-ai/*.test.mjs
+          node --test m-ai/*.test.mjs analytics/m-linkedin-cron.test.mjs
 
       - name: Validate M Worker bundle, Cron and Durable Object migration offline
         working-directory: m-ai
         run: npx --yes wrangler@4 deploy --dry-run --config wrangler.jsonc --outdir /tmp/m-worker-v61
+
+      - name: Validate shared analytics Cron and private M binding offline
+        run: npx --yes wrangler@4 deploy --dry-run --config wrangler.toml --outdir /tmp/analytics-m-v62
 
       - name: Check Cloudflare GitHub deployment authorization
         id: credentials

@@ -43,7 +43,7 @@ test('V61 archive rejects private or malicious posts and expires automatically',
 test('V61 Cloudflare scheduler is bound to only the M Worker with SQLite migration',async()=>{
  const config=JSON.parse(readFileSync(new URL('wrangler.jsonc',import.meta.url),'utf8'));
  assert.equal(config.name,'m-portfolio-companion');
- assert.deepEqual(config.triggers.crons,['17 */3 * * *']);
+ assert.deepEqual(config.triggers.crons,[]);
  assert.ok(config.durable_objects.bindings.some(x=>x.name==='M_VERIFIED_POSTS'&&x.class_name==='MVerifiedPosts'));
  assert.ok(config.migrations.some(x=>x.tag==='v2'&&x.new_sqlite_classes.includes('MVerifiedPosts')));
  assert.equal(typeof worker.scheduled,'function');

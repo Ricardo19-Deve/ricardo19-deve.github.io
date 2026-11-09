@@ -3,6 +3,28 @@ import { QUOTA_POLICY, quotaWindows, createDurableQuota } from './quota.mjs';
 import {readVerifiedPosts} from './verified-post-cache.mjs';
 import {refreshAutomaticLinkedIn} from './automatic-linkedin.mjs';
 export {MVerifiedPosts} from './verified-post-cache.mjs';
+/**
+ * Private Cloudflare Service Binding entrypoint for the existing analytics
+ * Worker's scheduled event. There is NO public HTTP route to run sync.
+ *
+ * The fallback class only makes Node's regression suite importable outside
+ * workerd, where the special cloudflare:workers module does not exist.
+ */
+const WorkerEntrypointBase=await import('cloudflare:workers')
+ .then(module=>module.WorkerEntrypoint)
+ .catch(()=>class {constructor(_ctx,env){this.env=env;}});
+
+export class MLinkedInSyncService extends WorkerEntrypointBase {
+ async refresh(){
+  const result=await refreshAutomaticLinkedIn(this.env);
+  return {
+   state:result.state,
+   stored:Boolean(result.stored),
+   count:Number.isFinite(result.count)?result.count:0
+  };
+ }
+}
+
 
 // The fetch interface intentionally avoids platform-only imports so its real SQL
 // transaction logic can also be verified against Node's SQLite in offline tests.

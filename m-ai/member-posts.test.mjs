@@ -73,7 +73,7 @@ test('V61 cron publishes only safely verified explicit-public posts, never conne
  assert.equal(writes.length,1);
  assert.equal(writes[0].posts.length,1);
  assert.doesNotMatch(JSON.stringify(writes),/Never publish my private post/);
- assert.equal(M_LINKEDIN_SYNC_CRON,'17 */3 * * *');
+ assert.equal(M_LINKEDIN_SYNC_CRON,'15 2,5,8,11,14,17,20,23 * * *');
 });
 test('V61 cron never stores MEMBER_NETWORK-only content as verified public data',async()=>{
  let stored=0;
