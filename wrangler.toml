@@ -5,6 +5,7 @@ name = "ricardo19-deve-github-io"
 main = "analytics/worker.mjs"
 compatibility_date = "2026-11-01"
 workers_dev = true
+keep_vars = true
 
 [vars]
 PUBLIC_ORIGIN = "https://ricardo19-deve.github.io"
