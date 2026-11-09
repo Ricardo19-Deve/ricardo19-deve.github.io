@@ -26,7 +26,7 @@ test('V46 unavailable member snapshot explains pending/expired/empty errors, nev
   ['no-recognized',()=>new Response(JSON.stringify({
    elements:[{snapshotDomain:DMA_SNAPSHOT_DOMAIN,snapshotData:[]}],
    paging:{links:[]}
-  }),{status:200}),/no entries met the public-post verification requirements/]
+  }),{status:200}),/snapshot returned zero share rows/]
  ]){
   const calls=[];
   const fetchImpl=async(url,opts)=>{
