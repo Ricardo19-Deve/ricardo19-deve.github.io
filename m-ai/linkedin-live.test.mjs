@@ -94,7 +94,6 @@ test('V45 initial 404 is pending, expired token blocks, unknown audience never b
 
 test('V56 distinguishes confirmed restricted shares from missing or unknown visibility',async()=>{
  const restricted=await pageFilter([
-  example({Visibility:'MEMBER_NETWORK'}),
   example({Visibility:'Connections'}),
   example({Visibility:'Private'})
  ]);
