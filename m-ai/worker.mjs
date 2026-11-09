@@ -1,5 +1,8 @@
 import { createHandler, jsonResponse, readBoundedText } from './core.mjs';
 import { QUOTA_POLICY, quotaWindows, createDurableQuota } from './quota.mjs';
+import {readVerifiedPosts} from './verified-post-cache.mjs';
+import {refreshAutomaticLinkedIn} from './automatic-linkedin.mjs';
+export {MVerifiedPosts} from './verified-post-cache.mjs';
 
 // The fetch interface intentionally avoids platform-only imports so its real SQL
 // transaction logic can also be verified against Node's SQLite in offline tests.
@@ -51,7 +54,7 @@ let handler;
 export default {
   async fetch(request, env, ctx) {
     try {
-      if (!handler || lastEnv !== env) { handler = createHandler({ env, quota: createDurableQuota(env.M_QUOTA) }); lastEnv = env; }
+      if (!handler || lastEnv !== env) { handler = createHandler({ env, quota: createDurableQuota(env.M_QUOTA), getCachedPublicPosts:()=>readVerifiedPosts(env) }); lastEnv = env; }
       // Cloudflare sets this header at its edge. Never use x-forwarded-for here.
       // Missing identity fails closed for paid POSTs (including unconfigured dev).
       const clientIp = request.headers.get('CF-Connecting-IP');
@@ -62,5 +65,12 @@ export default {
       ctx?.waitUntil(pending.then(() => {}, () => {}));
       return await pending;
     } catch { return jsonResponse({ error: { code: 'unavailable', message: 'AI chat is temporarily unavailable.' } }, 503); }
+  },
+  async scheduled(_event,env,ctx){
+    // The Cron is server-side: no visitor must keep the website open.
+    // Only validated PUBLIC posts may enter the time-limited archive.
+    const pending=refreshAutomaticLinkedIn(env);
+    ctx?.waitUntil(pending);
+    await pending;
   }
-};
+};;
