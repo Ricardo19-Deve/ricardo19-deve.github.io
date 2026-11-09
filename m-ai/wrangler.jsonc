@@ -19,6 +19,10 @@
       {
         "name": "M_QUOTA",
         "class_name": "PortfolioQuota"
+      },
+      {
+        "name": "M_VERIFIED_POSTS",
+        "class_name": "MVerifiedPosts"
       }
     ]
   },
@@ -28,8 +32,19 @@
       "new_sqlite_classes": [
         "PortfolioQuota"
       ]
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": [
+        "MVerifiedPosts"
+      ]
     }
   ],
   "keep_vars": true,
-  "account_id": "410b1b4a477dbbb58f255c1e59ecd303"
+  "account_id": "410b1b4a477dbbb58f255c1e59ecd303",
+  "triggers": {
+    "crons": [
+      "17 */3 * * *"
+    ]
+  }
 }

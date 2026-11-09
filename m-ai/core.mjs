@@ -1,6 +1,7 @@
 import { PORTFOLIO_CONTEXT } from './portfolio-context.mjs';
 import {createPublicActivityReader,mergeVerifiedActivities} from './public-activity.mjs';
 import {createDMALiveReader} from './linkedin-live.mjs';
+import {createMemberPostsReader} from './member-posts.mjs';
 import {isPublicationQuestion,isPublicationFollowUp,isProfessionalQuestion,PROFESSIONAL_PRESENTATION_RULES,normalizeProfessionalReply} from './professional-guide.mjs';
 import { DIRECTOR_OPERATION } from './director.mjs';
 import { getContextComponent } from '../m-world-context.mjs';
@@ -222,19 +223,20 @@ function extractOutput(data) {
 
 // A caller supplies a trusted client IP from its hosting adapter, never from JSON.
 // Quota must be explicit: production adapters must not silently use memory limits.
-export function createHandler({ env = {}, fetchImpl = globalThis.fetch, quota, timeoutMs = 15000, maxConcurrency = 3 } = {}) {
+export function createHandler({ env = {}, fetchImpl = globalThis.fetch, quota, timeoutMs = 15000, maxConcurrency = 3, getCachedPublicPosts = async()=>null } = {}) {
   let active = 0;
   const origins = allowedOrigins(env);
   const publicActivity=createPublicActivityReader({fetchImpl,url:env.PUBLIC_ACTIVITY_FEED_URL||''});
   // V45: private token stays in the Worker and is used only for public posts.
   // Empty/missing LinkedIn credentials preserve the existing V43 behavior.
   const linkedinActivity=createDMALiveReader({token:env.LINKEDIN_DMA_ACCESS_TOKEN||'',fetchImpl});
+  const memberPosts=createMemberPostsReader({token:env.LINKEDIN_MEMBER_SOCIAL_ACCESS_TOKEN||'',personUrn:env.LINKEDIN_MEMBER_PERSON_URN||'',fetchImpl});
   return async function handle(request, { clientIp = 'unknown' } = {}) {
     const url = new URL(request.url);
     const configured = Boolean(env.OPENAI_API_KEY?.trim() && origins && quota?.ready);
     const origin = request.headers.get('origin') || '';
     const allowed = Boolean(origins?.has(origin));
-    if (url.pathname === '/health' && request.method === 'GET') return jsonResponse({ configured, director: { version: 1, enabled: configured && DIRECTOR_OPERATION.enabled(env) }, contextualChat: { version: 1 }, character: { version: 1 }, linkedin: linkedinActivity.snapshot() }, 200, allowed ? origin : '');
+    if (url.pathname === '/health' && request.method === 'GET') return jsonResponse({ configured, director: { version: 1, enabled: configured && DIRECTOR_OPERATION.enabled(env) }, contextualChat: { version: 1 }, character: { version: 1 }, linkedin: linkedinActivity.snapshot(), ...(url.searchParams.get('sync')==='1'?{memberPosts:memberPosts.snapshot()}: {}) }, 200, allowed ? origin : '');
     const operation = url.pathname === '/api/m/direct' ? DIRECTOR_OPERATION : CHAT_OPERATION;
     if (!['/api/m/respond', '/api/m/direct'].includes(url.pathname)) return failure('not_found', 404, allowed ? origin : '');
     if (!allowed) return failure('forbidden_origin', 403, '');
@@ -279,20 +281,41 @@ export function createHandler({ env = {}, fetchImpl = globalThis.fetch, quota, t
         // If unavailable, portfolio chat still works with explicit knowledge limits.
         let activity=null;
         if(operation===CHAT_OPERATION){
-         // Only publication questions (including tightly-scoped follow-ups)
-         // require the secret LinkedIn DMA read. Curated public entries and
-         // explicitly PUBLIC DMA rows are independently validated and merged.
          const aboutPosts=isPublicationQuestion(input.message)||isPublicationFollowUp(input.message,input.history);
-         let liveStatus=null,liveVerified=null;
+         // Fetch only for public-post questions. The official Posts API uses
+         // a distinct, explicitly approved r_member_social token, when present.
+         // A DMA token NEVER grants this restricted permission.
+         let official=null,dma=null,liveStatus=null;
+         if(aboutPosts&&memberPosts.enabled){
+          const candidate=await memberPosts.get();
+          if(['ready','empty'].includes(candidate.status))official=candidate;
+          else liveStatus=candidate.status;
+         }
          if(aboutPosts&&linkedinActivity.enabled){
-          const live=await linkedinActivity.get();
-          if(live.status==='ready')liveVerified=live;
-          else liveStatus=live.status;
+          const candidate=await linkedinActivity.get();
+          if(['ready','empty'].includes(candidate.status))dma=candidate;
+          else liveStatus=liveStatus||candidate.status;
          }
          const reviewed=await publicActivity.get(controller.signal);
-         activity=liveVerified?mergeVerifiedActivities(liveVerified,reviewed):reviewed;
-         // Only a bounded status string leaves DMA; never raw/private rows.
-         if(aboutPosts&&liveStatus)activity={...activity,linkedinStatus:liveStatus};
+         activity=reviewed;
+         // The owner-reviewed feed is separate and remains useful when a
+         // provider is temporarily unreachable. Only explicitly PUBLIC rows
+         // can be merged from any official LinkedIn reader.
+         if(official)activity=mergeVerifiedActivities(official,activity);
+         if(dma)activity=mergeVerifiedActivities(dma,activity);
+         if(!liveStatus&&activity?.status!=='ready'&&[official,dma].some(source=>source?.status==='empty'))liveStatus='empty';
+         if(aboutPosts){
+          const transient=['timeout','network-error','provider-error','rate-limited','unavailable'];
+          const cacheAllowed=!official&&!dma&&(memberPosts.enabled||linkedinActivity.enabled)&&transient.includes(liveStatus);
+          if(cacheAllowed){
+           // Read the strictly validated, short-lived automatic cron cache.
+           // An earlier cache is NEVER used after a fresh explicit privacy
+           // restriction, empty feed or successful live replacement.
+           const archived=await getCachedPublicPosts();
+           if(archived?.status==='ready')activity=mergeVerifiedActivities(archived,activity);
+          }
+          if(liveStatus)activity={...activity,linkedinStatus:liveStatus};
+         }
         }
         if(controller.signal.aborted)return failure(request.signal.aborted?'cancelled':'timeout',request.signal.aborted?499:504,origin);
         const response = await fetchImpl(API_URL, {
