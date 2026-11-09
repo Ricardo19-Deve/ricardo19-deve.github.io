@@ -73,4 +73,4 @@ export default {
     ctx?.waitUntil(pending);
     await pending;
   }
-};;
+};
