@@ -1,15 +1,15 @@
 {
   "schema": 1,
-  "date": "2026-11-08",
+  "date": "2026-11-09",
   "source": "Wikipedia — On this day",
-  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/08",
+  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/09",
   "items": [
     {
-      "id": "2026-11-08:1520:history",
-      "year": 1520,
-      "title": "Christian II of Denmark",
-      "url": "https://en.wikipedia.org/wiki/Christian_II_of_Denmark",
-      "topic": "history"
+      "id": "2026-11-09:1928:culture",
+      "year": 1928,
+      "title": "The Great Mecca Feast",
+      "url": "https://en.wikipedia.org/wiki/The_Great_Mecca_Feast",
+      "topic": "culture"
     }
   ]
 }
