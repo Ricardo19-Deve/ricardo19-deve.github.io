@@ -59,5 +59,5 @@ test('V46 latest-post explanation from source does not influence unrelated proje
  },body:JSON.stringify({message:'What skills does Ricardo use?',history:[],context:{section:'home',language:'en'}})});
  const res=await handle(request);
  assert.equal(res.status,200);
- assert.deepEqual(urls,[API_URL]);
+ assert.ok(urls.length>=1&&urls.every(url=>url===API_URL),'language repair must never fetch LinkedIn for unrelated questions');
 });
