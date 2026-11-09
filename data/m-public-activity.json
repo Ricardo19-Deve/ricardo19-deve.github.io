@@ -2,6 +2,15 @@
   "version": 1,
   "owner": "Ricardo Pinheiro",
   "profileUrl": "https://www.linkedin.com/in/ricardoappinheiro/",
-  "asOf": null,
-  "posts": []
+  "asOf": "2026-11-09",
+  "posts": [
+    {
+      "id": "meet-m-7523386814880047107",
+      "publishedAt": "2026-11-03",
+      "text": "I've been working on something a little different lately. And I can't wait to share it.\n\nMeet M!!\n\nIt all started with a simple thought: what if my portfolio wasn't just a website? What if it had a little life of its own?\n\nWell, one idea led to another, and somehow I ended up creating a 3D character with her own personality, animations, and artificial intelligence.\n\nAnd I may have gotten a little carried away with it.\n\nM isn't just there to look cute. She can explore my website, interact with different elements, react to what's happening around her, and even have conversations powered by AI.\n\nBehind the scenes, I've been combining Blender, 3D animation, web development, and AI to make all of this work together.\n\nM is still a work in progress. There's so much more I want her to do, and every new improvement seems to unlock another idea.\n\nSo, this is M. My little experiment in bringing personality, creativity, and intelligence into the web.\n\nAnd we're only getting started.",
+      "url": "https://www.linkedin.com/feed/update/urn:li:activity:7523386814880047107/",
+      "visibility": "public",
+      "source": "owner-curated"
+    }
+  ]
 }
