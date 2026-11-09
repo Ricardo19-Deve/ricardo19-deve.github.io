@@ -34,6 +34,8 @@ function scores(value){
  // Distinctive PT enclitics and accented question words disambiguate short
  // questions even when surrounded by English product or company names.
  if(/\b(?:conta|diz|explica|fala)-me\b/iu.test(normalize(value)))result.pt+=5;
+ if(/^\s*e\s+o\s+/iu.test(normalize(value)))result.pt+=5;
+ if(/^\s*and\s+the\s+/iu.test(normalize(value)))result.en+=5;
  if(/[¿¡]/u.test(value))result.es+=4;
  if(/\b(?:qu'est|s'il|c'est)\b/iu.test(String(value)))result.fr+=5;
  return result;
