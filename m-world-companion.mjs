@@ -219,7 +219,8 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
   set('--m-companion-keyboard-inset',inset+'px');
   // iOS in-app browsers may shrink innerHeight too, leaving inset at zero.
   // Input focus therefore controls compact visual-viewport positioning.
-  panel.dataset.keyboardOpen=open&&document.activeElement===input?'true':'false';
+  const compact=Boolean(view?.matchMedia?.('(max-width: 720px)')?.matches||(Number.isFinite(view?.innerWidth)&&view.innerWidth<=720));
+  panel.dataset.keyboardOpen=open&&document.activeElement===input&&(compact||inset>100)?'true':'false';
  }
  const view=document.defaultView,visual=view?.visualViewport;
  if(view?.addEventListener)listen(view,'resize',refreshViewport);
