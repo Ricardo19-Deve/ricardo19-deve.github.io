@@ -1,6 +1,6 @@
 # M — Automatic LinkedIn post synchronization (V61)
 
-The `m-portfolio-companion` Cloudflare Worker now has an independent server-side scheduled check: `17 */3 * * *` (UTC; every three hours). The browser does **not** need to be open.
+The account's existing `ricardo19-deve-github-io` analytics Worker reuses **one** Cron Trigger: `15 2,5,8,11,14,17,20,23 * * *` UTC (every three hours). It invokes `MLinkedInSyncService.refresh()` through a private Cloudflare Service Binding, with no public synchronization URL. The M Worker declares `triggers.crons=[]` to avoid exceeding the Cloudflare Free limit of five Cron Triggers. The browser does **not** need to be open.
 
 ## Data sources (in strict order)
 
@@ -25,11 +25,12 @@ Once the owner authorizes the official source, updates need no manual GitHub act
 ## Configuration and verification
 
 - Project: Cloudflare Worker `m-portfolio-companion`, with root directory `m-ai`.
-- `wrangler.jsonc`: `triggers.crons` and `M_VERIFIED_POSTS` Durable Object are declared here. The `v2` migration creates the new SQLite class.
+- `m-ai/wrangler.jsonc`: `triggers.crons=[]`; `M_VERIFIED_POSTS` is the private, time-limited Durable Object. The `v2` migration creates its SQLite class.
+- `wrangler.toml` (root analytics Worker) and `analytics/wrangler.toml` both keep a **single** shared Cron expression and bind `M_LINKEDIN_SYNC` to the private `MLinkedInSyncService` entrypoint. Existing analytics retention cleanup remains once daily at 02:15 UTC.
 - Deploy using the **existing Cloudflare Workers Builds GitHub integration**, or an authorized Wrangler deploy with `--keep-vars` to preserve secrets and existing environment settings.
 - Public `/health` remains backward-compatible. Add `?sync=1` to see bounded `memberPosts` official API status alongside `linkedin` (existing DMA). Neither endpoint exposes an access token, private data or post text.
-- Verify the active Worker deployment, the Cloudflare Cron trigger, the Durable Object binding and the `memberPosts.enabled` field before claiming full automatic synchronization is active.
-- Run `node --test m-ai/*.test.mjs` for regression checks. The V61 suite covers authorization, source allowlists, privacy, cache expiry, Cron and public-post reply context.
+- Verify both active Worker deployments, the shared analytics Cron trigger and Service Binding, the M Durable Object binding and the `memberPosts.enabled` field before claiming full automatic synchronization is active.
+- Run `node --test m-ai/*.test.mjs analytics/m-linkedin-cron.test.mjs` for regression checks. The V61 suite covers authorization, source allowlists, privacy, cache expiry, Cron and public-post reply context.
 
 ## Official LinkedIn documentation
 
