@@ -1,0 +1,55 @@
+name: M — Live Worker and LinkedIn sync diagnostics
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'm-ai/**'
+      - '.github/workflows/m-live-sync-health.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '11 8 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-public-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify the deployed M Worker version (without secrets)
+        env:
+          M_HEALTH: https://m-portfolio-companion.ricardopacheco-pinheiro.workers.dev/health?sync=1
+        run: |
+          node --input-type=module <<'JS'
+          const res=await fetch(process.env.M_HEALTH,{cache:'no-store',signal:AbortSignal.timeout(15000)});
+          if(!res.ok)throw new Error('Worker public health returned HTTP '+res.status);
+          const data=await res.json();
+          if(typeof data!=='object'||typeof data.configured!=='boolean'||!data.linkedin)
+            throw new Error('M Worker returned an unexpected health schema');
+          const v61=Boolean(data.memberPosts&&typeof data.memberPosts.enabled==='boolean');
+          const safe={
+            runtime:v61?'V61-or-later':'earlier-than-V61',
+            chatConfigured:data.configured,
+            dmaReaderEnabled:Boolean(data.linkedin.enabled),
+            dmaReaderStatus:String(data.linkedin.status||'unknown').slice(0,48),
+            officialMemberReaderEnabled:v61?Boolean(data.memberPosts.enabled):false,
+            officialMemberReaderStatus:v61?String(data.memberPosts.status||'unknown').slice(0,48):'not-installed'
+          };
+          // Log no tokens, posts, personal identifiers, or provider response bodies.
+          console.log('M public health:',JSON.stringify(safe));
+          const lines=[
+            '## M production synchronization',
+            '- Deployed Worker: '+safe.runtime,
+            '- Chat configured: '+safe.chatConfigured,
+            '- DMA public-post reader: '+safe.dmaReaderStatus,
+            '- Official member reader: '+safe.officialMemberReaderStatus
+          ];
+          const fs=await import('node:fs/promises');
+          await fs.appendFile(process.env.GITHUB_STEP_SUMMARY,lines.join('\n')+'\n');
+          if(!v61)throw new Error('M Worker V61 has not been deployed to production');
+          if(!safe.chatConfigured)throw new Error('Production M chat is not configured');
+          if(!safe.officialMemberReaderEnabled)
+            console.log('::notice title=LinkedIn approval required::Official personal-post auto-sync needs the owner-authorized r_member_social token and matching Person URN in Cloudflare secrets. Existing DMA remains privacy restricted.');
+          JS
