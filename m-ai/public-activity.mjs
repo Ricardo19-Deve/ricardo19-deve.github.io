@@ -48,6 +48,34 @@ export function validatePublicActivity(raw){
  }
  return {status:limited.length?'ready':'empty',posts:limited,asOf:raw.asOf,profileUrl:LINKEDIN_PROFILE_URL};
 }
+/**
+ * The live DMA source may prove a few PUBLIC records while the curated owner
+ * feed contains additional verified public posts. Merge ONLY validated,
+ * public-origin records and prefer the author's reviewed text on duplicate
+ * permalinks. Nothing ambiguous/private is promoted here.
+ */
+export function mergeVerifiedActivities(live,curated){
+ const sources=[curated,live].filter(x=>x?.status==='ready'&&Array.isArray(x.posts));
+ if(!sources.length)return curated||live||errorState('not-configured');
+ const seen=new Set(),posts=[];
+ for(const src of sources)for(const item of src.posts){
+  if(!item||!text(item.text,MAX_TEXT)||!date(item.publishedAt))continue;
+  const url=item.url===null?null:secureUrl(item.url);
+  if(item.url!==null&&!url)continue;
+  const key=url||item.publishedAt+':'+item.text;
+  if(seen.has(key))continue;
+  seen.add(key);posts.push({publishedAt:item.publishedAt,text:item.text,url,source:item.source});
+ }
+ posts.sort((a,b)=>b.publishedAt.localeCompare(a.publishedAt));
+ const trimmed=[];let total=0;
+ for(const post of posts){
+  if(trimmed.length>=MAX_POSTS||total+post.text.length>6200)break;
+  trimmed.push(post);total+=post.text.length;
+ }
+ const asOf=sources.map(src=>src.asOf).filter(Boolean).sort().at(-1)||null;
+ return {status:trimmed.length?'ready':'empty',posts:trimmed,asOf,profileUrl:LINKEDIN_PROFILE_URL};
+}
+
 async function boundedJson(response){
  if(!response?.ok)return null;
  const header=response.headers?.get?.('content-length');
