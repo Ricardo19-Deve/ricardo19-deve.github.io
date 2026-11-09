@@ -152,7 +152,7 @@ test('V45 Ask M uses the secret for LinkedIn fetch only and cites the latest ver
  requests.length=0;
  const second=await handler(request('What is Ricardo’s Salesforce experience?'),{clientIp:'test'});
  assert.equal(second.status,200);
- assert.deepEqual(requests.map(r=>r.url),[API_URL],'unrelated questions must not spend LinkedIn API quota');
+ assert.ok(requests.length>=1&&requests.every(r=>r.url===API_URL),'unrelated questions must not spend LinkedIn API quota, even if an answer needs language correction');
 });
 
 test('V45 no access token preserves V43 FAQ behavior; LinkedIn errors do not block chat',async()=>{

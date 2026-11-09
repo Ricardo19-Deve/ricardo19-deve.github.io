@@ -106,7 +106,7 @@ test('outgoing fields, lengths, script text, arbitrary URLs and secret echoes ar
 });
 
 test('a real API-style refusal produces a static neutral portfolio redirection', async () => {
-  const result = await handler({ fetchImpl: async () => fixture(null, { output: [{ type: 'message', content: [{ type: 'refusal', refusal: 'fixture refusal' }] }] }) })(request({ ...INPUT, context: { section: 'home', language: 'pt' } }));
+  const result = await handler({ fetchImpl: async () => fixture(null, { output: [{ type: 'message', content: [{ type: 'refusal', refusal: 'fixture refusal' }] }] }) })(request({ ...INPUT, message:'O que desenvolve o Ricardo?', context: { section: 'home', language: 'pt' } }));
   assert.equal(result.status, 200);
   const output = await result.json();
   assert.equal(output.expression, 'neutral');
