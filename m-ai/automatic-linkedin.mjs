@@ -8,7 +8,7 @@ import {createMemberPostsReader} from './member-posts.mjs';
 import {createDMALiveReader} from './linkedin-live.mjs';
 import {mergeVerifiedActivities} from './public-activity.mjs';
 import {storeVerifiedPosts} from './verified-post-cache.mjs';
-export const M_LINKEDIN_SYNC_CRON='17 */3 * * *';
+export const M_LINKEDIN_SYNC_CRON='15 2,5,8,11,14,17,20,23 * * *';
 
 export async function refreshAutomaticLinkedIn(env,{fetchImpl=globalThis.fetch,now=()=>Date.now(),store=storeVerifiedPosts}={}){
  const official=createMemberPostsReader({
