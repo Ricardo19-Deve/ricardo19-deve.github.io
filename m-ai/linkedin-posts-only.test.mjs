@@ -73,6 +73,6 @@ test('Posts-only scope is fixed in production: no Changelog, Contacts, Profile, 
   assert.doesNotMatch(text,/\/rest\/memberChangeLogs|\/rest\/memberAuthorizations|\/rest\/contacts|\/rest\/messages|\/rest\/memberProfile/i);
  }
  assert.match(live,/DMA_SNAPSHOT_DOMAIN='MEMBER_SHARE_INFO'/);
- assert.match(live,/visibility!=='PUBLIC'&&visibility!=='EVERYONE'/);
+ assert.match(live,/\['PUBLIC','EVERYONE','ANYONE'\]\.includes\(visibility\)/);
  assert.match(live,/No raw snapshot, token, database writes|NO raw snapshot, token, database writes/i);
 });

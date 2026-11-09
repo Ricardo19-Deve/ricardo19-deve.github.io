@@ -33,9 +33,10 @@ test('V45 retrieves only explicitly public authored posts, with date, source and
   example()
  ]);
  assert.equal(result.status,'ready');
- assert.equal(result.posts.length,2);
+ assert.equal(result.posts.length,3); // includes an explicitly public share without commentary
  assert.equal(result.posts[0].publishedAt,'2026-11-05');
- assert.equal(result.posts[1].publishedAt,'2026-11-04');
+ assert.equal(result.posts[1].publishedAt,'2026-11-05');
+ assert.equal(result.posts[2].publishedAt,'2026-11-04');
  assert.ok(result.posts.every(post=>post.source==='member-export'&&post.url.startsWith('https://www.linkedin.com/')));
 });
 
@@ -87,7 +88,7 @@ test('V45 initial 404 is pending, expired token blocks, unknown audience never b
   assert.deepEqual(output.posts,[]);
  }
  const unknown=await pageFilter([example({Visibility:null})]);
- assert.equal(unknown.status,'empty');
+ assert.equal(unknown.status,'no-public-posts');
  assert.deepEqual(unknown.posts,[]);
 });
 
