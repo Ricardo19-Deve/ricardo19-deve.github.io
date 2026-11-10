@@ -5,12 +5,12 @@ import {M_WEATHER_SITE,M_WEATHER_MET_URL,M_WEATHER_REFRESH_MS,
  normalizeMetForecast,weatherVisual,createWeatherReader,makeWeatherDemo} from './m-world-weather.mjs';
 import {weatherActorPose} from './m-world-weather-actor.mjs';
 const now=Date.parse('2026-11-10T14:30:00Z');
-const model=(change={},nextChange={})=>({properties:{timeseries:[{
+const model=(change={},nextChange={},precipitation=.75)=>({properties:{timeseries:[{
  time:'2026-11-10T14:00:00Z',
  data:{instant:{details:{air_temperature:14.8,cloud_area_fraction:92,wind_speed:9,
    wind_from_direction:90,...change}},
  next_1_hours:{summary:{symbol_code:'rain',...nextChange},
-  details:{precipitation_amount:.75}}
+  details:{precipitation_amount:precipitation}}
  }}]}});
 const json=value=>new Response(JSON.stringify(value),{status:200,headers:{'content-type':'application/json'}});
 test('V67 public forecast is fixed to Leiria and uses a commercially reusable meteorological institute',()=>{
@@ -34,10 +34,10 @@ test('V67 snowy, clear, night and cloudy forecasts choose the correct gentle eff
  const snow=normalizeMetForecast(model({cloud_area_fraction:88},{symbol_code:'snow'}),{now});
  assert.equal(snow.condition,'snow');
  assert.ok(weatherVisual(snow).snow>.2);
- const clear=normalizeMetForecast(model({cloud_area_fraction:4},{symbol_code:'clearsky_night'}),{now});
+ const clear=normalizeMetForecast(model({cloud_area_fraction:4},{symbol_code:'clearsky_night'},0),{now});
  assert.equal(clear.condition,'clear');assert.equal(weatherVisual(clear).night,true);
  assert.equal(weatherVisual(clear).umbrella,false);
- const clouds=normalizeMetForecast(model({cloud_area_fraction:80},{symbol_code:'cloudy'}),{now});
+ const clouds=normalizeMetForecast(model({cloud_area_fraction:80},{symbol_code:'cloudy'},0),{now});
  assert.equal(clouds.condition,'cloudy');
  assert.equal(weatherVisual(clouds).umbrella,false);
 });
