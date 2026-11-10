@@ -133,3 +133,7 @@ html{scroll-padding-top:112px}
  .top.menu-open #primary-nav{display:flex;order:3;flex-basis:100%;flex-direction:column;gap:0;padding-top:8px;border-top:1px solid #779ab055}
  .top.menu-open #primary-nav a{display:flex;align-items:center;min-height:44px;padding:10px 0}
 }
+/* Weather-source attribution belongs to the Integrations card, not to the moving sky. */
+.expertise .integration-credit{margin-top:15px;padding-top:12px;border-top:1px solid var(--border);color:#9ab4ca;font-size:12px;line-height:1.6}
+.expertise .integration-credit a{color:#b5e8f4;text-decoration:underline;text-underline-offset:2px}
+.expertise .integration-credit a:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:2px}
