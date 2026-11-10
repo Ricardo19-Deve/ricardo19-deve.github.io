@@ -70,6 +70,8 @@ jobs:
           sleep 2
       - name: Validate actual reduced-motion neutral, scene and contextual response
         run: node m-world-v24-browser.mjs
+      - name: Verify M rain umbrella, wind, sun and reduced motion in Chrome
+        run: node m-world-weather-browser.mjs
       - name: Save V24 native evidence
         if: always()
         uses: actions/upload-artifact@v4
