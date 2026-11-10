@@ -6,7 +6,7 @@ import {createHash} from 'node:crypto';
 const here=new URL('.',import.meta.url);
 const page=readFileSync(new URL('index.html',here),'utf8');
 const canonicalHTML=page.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n')
- .replace(/(scroll-buddy\.js|m-world\.css|styles\.css|interactions\.js)(?:\?v=\d+(?:&ui=\d+)?)?/g,(_,name)=>name+'?v=*');
+ .replace(/(scroll-buddy\.js|m-world\.css|styles\.css|interactions\.js)(?:\?v=\d+(?:&(?:ui|sky)=\d+)*)?/g,(_,name)=>name+'?v=*');
 
 test('M integration preserves the complete portfolio content, links, navigation and design markup',()=>{
  assert.equal(createHash('sha256').update(canonicalHTML).digest('hex'),
