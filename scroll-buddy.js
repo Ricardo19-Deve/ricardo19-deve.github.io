@@ -1,6 +1,6 @@
 import './m-analytics-bootstrap.mjs?v=34';
 import {createCharacter,characterReceiptId} from './m-world-character.mjs?v=55';
-import {createAutonomy} from './m-world-autonomy.mjs?v=55';
+import {createAutonomy} from './m-world-autonomy.mjs?v=55&life=65';
 import {planBallFlight,sampleBallFlight} from './m-world-ball.mjs?v=55';
 import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=55';
 import {createSessionMemory} from './m-world-memory.mjs?v=55';
