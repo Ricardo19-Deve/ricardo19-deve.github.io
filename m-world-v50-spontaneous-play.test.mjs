@@ -126,11 +126,15 @@ test('V50 phase envelope has no displacement and near-zero velocity at both endp
 test('V50 renderer composes spontaneous bone and eye performances with authored 31-bone V6, V41 and reduced motion',()=>{
  const source=readFileSync(new URL('m-world-3d.mjs',import.meta.url),'utf8');
  assert.match(source,/createSpontaneousPlay/);
- assert.match(source,/playLayer=createGestureLayer\(bones,THREE\)/);
  assert.match(source,/spontaneousPlay\.sample\(\{dt,mode:activity/);
- assert.match(source,/handoffs\.play\.sample\(lastPlay\.pose/);
- assert.match(source,/playLayer\.apply\(lastPlay\.pose\)/);
- assert.match(source,/microFace\?\.weights\|\|lastAffect\.weights/);
+ assert.match(source,/secondaryTargets\[5\]\.pose=lastPlay\.pose/);
+ assert.match(source,/secondaryTargets\[5\]\.weight=quiet\?0:physical\?\.intent==='play'\?1:\.45/);
+ assert.match(source,/secondaryPose\.sample\(\{dt,layers:secondaryTargets,reducedMotion:reduced\}\)/);
+ assert.match(source,/secondaryLayer\.apply\(combinedSecondary\)/);
+ assert.doesNotMatch(source,/playLayer|handoffs\.play/);
+ assert.match(source,/microFace=[^;]+lastTransition\.face:null/);
+ assert.match(source,/faceTarget=facialTargetMixer\.sample\(\{performance:physical,microFace,affect:lastAffect/);
+ assert.match(source,/facialContinuity\.sample\(\{dt,weights:faceTarget\?\.weights,eyelids:faceTarget\?\.eyelids/);
  assert.match(source,/stageHandoff\.sample/);
  assert.match(source,/affectActive:lastAffect\.envelope>\.04/);
  assert.match(source,/attached:lastContact\.supported/);

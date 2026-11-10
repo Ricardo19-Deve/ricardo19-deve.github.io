@@ -82,5 +82,8 @@ test('V53 tail movement is local original-rig math, not an extra browser/LinkedI
  assert.match(src,/followTail\(step/);
  assert.doesNotMatch(src,/\bfetch\s*\(|localStorage|sessionStorage|window\.|document\.|LINKEDIN_DMA_|OPENAI_API_KEY/);
  const renderer=readFileSync(new URL('m-world-3d.mjs',import.meta.url),'utf8');
- assert.match(renderer,/handoffs\.play\.sample/);
+ assert.match(renderer,/secondaryTargets\[5\]\.pose=lastPlay\.pose/);
+ assert.match(renderer,/secondaryPose\.sample\(\{dt,layers:secondaryTargets,reducedMotion:reduced\}\)/);
+ assert.match(renderer,/secondaryLayer\.apply\(combinedSecondary\)/);
+ assert.match(renderer,/tailPhase:dynamics\.tailPhase,tailMood:dynamics\.tailMood/);
 });

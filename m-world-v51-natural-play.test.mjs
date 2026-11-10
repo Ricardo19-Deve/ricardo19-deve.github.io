@@ -107,6 +107,8 @@ test('V51 natural reaction inputs never access LinkedIn or personal visitor info
  const src=readFileSync(new URL('m-world-spontaneous-play.mjs',import.meta.url),'utf8');
  const renderer=readFileSync(new URL('m-world-3d.mjs',import.meta.url),'utf8');
  assert.match(renderer,/attention:dynamics\.attention,turn:state\.locomotion\?\.turn\|\|0/);
- assert.match(renderer,/handoffs\.play\.sample/);
+ assert.match(renderer,/secondaryTargets\[5\]\.pose=lastPlay\.pose/);
+ assert.match(renderer,/secondaryPose\.sample\(\{dt,layers:secondaryTargets,reducedMotion:reduced\}\)/);
+ assert.match(renderer,/secondaryLayer\.apply\(combinedSecondary\)/);
  assert.doesNotMatch(src,/\bfetch\s*\(|localStorage|sessionStorage|LINKEDIN_DMA_|document\.|window\.|navigator\./i);
 });

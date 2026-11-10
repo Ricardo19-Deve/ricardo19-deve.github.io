@@ -97,9 +97,9 @@ test('V38 physical contact reads geometry ownership from DOM route and never inv
  assert.match(controller,/route\.element\?\.isConnected/);
  assert.match(controller,/state\.depthTarget>\.95/);
  assert.match(renderer,/createSurfaceContact\(\)/);
- assert.match(renderer,/contactLayer=createGestureLayer\(bones,THREE\)/);
- assert.match(renderer,/contactLayer\.prepare\(\);livingLayer\.prepare\(\)/);
- assert.match(renderer,/contactLayer\.apply\(lastContact\.pose\)/);
+ assert.match(renderer,/secondaryLayer=createGestureLayer\(bones,THREE\)/);
+ assert.match(renderer,/secondaryLayer\.prepare\(\);gestureLayer\.prepare\(\)/);
+ assert.match(renderer,/secondaryTargets\[1\]\.pose=lastContact\.pose/);
  assert.match(renderer,/lastContact=surfaceContact\.sample\(\{dt,attached:state\.surfaceContact===true/);
  assert.match(renderer,/preserveFullSkinning/);
  assert.match(renderer,/depthLayerPlacement\(visualSide,halfDepth\)/);

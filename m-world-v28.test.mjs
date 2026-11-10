@@ -143,3 +143,13 @@ test('V28 integration keeps the original V6 skin, safety gates and remote quotas
  assert.match(autonomy,/attention:clamp\(target.attention,0\)/);
  assert.match(controller,/M_WORLD_CONFIG.directorEndpoint/);
 });
+
+
+test('V66 crossfading original full-strength expressions preserves the total morph budget',()=>{
+ const face=createFacialContinuity();
+ for(let i=0;i<120;i++)face.sample({dt:1/60,weights:{happy:1}});
+ for(let i=0;i<120;i++){
+  const frame=face.sample({dt:1/60,weights:{curious:1}});
+  assert.ok(Object.values(frame.weights).reduce((a,b)=>a+b,0)<=1+1e-12);
+ }
+});

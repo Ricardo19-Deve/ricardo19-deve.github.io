@@ -1,3 +1,4 @@
+import {createCharacterState,creatureEnergy} from './m-world-character-state.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -80,6 +81,7 @@ test('scene cleanup preserves a visitor gesture and staging route owned elsewher
 function beginSceneFixture(){
  const starts=[],surface={id:'surface-visible',element:{}},world={surfaces:[surface]};
  const context=createContext({
+  characterPerformance:createCharacterState(),creatureEnergy,autonomyFatigue:0,autoExecution:null,
   avatar:{},active:true,reducedMotion:false,frozen:false,state:{gesture:null,expressionHold:null,clock:0},
   performance:{now:()=>1000},worldSnapshot:()=>world,publicComponents:()=>[{id:surface.id}],
   publicComponent:value=>value?{id:'project-visible'}:null,memory:{score:()=>1},
@@ -116,6 +118,7 @@ test('an available explicit scene target records the selected local action, not 
 function completionFixture(status='complete'){
  const visits=[];let scene={id:'scene-9',targetId:'surface-visible',source:'visitor',status:'playing',command:null};
  const context=createContext({
+  characterPerformance:createCharacterState(),creatureEnergy,autonomyFatigue:0,autoExecution:null,
   state:{affect:null,clock:4},AFFECT_DURATIONS:{},lastMemoryAt:1000,scrollY:0,lastPaceScroll:0,
   document:{activeElement:null,hidden:false},active:true,reducedMotion:false,interest:{scrollUntil:0,readingUntil:0},
   game:null,companion:{isOpen:()=>false},onScreen:()=>true,clearScene:()=>{},releaseCharacterAffect:()=>{},
@@ -158,7 +161,8 @@ test('a perch hold clock starts at physical foot arrival, including a slow appro
  const element={isConnected:true},surface={id:'surface-1',element,left:0,top:0,width:100,height:100};
  const route={plan:{duration:50000,rect:{left:0,top:0},metrics:{contact:{x:0,y:0}}},elapsed:100,version:1,element};
  const state={x:0,y:0,mode:'perch',depthTarget:1,depth:1,targetId:surface.id};
- const context=createContext({state,route,nextChoice:0,game:null,sceneMeta:null,metrics:{contact:{x:0,y:0}},scrollX:0,scrollY:0,onScreen:()=>true,
+ const context=createContext({
+  characterPerformance:createCharacterState(),creatureEnergy,autonomyFatigue:0,autoExecution:null,state,route,nextChoice:0,game:null,sceneMeta:null,metrics:{contact:{x:0,y:0}},scrollX:0,scrollY:0,onScreen:()=>true,
   clampActor:p=>p,bound:(n,min,max)=>Math.min(max,Math.max(min,n)),
   sampleCardAction:()=>({x:20,y:0,depth:1,phase:'hold'}),
   actorRect:()=>({left:0,right:20,top:0,bottom:20}),resolveDepth:()=>({depth:1,portalClear:true}),
@@ -177,6 +181,7 @@ function reducedMotionFixture({width,height,gameName}){
  const focusedNode={id:'m-companion-message',value:''},spatialFrames=[],rendered=[],scheduled=[];
  const scene={id:'scene-hide',status:'playing'},state={x:width-200,y:height-250,vx:40,vy:-25,ax:30,ay:20,heading:1,turn:.4,travel:.8,leanX:.2,leanY:-.3,depth:-.999,depthTarget:-1,mode:'peek',phase:'hold',emotion:'happy',emotionUntil:Infinity,clock:3,targetId:surface.id,gesture:{name:'wink',sceneId:scene.id},expressionHold:null,affect:{name:'delight'}};
  const context=createContext({
+  characterPerformance:createCharacterState(),creatureEnergy,autonomyFatigue:0,autoExecution:null,
   state,metrics,world,actorRect,bound,disposed:false,active:true,frozen:false,avatar:{getMetrics:()=>metrics,setSpatialFrame:frame=>spatialFrames.push(frame),update:(_dt,value)=>rendered.push(value)},
   document:{hidden:false,activeElement:focusedNode},performance:{now:()=>1000},devicePixelRatio:1,
   frameId:7,lastFrame:980,host:{style:{}},layer:{dataset:{}},renderFrame:null,
@@ -195,6 +200,25 @@ function reducedMotionFixture({width,height,gameName}){
  const refresh=privateControllerFunction('refreshMotionPreference','enableMotion').runInContext(context),tick=privateControllerFunction('tick','schedule').runInContext(context);
  return {context,world,metrics,focusedNode,spatialFrames,rendered,scheduled,refresh,tick};
 }
+
+test('assistant card presentation remains attentive with its empty composer focused, while real typing still blocks',()=>{
+ for(const {source,value,blocked}of [
+  {source:'assistant',value:'',blocked:false},
+  {source:'assistant',value:'New question',blocked:true},
+  {source:'visitor',value:'',blocked:true}
+ ]){
+  const f=reducedMotionFixture({width:1280,height:900,gameName:'hide'});
+  f.context.game=null;f.context.state.gesture=null;
+  f.focusedNode.value=value;f.focusedNode.matches=()=>true;
+  f.context.scenes.snapshot=()=>({id:'scene-card',source,status:'playing'});
+  f.context.renderCurrent(f.world,1/60);
+  const presentation=f.rendered.at(-1).performance;
+  assert.equal(presentation.blocked,blocked,source+': '+JSON.stringify(value));
+  assert.equal(presentation.phase==='blocked',blocked);
+  assert.equal(f.context.document.activeElement,f.focusedNode,'Presentation never steals composer focus');
+  assert.equal(presentation.eventId,null,'An active assistant scene is not an invented completed experience');
+ }
+});
 
 for(const profile of [{name:'desktop',width:1280,height:900,gameName:'hide'},{name:'mobile',width:390,height:844,gameName:'light'}]){
  test('reduced motion restores a visible neutral front rest after a behind-card '+profile.name+' game',()=>{

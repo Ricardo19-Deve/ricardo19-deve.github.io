@@ -1,25 +1,26 @@
 import './m-analytics-bootstrap.mjs?v=34';
-import {createCharacter,characterReceiptId} from './m-world-character.mjs?v=55';
-import {createAutonomy} from './m-world-autonomy.mjs?v=55&life=65';
-import {planBallFlight,sampleBallFlight} from './m-world-ball.mjs?v=55';
-import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=55';
-import {createSessionMemory} from './m-world-memory.mjs?v=55';
-import {createGrowthMemory,makeLivingSeed,growthFamilyForDecision} from './m-world-growth.mjs?v=55';
-import {createWorldKnowledge} from './m-world-world-knowledge.mjs?v=55';
-import {createLivedWorldStories} from './m-world-lived-stories.mjs?v=55';
-import {senseWorldRhythm} from './m-world-world-rhythm.mjs?v=55';
-import {getContextComponent,matchContextComponent} from './m-world-context.mjs?v=55';
-import {M_AFFECTS,AFFECT_DURATIONS} from './m-world-affect.mjs?v=55';
-import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=55';
-import {createWorldObserver} from './m-world-observer.mjs?v=55';
-import {createWorldDirector} from './m-world-director.mjs?v=55';
-import {advanceLocomotion} from './m-world-locomotion.mjs?v=55';
+import {createCharacter,characterReceiptId} from './m-world-character.mjs?v=66';
+import {createCharacterState,creatureEnergy} from './m-world-character-state.mjs?v=66';
+import {createAutonomy} from './m-world-autonomy.mjs?v=66&life=65';
+import {planBallFlight,sampleBallFlight} from './m-world-ball.mjs?v=66';
+import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=66';
+import {createSessionMemory} from './m-world-memory.mjs?v=66';
+import {createGrowthMemory,makeLivingSeed,growthFamilyForDecision} from './m-world-growth.mjs?v=66';
+import {createWorldKnowledge} from './m-world-world-knowledge.mjs?v=66';
+import {createLivedWorldStories} from './m-world-lived-stories.mjs?v=66';
+import {senseWorldRhythm} from './m-world-world-rhythm.mjs?v=66';
+import {getContextComponent,matchContextComponent} from './m-world-context.mjs?v=66';
+import {M_AFFECTS,AFFECT_DURATIONS} from './m-world-affect.mjs?v=66';
+import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=66';
+import {createWorldObserver} from './m-world-observer.mjs?v=66';
+import {createWorldDirector} from './m-world-director.mjs?v=66';
+import {advanceLocomotion} from './m-world-locomotion.mjs?v=66';
 import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
-import {MWorldBrain} from './m-world-brain.mjs?v=55';
-import {M_GESTURES,GESTURE_DURATIONS,PAW_CONTACT_PROGRESS} from './m-world-acting.mjs?v=55';
-import {createMCompanion} from './m-world-companion.mjs?v=55&ui=59';
-import {M_WORLD_CONFIG} from './m-world-config.mjs?v=55';
-import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=55';
+import {MWorldBrain} from './m-world-brain.mjs?v=66';
+import {M_GESTURES,GESTURE_DURATIONS,PAW_CONTACT_PROGRESS} from './m-world-acting.mjs?v=66';
+import {createMCompanion} from './m-world-companion.mjs?v=66&ui=59';
+import {M_WORLD_CONFIG} from './m-world-config.mjs?v=66';
+import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=66';
 
 (() => {
  'use strict';
@@ -39,7 +40,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  const livingSeed=makeLivingSeed();
  const life=new MLifeV16({seed:livingSeed,personality:'playful'});
  const brain=new MWorldBrain({seed:(livingSeed^0x9e3779b9)>>>0}),failedPlans=new Map(),recentCorridors=[];
- const memory=createSessionMemory(),character=createCharacter(),scenes=createScenePlayer();
+ const memory=createSessionMemory(),character=createCharacter(),scenes=createScenePlayer(),characterPerformance=createCharacterState();
  const growth=createGrowthMemory({remember:character.snapshot().remember});
  const worldKnowledge=createWorldKnowledge({remember:character.snapshot().remember});
  const worldStories=createLivedWorldStories({remember:character.snapshot().remember});
@@ -47,7 +48,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  const autonomy=createAutonomy({seed:(livingSeed^0x85ebca6b)>>>0});
  let autoExecution=null,autonomyNextRead=0,autonomyFatigue=0,autonomyLastRead=0,lastAutonomousGame=null;
  const autoStats={accepted:0,completed:0,failed:0,cancelled:0,events:[]};
- let characterEnergy=memory.snapshot().energy,sceneMeta=null,sceneCommand=null,completedSceneRoute=null,completedSceneGesture=null,nextSceneAt=0,lastMemoryAt=0,lastPaceScroll=scrollY,game=null,gameSerial=0;
+ let visitorPace=memory.snapshot().energy,sceneMeta=null,sceneCommand=null,completedSceneRoute=null,completedSceneGesture=null,nextSceneAt=0,lastMemoryAt=0,lastPaceScroll=scrollY,game=null,gameSerial=0;
  const playDock=document.createElement('section'),playNote=document.createElement('p'),playNext=document.createElement('button'),playStop=document.createElement('button'),playLight=document.createElement('span'),playBall=document.createElement('span');
  playDock.className='m-play-dock';playDock.dataset.mOverlay='true';playDock.hidden=true;playDock.setAttribute('aria-label','Play with M');playNote.setAttribute('role','status');playNext.type=playStop.type='button';playNext.textContent='I found M';playStop.textContent='Stop play';playDock.append(playNote,playNext,playStop);playLight.className='m-play-light';playLight.setAttribute('aria-hidden','true');playLight.hidden=true;document.body.append(playDock,playLight);
  playBall.className='m-play-ball';playBall.dataset.mOverlay='true';playBall.setAttribute('aria-hidden','true');playBall.hidden=true;document.body.append(playBall);
@@ -348,7 +349,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   return character.record({id:characterReceiptId(owner.characterVisit,owner.decision.id),goal,success,componentId:owner.characterComponent||null,publicComponent:owner.characterPublicComponent||null});
  }
  function resetCharacterMemory(){
-  cancelAutonomy('memory-reset');state.lifeMoment=null;memory.clear();character.reset();if(typeof growth!=='undefined')growth.reset();if(typeof worldKnowledge!=='undefined')worldKnowledge.reset();if(typeof worldStories!=='undefined')worldStories.reset();autonomy.resetMemory(performance.now());companion?.refresh();
+  cancelAutonomy('memory-reset');characterPerformance.reset();state.lifeMoment=null;memory.clear();character.reset();if(typeof growth!=='undefined')growth.reset();if(typeof worldKnowledge!=='undefined')worldKnowledge.reset();if(typeof worldStories!=='undefined')worldStories.reset();autonomy.resetMemory(performance.now());companion?.refresh();
  }
  function setCharacterAffect(name,{weight=.9,owner=null}={}){
   if(M_AFFECTS.includes(name))state.affect={name,age:0,weight,owner};
@@ -368,6 +369,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(route?.autonomyId===decision.id)route=null;
   if(pendingGesture?.autonomyId===decision.id)pendingGesture=null;
   const acknowledged=autonomy.complete({success,reason,nowMs:now});
+  if(acknowledged)characterPerformance.record({decision,status:success?'complete':'failed',at:now});
   const remembered=acknowledged&&recordCharacterExperience(owner,success);
   let livedBeat=null;
   if(acknowledged&&typeof growthFamilyForDecision==='function'){
@@ -395,6 +397,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  function cancelAutonomy(reason='interrupted',now=performance.now()){
   const owned=autoExecution;autoExecution=null;
   if(owned){
+   characterPerformance.record({decision:owned.decision,status:'cancelled',at:now});
    const id=owned.decision.id;
    if(game?.autonomyId===id)stopPlay(reason);
    if(owned.sceneId&&scenes.snapshot().id===owned.sceneId)clearScene(reason);
@@ -408,7 +411,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   autonomy.cancel(reason,now);nextChoice=now+1000;
  }
  function autonomyStatus(){
-  return {...autonomy.snapshot(),...autoStats,events:autoStats.events.map(value=>({...value})),energy:bound(.82-autonomyFatigue+(characterEnergy-.5)*.12,.2,1),execution:autoExecution?{id:autoExecution.decision.id,kind:autoExecution.kind,sceneId:autoExecution.sceneId||null,gameId:autoExecution.gameId||null,started:autoExecution.started,characterGoal:autoExecution.decision.characterGoal||null}:null};
+  return {...autonomy.snapshot(),...autoStats,events:autoStats.events.map(value=>({...value})),energy:creatureEnergy({fatigue:autonomyFatigue}),execution:autoExecution?{id:autoExecution.decision.id,kind:autoExecution.kind,sceneId:autoExecution.sceneId||null,gameId:autoExecution.gameId||null,started:autoExecution.started,characterGoal:autoExecution.decision.characterGoal||null}:null};
  }
  function updateAutonomy(now,world){
   const field=document.activeElement,typing=Boolean(field?.matches?.('input,textarea,select,[contenteditable="true"]'));
@@ -443,7 +446,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   const corridor=!externalBusy&&chooseCorridorTarget({viewport:world.viewport,metrics,position:state,protectedRects:world.protectedRects,surfaces:world.surfaces,depth:1,recent:recentCorridors});
   const characterGoal=externalBusy||now<interest.readingUntil?null:currentCharacterGoal(targets,world);
   const routinesAvailable=gestureViewportFits(metrics,world.viewport);
-  const decision=autonomy.choose({nowMs:now,goal:characterGoal,context:{active,hidden:document.hidden,reducedMotion,typing,selection,scrolling:false,reading:now<interest.readingUntil,busy:externalBusy,section:currentSection(world)},energy:bound(.82-autonomyFatigue+(characterEnergy-.5)*.12,.2,1),remotePending:director?.getStatus().pending,selfPlayAvailable:Boolean(corridor&&Math.hypot(corridor.x-state.x,corridor.y-state.y)>44),routinesAvailable,ballPlayAvailable:routinesAvailable,targets,
+  const decision=autonomy.choose({nowMs:now,goal:characterGoal,context:{active,hidden:document.hidden,reducedMotion,typing,selection,scrolling:false,reading:now<interest.readingUntil,busy:externalBusy,section:currentSection(world)},energy:creatureEnergy({fatigue:autonomyFatigue}),remotePending:director?.getStatus().pending,selfPlayAvailable:Boolean(corridor&&Math.hypot(corridor.x-state.x,corridor.y-state.y)>44),routinesAvailable,ballPlayAvailable:routinesAvailable,targets,
    habits:typeof growth==='undefined'?undefined:{...growth.preferences(),opening},
    world:typeof senseWorldRhythm==='function'?{...senseWorldRhythm({date:new Date(),
     online:typeof navigator==='undefined'||navigator.onLine!==false}),
@@ -503,7 +506,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(!selected&&action!=='rest')return false;
   const surface=selected&&world.surfaces.find(r=>r.id===selected.id),actions=surface?['inspect',...['peek','perch','orbit'].filter(kind=>directorPlan(world,surface,kind))]:['rest'];
   action=action||(['peek','perch','orbit'].find(kind=>actions.includes(kind))||'inspect');
-  const plan=createScenePlan({targetId:action==='rest'&&!surface?null:surface?.id||null,action,gesture,expression,source,actions:(autonomyId||decision)?actions.filter(kind=>kind===action||kind==='inspect'):actions});
+  const plan=createScenePlan({timing:autonomyId?characterPerformance.snapshot():undefined,targetId:action==='rest'&&!surface?null:surface?.id||null,action,gesture,expression,source,actions:(autonomyId||decision)?actions.filter(kind=>kind===action||kind==='inspect'):actions});
   if(!plan)return false;
   if(scenes.snapshot().status==='playing')clearScene('replaced');
   if(!scenes.start(plan,{nowMs:now}))return false;
@@ -581,7 +584,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(now-lastMemoryAt>=1000){
    const elapsed=lastMemoryAt?Math.min(2000,now-lastMemoryAt):1000;lastMemoryAt=now;
    for(const r of publicComponents(world)){const component=publicComponent(world.surfaces.find(s=>s.id===r.id));if(component)memory.noteExposure(component.id,{dwellMs:elapsed});}
-   characterEnergy=memory.recordPace(scrollY-lastPaceScroll,elapsed);lastPaceScroll=scrollY;
+   visitorPace=memory.recordPace(scrollY-lastPaceScroll,elapsed);lastPaceScroll=scrollY;
   }
   const field=document.activeElement,assistantIdleFocus=scenes.snapshot().source==='assistant'&&field?.id==='m-companion-message'&&field.value==='';
   const typing=Boolean(field?.matches?.('input,textarea,select,[contenteditable="true"]'))&&!assistantIdleFocus;
@@ -711,8 +714,12 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   avatar.setSpatialFrame(spatial);
   const target=world.surfaces.find(s=>s.id===interest.attentionId)||world.surfaces.find(s=>s.id===state.targetId);
   const gaze=game?.name==='ball'&&game.ballPoint?{x:bound((game.ballPoint.x-state.x-metrics.size*.5)/90,-1,1),y:bound((state.y+metrics.size*.45-game.ballPoint.y)/90,-1,1)}:game?.name==='light'&&game.goal?{x:bound((game.goal.x-state.x)/260,-1,1),y:bound((state.y-game.goal.y)/220,-1,1)}:lastLife?.attention==='pointer'&&scenes.snapshot().status!=='playing'?lastLife.gaze:target?{x:bound((target.left+target.width*.5-(state.x+(f.left+f.right)/2))/260,-1,1),y:bound(((state.y+(f.top+f.bottom)*.4)-(target.top+Math.min(100,target.height*.3)))/220,-1,1)}:lastLife?.gaze||{x:0,y:0};
+  const now=performance.now(),field=document.activeElement,assistantIdleFocus=scenes.snapshot().source==='assistant'&&field?.id==='m-companion-message'&&field.value==='';
+  const presentation=characterPerformance.sample({dt,nowMs:now,energy:creatureEnergy({fatigue:autonomyFatigue}),active:autoExecution?.decision||null,
+   reading:now<interest.readingUntil,typing:Boolean(field?.matches?.('input,textarea,select,[contenteditable="true"]'))&&!assistantIdleFocus,
+   scrolling:now<interest.scrollUntil,reducedMotion,hidden:document.hidden,nearCard:Boolean(target)});
   if(frozen)avatar.render();
-  else avatar.update(dt,{mode:state.mode,activity:state.mode==='perch'&&state.phase==='hold'?'perch':state.mode,emotion:reducedMotion?'neutral':state.emotion,vx:state.vx,vy:state.vy,clock:state.clock,gesture:state.gesture,affect:state.affect,characterEnergy:characterEnergy,reducedMotion,locomotion:{ax:state.ax,ay:state.ay,heading:state.heading,turn:state.turn,travel:state.travel,leanX:state.leanX,leanY:state.leanY},attention:gaze,nearCard:Boolean(target),depth:state.depth,
+  else avatar.update(dt,{mode:state.mode,activity:state.mode==='perch'&&state.phase==='hold'?'perch':state.mode,emotion:reducedMotion?'neutral':state.emotion,vx:state.vx,vy:state.vy,clock:state.clock,gesture:state.gesture,expressionPriority:Boolean(state.expressionHold&&!state.affect),affect:state.affect,characterEnergy:presentation.energy,performance:presentation,attentionId:game?`game:${game.name}`:target?.id||lastLife?.attention||null,reducedMotion,locomotion:{ax:state.ax,ay:state.ay,heading:state.heading,turn:state.turn,travel:state.travel,leanX:state.leanX,leanY:state.leanY},attention:gaze,nearCard:Boolean(target),depth:state.depth,
    // Use the existing planner's TRUE contact only. Card animations and
    // scroll anchoring remain owned by the spatial route, not by Three.js.
    surfaceContact:Boolean(route?.attached&&route?.plan?.kind==='perch'&&
@@ -741,7 +748,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
    const perchHold=state.mode==='perch'&&point.phase==='hold'&&!point.portalHold;
    const attached=perchHold&&(route?.attached||Math.hypot(point.x-state.x,point.y-state.y)<3);
    if(route)route.attached=Boolean(attached);
-   const maxSpeed=(state.mode==='peek'?110:state.mode==='perch'?120:150)*(.84+.16*characterEnergy);
+   const maxSpeed=(state.mode==='peek'?110:state.mode==='perch'?120:150)*(.84+.16*creatureEnergy({fatigue:autonomyFatigue}));
    if(attached){const previous={x:state.x,y:state.y};Object.assign(state,advanceLocomotion({...state,vx:0,vy:0},{x:state.x,y:state.y},dt));state.vx=(point.x-previous.x)/Math.max(.008,dt);state.vy=(point.y-previous.y)/Math.max(.008,dt);state.x=point.x;state.y=point.y;}
    else{
     Object.assign(state,advanceLocomotion(state,point,dt,{maxSpeed,maxAcceleration:340,arrivalRadius:72}));
@@ -773,7 +780,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(loading||avatar)return loading;
   loading=(async()=>{
    try{
-    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=55');
+    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=66');
     avatar=await mountMWorld3D(host,{onProgress(percent){layer.dataset.loadProgress=String(percent);if(active)toggle.textContent='M · '+percent+'%';}});
     metrics=avatar.getMetrics();cache.dirty=true;cache.lastRead=0;
     const world=worldSnapshot();
@@ -849,7 +856,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  function snapshot(){
   if(avatar)metrics=avatar.getMetrics();
   const world=worldSnapshot();
-  return {ready:Boolean(avatar),active,error:layer.dataset.error||null,state:{...state,gesture:state.gesture?{...state.gesture}:null,expressionHold:state.expressionHold?{...state.expressionHold}:null},acting:{attached:Boolean(route?.attached),cardContact:Boolean(route?.attached&&route?.plan?.kind==='perch'&&state.depthTarget>.95),externalPortal:Boolean(route?.plan?.externalPortal)},brain:brain.snapshot(),companion:companion?.snapshot(),pendingGesture:pendingGesture?.name||null,pendingIntent:pendingGesture?{...pendingGesture}:null,preferences:{reducedMotion,systemReducedMotion:motionPreference.matches,motionOptIn},character:{scene:scenes.snapshot(),game:game?{...game}:null,memory:memory.snapshot(),autonomy:autonomyStatus(),story:character.snapshot(),growth:growth.snapshot(),world:worldKnowledge.snapshot(),worldStory:worldStories.snapshot()},staging:route?.gestureStage?{escape:route.escape,target:{...route.target},egress:{...route.egress}}:null,metrics,actor:actorRect(renderFrame?{x:renderFrame.actor.left,y:renderFrame.actor.top}:state,metrics),
+  return {ready:Boolean(avatar),active,error:layer.dataset.error||null,state:{...state,gesture:state.gesture?{...state.gesture}:null,expressionHold:state.expressionHold?{...state.expressionHold}:null},acting:{attached:Boolean(route?.attached),cardContact:Boolean(route?.attached&&route?.plan?.kind==='perch'&&state.depthTarget>.95),externalPortal:Boolean(route?.plan?.externalPortal)},brain:brain.snapshot(),companion:companion?.snapshot(),pendingGesture:pendingGesture?.name||null,pendingIntent:pendingGesture?{...pendingGesture}:null,preferences:{reducedMotion,systemReducedMotion:motionPreference.matches,motionOptIn},character:{performance:characterPerformance.snapshot(),visitorPace,scene:scenes.snapshot(),game:game?{...game}:null,memory:memory.snapshot(),autonomy:autonomyStatus(),story:character.snapshot(),growth:growth.snapshot(),world:worldKnowledge.snapshot(),worldStory:worldStories.snapshot()},staging:route?.gestureStage?{escape:route.escape,target:{...route.target},egress:{...route.egress}}:null,metrics,actor:actorRect(renderFrame?{x:renderFrame.actor.left,y:renderFrame.actor.top}:state,metrics),
    surfaces:world.surfaces.map(({element,...r})=>r),protectedRects:world.protectedRects,director:{...director?.getStatus(),perception:directorSnapshot,activity:directorActivity,lastExecution:directorLastExecution},renderer:avatar?.getDiagnostics(),life:lastLife,stats:{...stats},frozen};
  }
  if(debugEnabled)window.MWorld={

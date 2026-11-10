@@ -7,7 +7,7 @@
  * before those systems receive them; it does not control the route,
  * world depth, card contact, gestures, sleep, visitors or external data.
  */
-import {dampChannel} from './m-world-pose-handoff.mjs?v=55';
+import {dampChannel} from './m-world-pose-handoff.mjs?v=66';
 
 const clamp=(n,min=0,max=1)=>Math.min(max,Math.max(min,Number.isFinite(n)?n:min));
 const CHANNELS=Object.freeze(['happy','curious','surprised']);

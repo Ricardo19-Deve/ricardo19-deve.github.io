@@ -111,10 +111,14 @@ test('V54 rendered with V41 spring and V28 facial crossfade but without extra ro
  const source=readFileSync(new URL('m-world-between-beats.mjs',import.meta.url),'utf8');
  assert.match(render,/createBetweenBeats/);
  assert.match(render,/betweenBeats\.sample\(\{dt,mode:activity/);
- assert.match(render,/handoffs\.ambient\.sample\(lastAmbient\.pose/);
- assert.match(render,/ambientLayer\.apply\(lastAmbient\.pose\)/);
+ assert.match(render,/secondaryTargets\[6\]\.pose=lastAmbient\.pose/);
+ assert.match(render,/secondaryTargets\[6\]\.weight=quiet\?\.2:\.55/);
+ assert.match(render,/secondaryPose\.sample\(\{dt,layers:secondaryTargets,reducedMotion:reduced\}\)/);
+ assert.match(render,/secondaryLayer\.apply\(combinedSecondary\)/);
+ assert.doesNotMatch(render,/ambientLayer|handoffs\.ambient/);
  assert.match(render,/lastTransition\.face/);
- assert.match(render,/facialContinuity\.sample/);
+ assert.match(render,/facialTargetMixer\.sample\(\{performance:physical,microFace,affect:lastAffect/);
+ assert.match(render,/facialContinuity\.sample\(\{dt,weights:faceTarget\?\.weights,eyelids:faceTarget\?\.eyelids/);
  assert.match(render,/betweenBeats:betweenBeats\.snapshot/);
  assert.doesNotMatch(source,/\bfetch\s*\(|localStorage|sessionStorage|document\.|window\.|navigator\.|LINKEDIN|OPENAI_/i);
 });

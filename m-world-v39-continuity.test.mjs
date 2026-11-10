@@ -140,13 +140,20 @@ test('V39 safe numeric bounds under changing frame pacing and invalid signals',(
  }
 });
 
-test('V39 original WebGL rig uses one reversible additive transition layer',()=>{
+test('V39 original WebGL rig routes continuity through one reversible combined secondary layer',()=>{
  const source=readFileSync(new URL('m-world-3d.mjs',import.meta.url),'utf8');
  const controller=readFileSync(new URL('scroll-buddy.js',import.meta.url),'utf8');
  assert.match(source,/createMotionContinuity/);
- assert.match(source,/continuityLayer=createGestureLayer\(bones,THREE\)/);
- assert.match(source,/continuityLayer\.prepare\(\);contactLayer\.prepare\(\)/);
- assert.match(source,/continuityLayer\.apply\(lastContinuity\.pose\)/);
+ assert.match(source,/secondaryPose=createSecondaryPoseCompositor\(\[\.\.\.bones\.keys\(\)\]\)/);
+ assert.match(source,/secondaryTargets\[2\]\.pose=lastContinuity\.pose/);
+ assert.match(source,/secondaryPose\.sample\(\{dt,layers:secondaryTargets,reducedMotion:reduced\}\)/);
+ assert.equal((source.match(/secondaryLayer=createGestureLayer\(bones,THREE\)/g)||[]).length,1);
+ assert.equal((source.match(/secondaryLayer\.prepare\(\)/g)||[]).length,1);
+ assert.equal((source.match(/secondaryLayer\.apply\(combinedSecondary\)/g)||[]).length,1);
+ assert.doesNotMatch(source,/continuityLayer|contactLayer|handoffs\.continuity/);
+ assert.ok(source.indexOf('secondaryTargets[2].pose=lastContinuity.pose')<source.indexOf('const combinedSecondary='));
+ assert.ok(source.indexOf('secondaryLayer.prepare()')<source.indexOf('mixer.update(dt)'));
+ assert.ok(source.indexOf('secondaryLayer.apply(combinedSecondary)')>source.indexOf('mixer.update(dt)'));
  assert.match(source,/lastContinuity=motionContinuity\.sample\(\{dt,vx,vy/);
  assert.match(source,/attached:lastContact\.supported/);
  assert.match(source,/preserveFullSkinning/);

@@ -1,4 +1,4 @@
-import {worldCandidateWeight} from './m-world-world-rhythm.mjs?v=55';
+import {worldCandidateWeight} from './m-world-world-rhythm.mjs?v=66';
 import {behaviorContinuityWeight,behaviorPhase} from './m-world-behavior-rhythm.mjs?v=65';
 /** Pure local intentions. Existing scene/spatial executors own every physical effect. */
 export const AUTONOMY_RESERVATION_MS=2000;
