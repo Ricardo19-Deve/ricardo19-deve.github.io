@@ -78,7 +78,16 @@ async function openPanel(page){if(!await page.locator('.m-companion').isVisible(
 async function closePanel(page){if(!await page.locator('.m-companion').isVisible())return;if(await page.locator('.m-companion-debug-panel').isVisible())await page.locator('.m-companion-debug-close').click();if(await page.locator('.m-companion-settings').isVisible())await page.locator('.m-companion-settings-close').click();await page.locator('.m-companion-close').click();}
 async function openTools(page){await openPanel(page);if(!await page.locator('.m-companion-debug-panel').isVisible()){await page.locator('.m-companion-menu-toggle').click();await page.locator('.m-companion-debug-toggle').click();}const details=page.locator('.m-companion-character');if(!await details.evaluate(el=>el.open))await details.locator('summary').click();}
 async function scrollProjects(page){await closePanel(page);await page.locator('#projects .card').first().scrollIntoViewIfNeeded();await page.waitForTimeout(1600);}
-async function readyForAction(page){await page.waitForFunction(()=>{const s=MWorld.snapshot();return !s.state.gesture&&!s.state.expressionHold;},undefined,{timeout:15000});}
+async function readyForAction(page){
+ // A character with autonomous life can start a scene while the browser
+ // begins its diagnostic action. Wait until the open Ask M drawer has
+ // released its earlier owner before asserting a visitor-initiated scene.
+ await page.waitForFunction(()=>{
+  const s=MWorld.snapshot(),scene=s.character?.scene;
+  return !s.state.gesture&&!s.state.expressionHold&&
+   (!scene||scene.status!=='playing')&&!s.character?.autonomy?.execution&&!s.character?.game;
+ },undefined,{timeout:20000});
+}
 async function stopPlay(page){const stop=page.getByRole('button',{name:'Stop play',exact:true});if(await stop.isVisible())await stop.click();}
 async function beginTrace(page){
  await page.evaluate(()=>{
