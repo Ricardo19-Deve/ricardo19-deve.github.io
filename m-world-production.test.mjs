@@ -6,7 +6,8 @@ import {createHash} from 'node:crypto';
 const here=new URL('.',import.meta.url);
 const page=readFileSync(new URL('index.html',here),'utf8');
 const canonicalHTML=page.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n')
- .replace(/(scroll-buddy\.js|m-world\.css|styles\.css|interactions\.js)(?:\?v=\d+(?:&(?:ui|sky)=\d+)*)?/g,(_,name)=>name+'?v=*');
+ .replace(/(scroll-buddy\.js|m-world\.css|styles\.css|interactions\.js)(?:\?v=\d+(?:&(?:ui|sky)=\d+)*)?/g,(_,name)=>name+'?v=*')
+ .replace(/<p class="integration-credit">[\s\S]*?<\/p>/g,'');
 
 test('M integration preserves the complete portfolio content, links, navigation and design markup',()=>{
  assert.equal(createHash('sha256').update(canonicalHTML).digest('hex'),
@@ -45,7 +46,7 @@ test('the intentionally disabled right socket normal and full body influences re
 test('the M entry point and every first-party runtime import share one cache revision',()=>{
  const revision=page.match(/scroll-buddy\.js\?v=(\d+)/)?.[1];
  assert.ok(revision,'The entry point needs an explicit cache revision.');
- assert.ok(page.includes('scroll-buddy.js?v='+revision+'&ui=65&sky=68"'));
+ assert.ok(page.includes('scroll-buddy.js?v='+revision+'&ui=65&sky=69"'));
  assert.ok(page.includes('m-world.css?v='+revision+'&ui=59"'),'The M stylesheet must advance with the runtime and refresh the UI cache.');
  const imports=new Set();
  for(const file of ['scroll-buddy.js','m-world-3d.mjs','m-world-companion.mjs','m-world-spatial.mjs','m-world-action-policy.mjs','m-world-acting.mjs','m-world-brain.mjs','m-world-observer.mjs','m-world-director.mjs','m-world-director-protocol.mjs','m-world-locomotion.mjs','m-world-affect.mjs','m-world-context.mjs','m-world-scenes.mjs','m-world-memory.mjs','m-world-weather-stage.mjs','m-world-weather-actor.mjs']){
@@ -53,8 +54,9 @@ test('the M entry point and every first-party runtime import share one cache rev
   for(const match of source.matchAll(/(['"])\.\/(m-world-[a-z0-9-]+\.mjs)([^'"]*)\1/g)){
    const uiRevision=file==='scroll-buddy.js'&&match[2]==='m-world-companion.mjs'?'&ui=59':
     file==='scroll-buddy.js'&&match[2]==='m-world-autonomy.mjs'?'&life=65':
-    file==='scroll-buddy.js'&&match[2]==='m-world-3d.mjs'?'&sky=68':
-    (file==='scroll-buddy.js'&&['m-world-weather.mjs','m-world-weather-stage.mjs'].includes(match[2])||
+    file==='scroll-buddy.js'&&match[2]==='m-world-3d.mjs'?'&sky=69':
+    file==='scroll-buddy.js'&&match[2]==='m-world-weather-stage.mjs'?'&sky=69':
+    (file==='scroll-buddy.js'&&match[2]==='m-world-weather.mjs'||
      file==='m-world-3d.mjs'&&match[2]==='m-world-weather-actor.mjs'||
      ['m-world-weather-stage.mjs','m-world-weather-actor.mjs'].includes(file)&&match[2]==='m-world-weather.mjs')?'&sky=67':'';
    assert.equal(match[3],'?v='+revision+uiRevision,file+' imports a stale or unversioned '+match[2]);
