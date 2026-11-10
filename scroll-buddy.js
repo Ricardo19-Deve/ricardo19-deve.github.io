@@ -20,6 +20,8 @@ import {MWorldBrain} from './m-world-brain.mjs?v=66';
 import {M_GESTURES,GESTURE_DURATIONS,PAW_CONTACT_PROGRESS} from './m-world-acting.mjs?v=66';
 import {createMCompanion} from './m-world-companion.mjs?v=66&ui=59';
 import {M_WORLD_CONFIG} from './m-world-config.mjs?v=66';
+import {createWeatherReader,M_WEATHER_REFRESH_MS} from './m-world-weather.mjs?v=66&sky=67';
+import {mountWeatherStage} from './m-world-weather-stage.mjs?v=66&sky=67';
 import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=66';
 
 (() => {
@@ -63,7 +65,23 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  let metrics={size:innerWidth<720?208:272,footprint:{left:24,top:16,right:248,bottom:256,width:224,height:240},contact:{x:136,y:244}};
  const stats={frames:0,layoutReads:0,layoutRefreshes:0,lastFrameMs:0,maxFrameMs:0,depthTransitions:0};
  const cache={dirty:true,documents:[],texts:[],lastRead:0,version:0};
- const geometryTransitions=new Map();
+ // Weather is about the PORTFOLIO in Leiria, never the visitor's location.
+  // The existing M debug/pixel test mode remains deterministic and offline.
+  const weatherReader=createWeatherReader();
+  const sky=mountWeatherStage();
+  let currentWeather=null;
+  async function refreshWeather(){
+   if(disposed||document.hidden||debugEnabled)return;
+   try{
+    const next=await weatherReader.get();
+    if(disposed)return;
+    currentWeather=next;
+    sky.setWeather(next);
+   }catch{if(!disposed){currentWeather=null;sky.setWeather(null);}}
+  }
+  const weatherTimer=setInterval(()=>{void refreshWeather();},M_WEATHER_REFRESH_MS);
+  if(!debugEnabled)void refreshWeather();
+  const geometryTransitions=new Map();
  const ids=new WeakMap(),observedSurfaces=new Set();let nextId=0;
  const idOf=element=>{if(!ids.has(element))ids.set(element,'surface-'+(++nextId));return ids.get(element);};
  const overlap=(a,b,p=0)=>a.left<b.right+p&&a.right>b.left-p&&a.top<b.bottom+p&&a.bottom>b.top-p;
@@ -725,7 +743,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
    surfaceContact:Boolean(route?.attached&&route?.plan?.kind==='perch'&&
     state.mode==='perch'&&state.phase==='hold'&&state.depthTarget>.95&&
     route.element?.isConnected),
-   phase:state.phase,reading:Boolean(performance.now()<interest.readingUntil),
+   phase:state.phase,weather:currentWeather,reading:Boolean(performance.now()<interest.readingUntil),
    lifeMoment:state.lifeMoment&&performance.now()-state.lifeMoment.at<state.lifeMoment.duration*1000?
     {name:state.lifeMoment.name,age:Math.max(0,(performance.now()-state.lifeMoment.at)/1000),duration:state.lifeMoment.duration}:null});
   renderBall(world,actor);
@@ -780,7 +798,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(loading||avatar)return loading;
   loading=(async()=>{
    try{
-    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=66');
+    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=66&sky=67');
     avatar=await mountMWorld3D(host,{onProgress(percent){layer.dataset.loadProgress=String(percent);if(active)toggle.textContent='M · '+percent+'%';}});
     metrics=avatar.getMetrics();cache.dirty=true;cache.lastRead=0;
     const world=worldSnapshot();
@@ -824,7 +842,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   const surface=cache.documents.find(r=>r.element.contains(event.target));
   if(surface){interest.attentionId=surface.id;interest.userAttentionUntil=now+5000;directorEvent='pointer-interest';directorNextRead=0;}
  });
- document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAutonomy('hidden');stopPlay('hidden');clearScene('hidden');}if(document.hidden)director?.update({snapshot:directorSnapshot,hidden:true});if(document.hidden){if(frameId!==null)cancelAnimationFrame(frameId);frameId=null;}else{lastFrame=0;schedule();}});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAutonomy('hidden');stopPlay('hidden');clearScene('hidden');}if(document.hidden)director?.update({snapshot:directorSnapshot,hidden:true});if(document.hidden){if(frameId!==null)cancelAnimationFrame(frameId);frameId=null;}else{lastFrame=0;schedule();void refreshWeather();}});
  function refreshMotionPreference(){
   reducedMotion=motionPreference.matches&&!motionOptIn;
   if(reducedMotion){stopPlay('reduced-motion');clearScene('reduced-motion');pendingGesture=null;state.gesture=null;state.expressionHold=null;state.emotionUntil=0;}
@@ -857,7 +875,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(avatar)metrics=avatar.getMetrics();
   const world=worldSnapshot();
   return {ready:Boolean(avatar),active,error:layer.dataset.error||null,state:{...state,gesture:state.gesture?{...state.gesture}:null,expressionHold:state.expressionHold?{...state.expressionHold}:null},acting:{attached:Boolean(route?.attached),cardContact:Boolean(route?.attached&&route?.plan?.kind==='perch'&&state.depthTarget>.95),externalPortal:Boolean(route?.plan?.externalPortal)},brain:brain.snapshot(),companion:companion?.snapshot(),pendingGesture:pendingGesture?.name||null,pendingIntent:pendingGesture?{...pendingGesture}:null,preferences:{reducedMotion,systemReducedMotion:motionPreference.matches,motionOptIn},character:{performance:characterPerformance.snapshot(),visitorPace,scene:scenes.snapshot(),game:game?{...game}:null,memory:memory.snapshot(),autonomy:autonomyStatus(),story:character.snapshot(),growth:growth.snapshot(),world:worldKnowledge.snapshot(),worldStory:worldStories.snapshot()},staging:route?.gestureStage?{escape:route.escape,target:{...route.target},egress:{...route.egress}}:null,metrics,actor:actorRect(renderFrame?{x:renderFrame.actor.left,y:renderFrame.actor.top}:state,metrics),
-   surfaces:world.surfaces.map(({element,...r})=>r),protectedRects:world.protectedRects,director:{...director?.getStatus(),perception:directorSnapshot,activity:directorActivity,lastExecution:directorLastExecution},renderer:avatar?.getDiagnostics(),life:lastLife,stats:{...stats},frozen};
+   surfaces:world.surfaces.map(({element,...r})=>r),protectedRects:world.protectedRects,weather:sky.snapshot(),director:{...director?.getStatus(),perception:directorSnapshot,activity:directorActivity,lastExecution:directorLastExecution},renderer:avatar?.getDiagnostics(),life:lastLife,stats:{...stats},frozen};
  }
  if(debugEnabled)window.MWorld={
   snapshot,
@@ -891,7 +909,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   resume(){frozen=false;nextChoice=0;schedule();},
   playGesture:queueGesture,
   setActive,
-  dispose(){disposed=true;if(frameId!==null)cancelAnimationFrame(frameId);resizeObserver.disconnect();mutationObserver.disconnect();for(const type of ['transitionrun','transitionend','transitioncancel'])document.removeEventListener(type,geometryTransition,true);stopPlay('disposed');clearScene('disposed');playDock.remove();playLight.remove();playBall.remove();director?.dispose();observer?.dispose();companion?.destroy();avatar?.dispose();layer.remove();toggle.remove();}
+  dispose(){disposed=true;clearInterval(weatherTimer);sky.destroy();if(frameId!==null)cancelAnimationFrame(frameId);resizeObserver.disconnect();mutationObserver.disconnect();for(const type of ['transitionrun','transitionend','transitioncancel'])document.removeEventListener(type,geometryTransition,true);stopPlay('disposed');clearScene('disposed');playDock.remove();playLight.remove();playBall.remove();director?.dispose();observer?.dispose();companion?.destroy();avatar?.dispose();layer.remove();toggle.remove();}
  };
  observer=createWorldObserver({getComponents:()=>directorComponents});
  director=createWorldDirector({getCharacterContext:()=>character.getContext(),endpoint:M_WORLD_CONFIG.directorEndpoint||'',onIntent:applyDirectorIntent,onStatus:()=>companion?.refresh()});
