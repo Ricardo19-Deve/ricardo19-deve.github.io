@@ -51,7 +51,7 @@ try{
   assert(result.skyPointerEvents==='none','weather sky never catches pointer input in '+mode,result);
   assert(Boolean(result.umbrella)===(mode==='rain'),'umbrella follows rain only in '+mode,result);
   if(mode==='rain'){
-   assert(Math.abs(result.radiusRatio-.30)<.00001,'V68 canopy must scale to M height',result);
+   assert(Math.abs(result.radiusRatio-.42)<.00001,'V68 canopy must scale to M height',result);
    assert(result.anchoredToHand===true,'V68 umbrella grip must follow Hand.L',result);
    assert(Number.isFinite(result.gripErrorRatio)&&result.gripErrorRatio<.18,
     'V68 grip should stay near the animated paw',result);
