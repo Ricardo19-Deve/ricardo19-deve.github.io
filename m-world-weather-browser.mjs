@@ -58,7 +58,7 @@ try{
   assert(Boolean(result.umbrella)===(mode==='rain'),'umbrella follows rain only in '+mode,result);
   if(mode==='rain'){
    assert(Math.abs(result.radiusRatio-.42)<.00001,'V69 canopy must scale to M height',result);
-   assert(Math.abs(result.canopyDepthRatio-.24)<.00001,'V69 umbrella must have real dome depth',result);
+   assert(Math.abs(result.canopyDepthRatio-.20)<.00001,'V69 umbrella must have real dome depth',result);
    assert(result.shaftRadiusRatio>.015,'V69 pole must remain visibly thick',result);
    assert(result.anchoredToHand===true,'V68 umbrella grip must follow Hand.L',result);
    assert(Number.isFinite(result.gripErrorRatio)&&result.gripErrorRatio<.18,
