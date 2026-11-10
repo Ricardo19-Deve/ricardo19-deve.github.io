@@ -77,9 +77,11 @@ test('V67 M bends gently in wind, shelters in rain, but respects reading and res
  assert.ok(affected.stageRoll!==0);
  for(const quiet of [{reading:true},{resting:true},{reducedMotion:true},{gesture:true}]){
   const still=weatherActorPose(rain,quiet);
-  assert.equal(still.umbrella,false);assert.equal(still.stageRoll,0);
+  // An umbrella remains present while M moves or observes in the rain.
+  assert.equal(still.umbrella,!Boolean(quiet.reducedMotion));assert.equal(still.stageRoll,0);
   assert.deepEqual(still.pose,{});
  }
+ assert.equal(weatherActorPose(rain,{sleeping:true}).umbrella,false);
  assert.equal(weatherActorPose(null).umbrella,false);
 });
 test('V67 weather layers do not intercept navigation and provide CC BY 4.0 links',()=>{
