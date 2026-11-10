@@ -50,7 +50,8 @@ test('the M entry point and every first-party runtime import share one cache rev
  for(const file of ['scroll-buddy.js','m-world-3d.mjs','m-world-companion.mjs','m-world-spatial.mjs','m-world-action-policy.mjs','m-world-acting.mjs','m-world-brain.mjs','m-world-observer.mjs','m-world-director.mjs','m-world-director-protocol.mjs','m-world-locomotion.mjs','m-world-affect.mjs','m-world-context.mjs','m-world-scenes.mjs','m-world-memory.mjs']){
   const source=readFileSync(new URL(file,here),'utf8');
   for(const match of source.matchAll(/(['"])\.\/(m-world-[a-z0-9-]+\.mjs)([^'"]*)\1/g)){
-   const uiRevision=file==='scroll-buddy.js'&&match[2]==='m-world-companion.mjs'?'&ui=59':'';
+   const uiRevision=file==='scroll-buddy.js'&&match[2]==='m-world-companion.mjs'?'&ui=59':
+    file==='scroll-buddy.js'&&match[2]==='m-world-autonomy.mjs'?'&life=65':'';
     assert.equal(match[3],'?v='+revision+uiRevision,file+' imports a stale or unversioned '+match[2]);
    imports.add(match[2]);
   }
