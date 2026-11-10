@@ -34,7 +34,11 @@ try{
    const snap=window.MWorld.snapshot();
    const link=status?.querySelector('a'),canvas=sky?.querySelector('canvas');
    return {mode:snap.weather.condition,ready:snap.ready,umbrella:snap.renderer?.weather?.umbrella,
-    umbrellaFade:snap.renderer?.weather?.fade,frames:snap.stats?.frames,active:snap.active,frozen:snap.frozen,
+    umbrellaFade:snap.renderer?.weather?.fade,radiusRatio:snap.renderer?.weather?.radiusRatio,
+    anchoredToHand:snap.renderer?.weather?.anchoredToHand,
+    gripErrorRatio:snap.renderer?.weather?.gripErrorRatio,
+    crownClearanceRatio:snap.renderer?.weather?.crownClearanceRatio,
+    frames:snap.stats?.frames,active:snap.active,frozen:snap.frozen,
     gesture:snap.state?.gesture?.name,characterIntent:snap.character?.performance?.intent,
     reduced:snap.preferences?.reducedMotion,
     label:status?.textContent,skyActive:!sky.hidden,weatherSource:snap.weather.source,
@@ -46,6 +50,14 @@ try{
   assert(result.label.includes('DEMO')&&result.weatherSource.includes('DEMO'),'diagnostic mode clearly labelled in '+mode,result);
   assert(result.skyPointerEvents==='none','weather sky never catches pointer input in '+mode,result);
   assert(Boolean(result.umbrella)===(mode==='rain'),'umbrella follows rain only in '+mode,result);
+  if(mode==='rain'){
+   assert(Math.abs(result.radiusRatio-.30)<.00001,'V68 canopy must scale to M height',result);
+   assert(result.anchoredToHand===true,'V68 umbrella grip must follow Hand.L',result);
+   assert(Number.isFinite(result.gripErrorRatio)&&result.gripErrorRatio<.18,
+    'V68 grip should stay near the animated paw',result);
+   assert(Number.isFinite(result.crownClearanceRatio)&&result.crownClearanceRatio>-.06,
+    'V68 umbrella crown must not collapse into the face',result);
+  }
   assert(result.skyActive===(mode!=='sun'),'ambient layer matches conditions in '+mode,result);
   assert(result.canvasSize[0]>0,'weather canvas has valid pixel dimensions in '+mode,result);
   assert(errors.length===0,'no page JavaScript exceptions in '+mode,{errors});
