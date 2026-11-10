@@ -21,7 +21,7 @@ import {M_GESTURES,GESTURE_DURATIONS,PAW_CONTACT_PROGRESS} from './m-world-actin
 import {createMCompanion} from './m-world-companion.mjs?v=66&ui=59';
 import {M_WORLD_CONFIG} from './m-world-config.mjs?v=66';
 import {createWeatherReader,M_WEATHER_REFRESH_MS,makeWeatherDemo} from './m-world-weather.mjs?v=66&sky=67';
-import {mountWeatherStage} from './m-world-weather-stage.mjs?v=66&sky=67';
+import {mountWeatherStage} from './m-world-weather-stage.mjs?v=66&sky=69';
 import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=66';
 
 (() => {
@@ -800,7 +800,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(loading||avatar)return loading;
   loading=(async()=>{
    try{
-    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=66&sky=68');
+    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=66&sky=69');
     avatar=await mountMWorld3D(host,{onProgress(percent){layer.dataset.loadProgress=String(percent);if(active)toggle.textContent='M · '+percent+'%';}});
     metrics=avatar.getMetrics();cache.dirty=true;cache.lastRead=0;
     const world=worldSnapshot();
