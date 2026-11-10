@@ -107,3 +107,20 @@ test('V67 explicitly debug-only demo is labelled and does not misrepresent live 
  assert.match(script,/const weatherDemo=debugEnabled\?makeWeatherDemo/);
  assert.match(script,/else if\(!debugEnabled\)void refreshWeather\(\)/);
 });
+
+test('V68 umbrella is proportionate, raised and tied to the original left paw without modifying M skeleton',()=>{
+ const renderer=readFileSync(new URL('m-world-3d.mjs',import.meta.url),'utf8');
+ assert.match(renderer,/umbrellaRadius=characterHeight\*\.30/);
+ assert.match(renderer,/umbrellaHand=bones\.get\('Hand\.L'\)/);
+ assert.match(renderer,/umbrellaHead=bones\.get\('Head'\)/);
+ assert.match(renderer,/umbrellaHand\.getWorldPosition\(handWorld\)/);
+ assert.match(renderer,/container\.worldToLocal\(handLocal\)/);
+ assert.match(renderer,/umbrella\.position\.lerp\(handLocal,1-Math\.exp\(-12\*dt\)\)/);
+ assert.match(renderer,/headLocal\.y-umbrella\.position\.y\+characterHeight\*\.16/);
+ assert.match(renderer,/umbrellaCrown\.position\.set\(canopyOffsetX,crownY,canopyOffsetZ\)/);
+ assert.match(renderer,/stem\.scale\.y=stemDirection\.length\(\)/);
+ assert.match(renderer,/umbrellaRoll=-\.18\+weatherMotion\.umbrellaTilt/);
+ assert.match(renderer,/radiusRatio:umbrellaRadius\/characterHeight/);
+ assert.match(renderer,/crownClearanceRatio:umbrellaCrownClearance\/characterHeight/);
+ assert.doesNotMatch(renderer,/\.add\(umbrella\).*bones|bones\.set\('Umbrella'/);
+});
