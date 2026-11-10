@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createScenePlan,createScenePlayer,SCENE_MAX_ACTIVE_MS,SCENE_STEP_TIMEOUT_MS} from './m-world-scenes.mjs';
+import {createScenePlan,createScenePlayer,sceneTiming,SCENE_MAX_ACTIVE_MS,SCENE_STEP_TIMEOUT_MS} from './m-world-scenes.mjs';
 const plan=(extra={})=>createScenePlan({targetId:'surface-card',action:'peek',gesture:'wink',expression:'happy',source:'director',actions:['peek','perch'],...extra});
 test('a decision expands into look, safe travel, reaction, offered perch and rest',()=>{
  const input={targetId:'surface-card',action:'peek',gesture:'wink',expression:'happy',source:'director',actions:['peek','perch']};
@@ -98,4 +98,32 @@ test('reaction budget includes safe staging before the actual gesture finishes',
  assert.equal(player.step({nowMs:18000}).status,'playing','A valid long approach may precede the gesture');
  assert.equal(player.complete(reaction.command.id,{},22000),true);
  assert.equal(player.snapshot().stage,'rest');
+});
+
+test('context extends focused observation and tired recovery without inventing actions',()=>{
+ const baseline=sceneTiming(),focused=sceneTiming({focus:1}),tired=sceneTiming({energy:.2});
+ assert.deepEqual(baseline,{lookMs:700,restMs:1400});
+ assert.ok(focused.lookMs>baseline.lookMs);assert.ok(tired.restMs>baseline.restMs);
+ assert.ok(sceneTiming({energy:.9}).restMs<tired.restMs);
+ const original=plan(),contextual=plan({timing:{energy:.2,focus:.8,arousal:.2}});
+ assert.deepEqual(contextual.steps.map(step=>step.type),original.steps.map(step=>step.type));
+ assert.deepEqual(contextual.steps.filter(step=>!['look','rest'].includes(step.type)),original.steps.filter(step=>!['look','rest'].includes(step.type)));
+ const inspect=plan({action:'inspect',actions:['inspect'],timing:{energy:.2,focus:1}});
+ assert.equal(inspect.steps.some(step=>step.type==='travel'),false);
+ const rest=plan({action:'rest',targetId:null,gesture:'none',actions:[],timing:{energy:.2}});
+ assert.equal(rest.steps.length,1);assert.equal(rest.steps[0].type,'rest');
+ assert.ok(rest.steps[0].durationMs>1400);
+});
+
+test('context timing stays finite and bounded and preserves strict scene-player ownership',()=>{
+ for(const timing of [undefined,null,{},false,'unused',{energy:NaN,focus:Infinity,arousal:'loud'}])assert.deepEqual(sceneTiming(timing),{lookMs:700,restMs:1400});
+ for(const energy of [-100,0,.5,1,100])for(const focus of [-100,0,.5,1,100])for(const arousal of [-100,0,.5,1,100]){
+  const timing={energy,focus,arousal},copy={...timing},values=sceneTiming(timing),p=plan({timing});
+  assert.deepEqual(timing,copy);assert.ok(values.lookMs>=450&&values.lookMs<=1300);
+  assert.ok(values.restMs>=900&&values.restMs<=2400);
+  const player=createScenePlayer();assert.equal(player.start(p),true);
+  assert.equal(player.step({nowMs:values.lookMs-1}).stage,'look');
+  const travel=player.step({nowMs:values.lookMs});assert.equal(travel.stage,'travel');
+  assert.equal(player.step({nowMs:values.lookMs+1}).command.id,travel.command.id);
+ }
 });

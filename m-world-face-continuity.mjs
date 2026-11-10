@@ -19,6 +19,10 @@ export function createFacialContinuity(){
    weights[key]+= (target[key]-weights[key])*(1-Math.pow(.5,t/halfLife));
    if(Math.abs(weights[key])<.0001&&target[key]===0)weights[key]=0;
   }
+  // Different attack/release rates can oversubscribe a crossfade even when
+  // both endpoints are normalized. Keep the final original-morph budget valid.
+  const sum=weights.happy+weights.curious+weights.surprised;
+  if(sum>1)for(const key of channels)weights[key]/=sum;
   for(const key of sides){
    const halfLife=lids[key]>eyelids[key]?.08:.12;
    eyelids[key]+= (lids[key]-eyelids[key])*(1-Math.pow(.5,t/halfLife));

@@ -58,10 +58,13 @@ test('V43 renderer composes original V6 action and emotion before final handoff'
  const {readFileSync}=await import('node:fs');
  const renderer=readFileSync(new URL('m-world-3d.mjs',import.meta.url),'utf8');
  assert.match(renderer,/createLifeBridges/);
- assert.match(renderer,/lifeLayer=createGestureLayer\(bones,THREE\)/);
- assert.match(renderer,/lifeLayer\.prepare\(\);emotionalLayer\.prepare\(\)/);
- assert.match(renderer,/emotionalLayer\.apply\(lastEmotional\.pose\);lifeLayer\.apply\(lastBridge\.pose\)/);
+ assert.match(renderer,/secondaryTargets\[4\]\.pose=lastBridge\.pose/);
+ assert.match(renderer,/secondaryTargets\[4\]\.weight=\.6/);
+ assert.match(renderer,/secondaryPose\.sample\(\{dt,layers:secondaryTargets,reducedMotion:reduced\}\)/);
+ assert.match(renderer,/secondaryLayer\.apply\(combinedSecondary\)/);
+ assert.doesNotMatch(renderer,/lifeLayer|handoffs\.life/);
  assert.match(renderer,/lastBridge=lifeBridges\.sample\(\{dt,mode:activity/);
- assert.match(renderer,/lastBridge=\{\.\.\.lastBridge,pose:handoffs\.life\.sample/);
  assert.match(renderer,/stageHandoff\.sample/);
+ assert.ok(renderer.indexOf('secondaryTargets[4].pose=lastBridge.pose')<renderer.indexOf('const combinedSecondary='));
+ assert.ok(renderer.indexOf('secondaryLayer.apply(combinedSecondary)')<renderer.indexOf('const stagePose=stageHandoff.sample'));
 });

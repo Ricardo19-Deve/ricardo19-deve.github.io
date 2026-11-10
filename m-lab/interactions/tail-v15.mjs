@@ -10,13 +10,17 @@ const shock=(age,lag,decay=1.75,freq=8.6)=>{
  const t=age-lag;return t<=0?0:Math.sin(t*freq)*Math.exp(-t*decay);
 };
 export function tailPoseV15(opts={}){
- const original=tailPoseV14(opts),out={};
- const t=Math.max(0,opts.time||0),expression=opts.expression||'neutral';
+ const profile=opts.tailMood&&typeof opts.tailMood==='object'&&!Array.isArray(opts.tailMood)?opts.tailMood:null;
+ const phase=Number.isFinite(opts.tailPhase)?Math.max(0,opts.tailPhase):Math.max(0,opts.time||0);
+ // The production performance profile replaces duplicated categorical wags,
+ // while the unconfigured laboratory keeps its original V14/V15 behavior.
+ const original=tailPoseV14(profile?{...opts,time:phase,expression:'neutral'}:Number.isFinite(opts.tailPhase)?{...opts,time:phase}:opts),out={};
+ const t=phase,expression=opts.expression||'neutral';
  const mode=opts.mode||'float',age=Math.max(0,opts.emotionAge??99);
  const amount=clamp(opts.amount??.85,0,1.5),
        react=clamp(opts.reactivity??1.75,0,2),
        impact=clamp(opts.performance??1.12,0,1.6);
- if(impact===0)return original;
+ if(impact===0&&!profile)return original;
  for(let i=1;i<=10;i++){
   const key='Tail.'+String(i).padStart(2,'0');
   const [ox,oy,oz]=original[key];
@@ -26,7 +30,18 @@ export function tailPoseV15(opts={}){
   const base=(1-.50*k),mid=Math.sin(Math.PI*(i)/11);
   const phase=k*2.0;
   let x=0,z=0;
-  if(expression==='happy'){
+  if(profile){
+   const drive=clamp(profile.drive,0,1),focus=clamp(profile.focus,0,1),valence=clamp(profile.valence,-1,1);
+   const startle=clamp(profile.startle,0,1),positive=Math.max(0,valence);
+   // Focus raises an asymmetric exploratory curve; playful energy produces a
+   // slower root-led sweep, not an equal-amplitude serpent wave at every joint.
+   const lag=k*1.15,beat=.72+.28*Math.sin(t*.37+.6);
+   x+=base*(.032*focus+.026*positive)+mid*.045*drive*positive*beat*Math.sin(t*2.2-lag);
+   z+=base*.023*valence+focus*(.28+.72*k)*.025*Math.sin(t*.73-lag*.45);
+   const eventAge=Number.isFinite(profile.eventAge)?profile.eventAge:age;
+   x+=startle*.075*base*shock(eventAge,k*.13,2.2,7.3);
+   z-=startle*.045*base*(.4+shock(eventAge,k*.15,2.1,7.7));
+  }else if(expression==='happy'){
    x+=.105*base*Math.sin(t*2.65-phase);
    z+=.064*mid*Math.sin(t*2.10-phase*.78+1.1);
    x+=.12*base*shock(age,k*.12,1.6,7.9);
@@ -51,14 +66,14 @@ export function tailPoseV15(opts={}){
   }else if(mode==='knock'){
    x+=.12*base*(shock(opts.modeAge??99,.64+k*.12)+shock(opts.modeAge??99,1.12+k*.12));
   }
-  const multiplier=impact*react*.72;
+  const multiplier=impact*react*.72,wake=profile?1-.99*clamp(profile.sleep,0,1):1;
   // Preserve separate V14 idle wave slider. Performance mode at zero
   // adds no movement; both tail controls zero still stop ALL extra motion.
   if(amount===0&&react===0){out[key]=[0,0,0];continue;}
   out[key]=[
-   cap(ox+multiplier*x,.33),
-   cap(oy,.018),
-   cap(oz+multiplier*z,.30)
+   wake*cap(ox+multiplier*x,profile ? .25 : .33),
+   wake*cap(oy,.018),
+   wake*cap(oz+multiplier*z,profile ? .23 : .30)
   ];
  }
  return out;

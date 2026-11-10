@@ -1,3 +1,4 @@
+import {createCharacterState,creatureEnergy} from './m-world-character-state.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -37,6 +38,7 @@ function fixture(){
  const world={viewport:{width:900,height:700,headerBottom:60},surfaces:[],protectedRects:[],version:1};
  const calls={stages:0,scheduled:0,lightGoals:0,director:[]};
  const context=createContext({
+  characterPerformance:createCharacterState(),creatureEnergy,autonomyFatigue:0,autoExecution:null,
   actorRect,bound,gestureReady,gestureViewportFits,isExplicitGesture,selectGestureIntent,gestureIntentExpired,
   currentCharacterGoal:()=>null,recordCharacterExperience:()=>false,character:{snapshot:()=>({visits:1})},getContextComponent:()=>null,createScenePlan,AFFECT_DURATIONS,M_AFFECTS,M_GESTURES,GESTURE_DURATIONS:{...AUTHORED_DURATIONS,curious:2.2,playful:3,wave:2.4},PAW_CONTACT_PROGRESS,planBallFlight,sampleBallFlight,
   avatar:{},active:true,reducedMotion:false,frozen:false,document:{activeElement:null,hidden:false,getSelection:()=>({isCollapsed:true})},
@@ -213,6 +215,9 @@ test('a quiet performance is not complete while queued or visible, and completes
  assert.equal(f.context.autonomy.snapshot().completedCount,1);
  assert.equal(f.context.autoStats.completed,1);
  assert.equal(f.context.autoStats.events.at(-1).id,decision.id);
+ const carry=f.context.characterPerformance.sample({dt:.016,nowMs:2002,energy:.82});
+ assert.equal(carry.eventId,decision.id+':complete');
+ assert.equal(carry.phase,'settling');
  f.context.updateAutonomy(2100,f.world);
  assert.equal(f.context.autonomy.snapshot().completedCount,1);
  assert.equal(f.context.autoStats.completed,1);
@@ -294,9 +299,9 @@ test('a game result must match the owned game ID and report actual completion',(
 });
 
 test('a motionless visitor does not drain the autonomous internal energy',()=>{
- const f=fixture();let observed;f.context.characterEnergy=.2;
+ const f=fixture();let observed;f.context.visitorPace=.2;
  f.context.autonomy.choose=facts=>{observed=facts;return null;};f.context.updateAutonomy(1000,f.world);
- assert.ok(Math.abs(observed.energy-.784)<1e-9);assert.equal(observed.context.reading,false);
+ assert.ok(Math.abs(observed.energy-.82)<1e-9);assert.equal(observed.context.reading,false);
 });
 test('without active reading M can reach a safe place for an unprompted quiet performance',()=>{
  const f=fixture();f.context.state.phase='approach';f.context.state.vx=10;

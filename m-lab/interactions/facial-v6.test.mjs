@@ -273,3 +273,22 @@ test('repeated affect, original blink and shoulder animation cycles return to th
  assert.ok(f.l.morphTargetInfluences.every(value=>Math.abs(value)<1e-8));
  assert.ok(f.r.morphTargetInfluences.every(value=>Math.abs(value)<1e-8));
 });
+
+test('contextual cycles close relative to the actual smoothed resting lids and release continuously',()=>{
+ const f=hatFixture(),rig=createFacialV6(f.root,f.clips);rig.setAutoBlink(false);
+ rig.setRestBlink({left:.35,right:.5});rig.update(2,100);
+ // Retarget rest while the automatic blink is in progress: use current, not target.
+ rig.setRestBlink({left:.1,right:.2});
+ for(const closure of [0,.1,.7,1,.6,.05,0]){
+  rig.setGestureBlink({left:closure,right:closure},{relativeToRest:true});rig.update(.016,120);
+  const d=rig.diagnostics();
+  assert.ok(Math.abs(d.leftClosure-(d.restBlinkCurrent.left+(1-d.restBlinkCurrent.left)*closure))<1e-5);
+  assert.ok(Math.abs(d.rightClosure-(d.restBlinkCurrent.right+(1-d.restBlinkCurrent.right)*closure))<1e-5);
+ }
+ rig.setGestureBlink(null);rig.update(.016,140);
+ assert.ok(Math.abs(rig.diagnostics().leftClosure-rig.diagnostics().restBlinkCurrent.left)<1e-5);
+ rig.setGestureBlink({left:0,right:1});rig.update(.016,160);
+ assert.equal(rig.diagnostics().leftClosure,0,'authored wink remains absolute');
+ assert.ok(rig.diagnostics().rightClosure>.99999);
+ assert.deepEqual(f.body.morphTargetInfluences.slice(0,2),[.75,.25]);
+});

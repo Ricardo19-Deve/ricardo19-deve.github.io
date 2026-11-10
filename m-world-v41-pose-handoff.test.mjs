@@ -84,12 +84,13 @@ test('V41 renderer filters all abrupt secondary-layer exits AND the final stage,
  const renderer=readFileSync(new URL('m-world-3d.mjs',import.meta.url),'utf8');
  const world=readFileSync(new URL('scroll-buddy.js',import.meta.url),'utf8');
  assert.match(renderer,/createPoseHandoff/);
- for(const name of ['living','contact','continuity','emotional'])
-  assert.match(renderer,new RegExp('handoffs\\.'+name+'\\.sample\\(last'));
+ assert.match(renderer,/secondaryPose\.sample\(\{dt,layers:secondaryTargets,reducedMotion:reduced\}\)/);
+ assert.match(renderer,/secondaryTargets\[0\]\.pose=lastLiving\.pose/);
+ assert.match(renderer,/secondaryTargets\[3\]\.pose=lastEmotional\.pose/);
  assert.match(renderer,/stageHandoff\.sample\(\{/);
  assert.match(renderer,/stage\.rotation\.set\(\.\.\.rotation\)/);
  assert.match(renderer,/stage\.scale\.setScalar\(1\+placement\[2\]\)/);
  assert.match(renderer,/mixer\.update\(dt\)/);
  assert.match(renderer,/preserveFullSkinning/);
- assert.match(world,/m-world-3d\.mjs\?v=55/);
+ assert.match(world,/m-world-3d\.mjs\?v=66/);
 });

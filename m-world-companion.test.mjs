@@ -614,3 +614,24 @@ test('V59 mobile CSS anchors the entire open chat to the real visible viewport',
  assert.match(source,/panel.dataset.keyboardOpen=open&&document.activeElement===input&&\(compact\|\|inset>100\)/);
  assert.match(source,/if\(compact\)close.focus\(\{preventScroll:true\}\)/);
 });
+
+test('mobile composer blur preserves a header touch until its click is dispatched',t=>{
+ const frames=[],view=Object.assign(new EventTarget(),{innerWidth:390,innerHeight:844,
+  matchMedia:()=>({matches:true}),requestAnimationFrame:callback=>frames.push(callback)});
+ const f=companionFixture({viewportWindow:view});t.after(()=>f.companion.destroy());
+ const {panel,moreButton,toolMenu}=f.companion.elements;
+ f.companion.elements.toggle.dispatchEvent(new Event('click'));
+ f.input.focus();f.input.dispatchEvent(new Event('focus'));
+ assert.equal(panel.dataset.keyboardOpen,'true');
+ moreButton.focus();f.input.dispatchEvent(new Event('blur'));
+ assert.equal(panel.dataset.keyboardOpen,'true','do not move the header before the touch click');
+ moreButton.dispatchEvent(new Event('click'));
+ assert.equal(toolMenu.hidden,false,'the first touch opens the menu');
+ assert.equal(frames.length,1);frames.shift()();
+ assert.equal(panel.dataset.keyboardOpen,'false','settle viewport on the next frame');
+ assert.equal(toolMenu.hidden,false,'settling must preserve the requested menu');
+ f.input.focus();f.input.dispatchEvent(new Event('focus'));
+ moreButton.focus();f.input.dispatchEvent(new Event('blur'));
+ f.companion.destroy();frames.shift()();
+ assert.equal(panel.dataset.keyboardOpen,'true','a queued callback cannot mutate destroyed UI');
+});

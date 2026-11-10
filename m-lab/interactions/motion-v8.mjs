@@ -1,5 +1,5 @@
 import {smoothSpring,createSpring,transitionFrequency} from './fluid-v8.mjs';
-import {tailPoseV15} from './tail-v15.mjs';
+import {tailPoseV15} from './tail-v15.mjs?rig=v66';
 import {performanceBodyPoseV15} from './performance-v15.mjs?v16';
 
 /**
@@ -12,7 +12,7 @@ const wave=(t,speed,phase=0)=>Math.sin(t*speed+phase);
 const bump=(t,at,width)=>Math.exp(-Math.pow((t-at)/width,2));
 
 /** Pure pose evaluator: values are local additive Euler angles in radians. */
-export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',expression='neutral',pointer={x:0,y:0},attention={x:0,y:0},energy=.7,tailEnergy=1.1,tailReactivity=1.5,tailStyle='organic',tailFlow=.73,performanceImpact=1.12,bodyMotion={},swimWeight=0}={}) {
+export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',expression='neutral',pointer={x:0,y:0},attention={x:0,y:0},energy=.7,tailEnergy=1.1,tailReactivity=1.5,tailStyle='organic',tailFlow=.73,performanceImpact=1.12,bodyMotion={},swimWeight=0,tailPhase,tailMood}={}) {
  const e=clamp(energy,0,1.3),t=Math.max(0,time),p={x:clamp(pointer?.x,-1,1),y:clamp(pointer?.y,-1,1)};
  const bones={};
  const add=(name,x=0,y=0,z=0)=>{
@@ -74,7 +74,7 @@ export function motionPose({time=0,modeAge=0,emotionAge=999,mode='float',express
  const headTurn=bones.Head?.[1]||0;
  const tail=tailPoseV15({time:t,mode,modeAge,expression,emotionAge,
   pointer:p,headTurn,bodyMotion,swimWeight,
-  style:tailStyle,amount:tailEnergy,reactivity:tailReactivity,flow:tailFlow,performance:performanceImpact});
+  style:tailStyle,amount:tailEnergy,reactivity:tailReactivity,flow:tailFlow,performance:performanceImpact,tailPhase,tailMood});
  for(const [name,angles] of Object.entries(tail))
   bones[name]=angles.map(angle=>e===0?0:angle*e);
  return bones;
@@ -161,11 +161,11 @@ export function createMotionV8(root,THREE){
   },
   prepare,reset,
   update(dt,{mode='float',expression='neutral',pointer={x:0,y:0},attention={x:0,y:0},energy=.7,
-              clipActive=false,smoothness=.75,tailEnergy=1.1,tailReactivity=1.5,tailStyle='organic',tailFlow=.73,performanceImpact=1.12,bodyMotion={},swimWeight=0}={}){
+              clipActive=false,smoothness=.75,tailEnergy=1.1,tailReactivity=1.5,tailStyle='organic',tailFlow=.73,performanceImpact=1.12,bodyMotion={},swimWeight=0,tailPhase,tailMood}={}){
    dt=Math.max(0,Math.min(.075,dt));time+=dt;
    if(mode!==priorMode){modeAge=0;priorMode=mode;}else modeAge+=dt;
    if(expression!==priorEmotion){emotionAge=0;priorEmotion=expression;}else emotionAge+=dt;
-   const poses=motionPose({time,modeAge,emotionAge,mode,expression,pointer,attention,energy,tailEnergy,tailReactivity,tailStyle,tailFlow,performanceImpact,bodyMotion,swimWeight});
+   const poses=motionPose({time,modeAge,emotionAge,mode,expression,pointer,attention,energy,tailEnergy,tailReactivity,tailStyle,tailFlow,performanceImpact,bodyMotion,swimWeight,tailPhase,tailMood});
    const baseFrequency=transitionFrequency(smoothness);
    lastTailBend=0;
    for(const [name,bone] of bones){

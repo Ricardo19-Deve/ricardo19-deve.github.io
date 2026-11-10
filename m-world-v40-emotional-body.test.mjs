@@ -119,14 +119,19 @@ test('V40 different original-rig expressions are asymmetric but remain repeatabl
 test('V40 renderer composes the emotional bone layer reversibly without changing original real position or facial morph owner',()=>{
  const code=readFileSync(new URL('m-world-3d.mjs',import.meta.url),'utf8');
  assert.match(code,/createEmotionalBody/);
- assert.match(code,/emotionalLayer=createGestureLayer\(bones,THREE\)/);
- assert.match(code,/emotionalLayer\.prepare\(\);continuityLayer\.prepare\(\)/);
- assert.match(code,/continuityLayer\.apply\(lastContinuity\.pose\);\s*emotionalLayer\.apply\(lastEmotional\.pose\)/);
+ assert.match(code,/secondaryTargets\[3\]\.pose=lastEmotional\.pose/);
+ assert.match(code,/secondaryTargets\[3\]\.weight=\.65/);
+ assert.match(code,/secondaryPose\.sample\(\{dt,layers:secondaryTargets,reducedMotion:reduced\}\)/);
+ assert.match(code,/secondaryLayer\.prepare\(\)/);
+ assert.match(code,/secondaryLayer\.apply\(combinedSecondary\)/);
+ assert.doesNotMatch(code,/emotionalLayer|handoffs\.emotional/);
  assert.match(code,/lastEmotional=emotionalBody\.sample\(\{dt,affect:lastAffect,emotion:state\.emotion/);
  assert.match(code,/supported:lastContact\.supported/);
  assert.match(code,/stage\.position\.x=num\([^;]+lastEmotional\.stage\.x/);
  assert.match(code,/preserveFullSkinning/);
  assert.match(code,/motion\.update\(dt,\{mode,expression/);
+ assert.match(code,/faceTarget=facialTargetMixer\.sample\(\{performance:physical,microFace,affect:lastAffect/);
+ assert.match(code,/facialContinuity\.sample\(\{dt,weights:faceTarget\?\.weights,eyelids:faceTarget\?\.eyelids/);
  assert.match(code,/facial\.setExpressionBlend\(fade\?\.weights\|\|null\)/);
  assert.match(code,/emotionalBody:\{\.\.\.emotionalBody\.snapshot\(\)/);
 });

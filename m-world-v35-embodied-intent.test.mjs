@@ -117,9 +117,9 @@ test('V35 input hardening keeps bounded bone and stage values',()=>{
 test('V35 renderer applies reversible bone layer after original motion and respects depth',()=>{
  const code=readFileSync(new URL('m-world-3d.mjs',import.meta.url),'utf8');
  assert.match(code,/createLivingPerformance/);
- assert.match(code,/livingLayer=createGestureLayer\(bones,THREE\)/);
- assert.match(code,/livingLayer\.prepare\(\);gestureLayer\.prepare\(\)/);
- assert.match(code,/gestureLayer\.apply\(lastGesture\.pose\);\s*livingLayer\.apply\(lastLiving\.pose\)/);
+ assert.match(code,/secondaryLayer=createGestureLayer\(bones,THREE\)/);
+ assert.match(code,/secondaryLayer\.prepare\(\);gestureLayer\.prepare\(\)/);
+ assert.match(code,/gestureLayer\.apply\(lastGesture\.pose\);\s*secondaryLayer\.apply\(combinedSecondary\)/);
  assert.match(code,/depthLayerPlacement\(visualSide,halfDepth\)/);
  assert.match(code,/lastRestPose\.rotationZ\+lastLiving\.stage\.rz/);
  assert.match(code,/preserveFullSkinning/);

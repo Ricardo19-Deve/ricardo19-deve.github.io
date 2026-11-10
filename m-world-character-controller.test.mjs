@@ -1,3 +1,4 @@
+import {createCharacterState} from './m-world-character-state.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -14,7 +15,7 @@ function fixture(profileStorage=storage()){
  const profile=createCharacter({storage:profileStorage,now:()=>1_000_000});
  const world={viewport:{width:900,height:700,headerBottom:60},surfaces:[],protectedRects:[]};
  const calls={outcomes:[],cancelled:0,cleared:0,refresh:0};
- const context=createContext({character:profile,characterReceiptId,getContextComponent,planGestureStage,actorRect,
+ const context=createContext({characterPerformance:createCharacterState(),character:profile,characterReceiptId,getContextComponent,planGestureStage,actorRect,
   state:{x:250,y:220,depth:1,depthTarget:1,affect:null},metrics:{size:100,footprint:{left:0,top:0,right:100,bottom:100,width:100,height:100},neutralFootprint:{left:15,top:15,right:85,bottom:85,width:70,height:70}},
   currentSection:()=> 'home',overlap:(a,b)=>a.left<b.right&&a.right>b.left&&a.top<b.bottom&&a.bottom>b.top,
   world,autonomy:createAutonomy({seed:18425}),autoExecution:null,route:null,pendingGesture:null,

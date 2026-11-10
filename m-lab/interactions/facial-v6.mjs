@@ -90,7 +90,7 @@ export function createFacialV6(root,clips=[]) {
  const eyes={left:makeBlink(root,clips,'left'),right:makeBlink(root,clips,'right')};
  const availableExpressions=Object.fromEntries(Object.entries(EXPRESSIONS).map(([key,morph])=>
   [key,key==='neutral'||body.some(t=>t.morph===morph)]));
- let expression='neutral',blend={happy:0,curious:0,surprised:0},intensity=1.65,autoBlink=true,nextAutoBlink=0,gestureBlink=null;
+ let expression='neutral',blend={happy:0,curious:0,surprised:0},intensity=1.65,autoBlink=true,nextAutoBlink=0,gestureBlink=null,relativeBlink=false;
  let expressionBlend=null,restBlink=null;
  const restCurrent={left:0,right:0};
  function setExpressionBlend(value=null){
@@ -121,16 +121,16 @@ export function createFacialV6(root,clips=[]) {
   eyes[side].manual=clamp(Number(amount)||0);return true;
  }
  /** Temporary wink ownership. Existing manual sliders and auto preference survive. */
- function setGestureBlink(value=null){
+ function setGestureBlink(value=null,{relativeToRest=false}={}){
   if(value===null){
-   if(gestureBlink){gestureBlink=null;nextAutoBlink=0;}
+   if(gestureBlink){gestureBlink=null;nextAutoBlink=0;}relativeBlink=false;
    return true;
   }
   if(typeof value!=='object'||!['left','right'].every(side=>Number.isFinite(value[side])))return false;
   if(!['left','right'].every(side=>eyes[side].channels.length||value[side]===0))return false;
   // Cancel an automatic clip once, so release cannot resume halfway through it.
   if(!gestureBlink)for(const eye of Object.values(eyes))eye.started=-1;
-  gestureBlink={left:clamp(value.left),right:clamp(value.right)};return true;
+  gestureBlink={left:clamp(value.left),right:clamp(value.right)};relativeBlink=relativeToRest===true;return true;
  }
  function blink(side,now=performance.now()) {
   if(!eyes[side]?.channels.length)return false;
@@ -138,7 +138,10 @@ export function createFacialV6(root,clips=[]) {
  }
  function applyEye(eye,now,side) {
   if(!eye.channels.length)return;
-  let t=timeForClosure(eye,gestureBlink?gestureBlink[side]:eye.manual);
+  // Contextual automatic cycles close from the ACTUAL smoothed rest pose.
+  // Authored winks remain absolute and can deliberately open the other eye.
+  const closure=gestureBlink?(relativeBlink?restCurrent[side]+(1-restCurrent[side])*gestureBlink[side]:gestureBlink[side]):eye.manual;
+  let t=timeForClosure(eye,closure);
   if(!gestureBlink&&eye.started>=0){
    const elapsed=now-eye.started;
    if(elapsed>=eye.duration){eye.started=-1;}

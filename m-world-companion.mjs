@@ -1,5 +1,5 @@
-import {getContextComponent,contextualChatRequest} from './m-world-context.mjs?v=55';
-import {validateCharacterContext} from './m-world-character-context.mjs?v=55';
+import {getContextComponent,contextualChatRequest} from './m-world-context.mjs?v=66';
+import {validateCharacterContext} from './m-world-character-context.mjs?v=66';
 /** V36: public chat answers portfolio questions only. M's autonomous actions and private settings live outside the conversation. */
 export const M_ASSISTANT_GESTURES=Object.freeze(['wave','curious','surprised','shy']);
 export const M_LOCAL_GESTURES=Object.freeze([...M_ASSISTANT_GESTURES,'playful','wink','nod','sleep','hop','think']);
@@ -225,7 +225,13 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  const view=document.defaultView,visual=view?.visualViewport;
  if(view?.addEventListener)listen(view,'resize',refreshViewport);
  if(visual?.addEventListener){listen(visual,'resize',refreshViewport);listen(visual,'scroll',refreshViewport);}
- listen(input,'focus',refreshViewport);listen(input,'blur',refreshViewport);
+ listen(input,'focus',refreshViewport);
+ // A touch click is dispatched after focus changes. Reframing on blur moves
+ // header controls away from that touch before its click can reach them.
+ listen(input,'blur',()=>{
+  if(view?.requestAnimationFrame)view.requestAnimationFrame(()=>{if(!destroyed)refreshViewport();});
+  else refreshViewport();
+ });
  listen(rememberCharacter,'click',()=>{const current=getCharacterStatus();if(current&&typeof current.remember==='boolean'){onRememberCharacter(!current.remember);refreshStoryControl();}});
  listen(rememberPrivacy,'click',()=>{const current=getCharacterStatus();if(current&&typeof current.remember==='boolean'){onRememberCharacter(!current.remember);refreshStoryControl();}});
  listen(directorToggle,'click',()=>{const state=getDirectorStatus()||{};onDirectorEnabled(state.enabled===false);refresh();});

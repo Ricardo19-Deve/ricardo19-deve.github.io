@@ -12,24 +12,38 @@ const clone=value=>value===null?null:structuredClone(value);
 const validTime=value=>Number.isFinite(value)&&value>=0;
 const safeReason=value=>typeof value==='string'&&/^[a-z][a-z0-9-]{0,47}$/u.test(value)?value:'cancelled';
 
+/** Local physical context changes only bounded observation/recovery holds.
+ * Omitted context preserves authored timing. This never adds travel or gestures.
+ */
+export function sceneTiming(input={}){
+ const {energy=.7,focus=.5,arousal=.3}=input??{};
+ const unit=(value,fallback)=>Number.isFinite(value)?Math.min(1,Math.max(0,value)):fallback;
+ const e=unit(energy,.7),f=unit(focus,.5),a=unit(arousal,.3);
+ return {
+  lookMs:Math.round(Math.min(1300,Math.max(450,700+(f-.5)*620+(.7-e)*180-(a-.3)*220))),
+  restMs:Math.round(Math.min(2400,Math.max(900,1400+(.7-e)*1100+(f-.5)*120-(a-.3)*180)))
+ };
+}
+
 /** One high-level intention becomes a short local sequence, with no extra API call. */
-export function createScenePlan({targetId=null,action='inspect',gesture='curious',expression='curious',source='life',actions=[]}={}){
+export function createScenePlan({targetId=null,action='inspect',gesture='curious',expression='curious',source='life',actions=[],timing=null}={}){
  if(!ACTIONS.includes(action)||!GESTURES.includes(gesture)||!EXPRESSIONS.includes(expression)||!SOURCES.includes(source))return null;
  if(action!=='rest'&&!safeId(targetId))return null;
  if(action==='rest'&&targetId!==null&&!safeId(targetId))return null;
  if(!Array.isArray(actions)||actions.some(value=>!ACTIONS.includes(value))||new Set(actions).size!==actions.length)return null;
  // A nonempty offer is authoritative: never add an action the planner did not offer.
  if(actions.length&&!actions.includes(action))return null;
+ const {lookMs,restMs}=sceneTiming(timing);
  const steps=[];
  const timed=(type,durationMs)=>steps.push({type,targetId,expression,durationMs});
  const travel=kind=>steps.push({type:'travel',targetId,expression,action:kind});
- if(action==='rest')timed('rest',1400);
+ if(action==='rest')timed('rest',restMs);
  else{
-  timed('look',700);
+  timed('look',lookMs);
   if(TRAVEL.includes(action))travel(action);
   if(gesture!=='none')steps.push({type:'gesture',targetId,expression,gesture});
   if(['peek','orbit'].includes(action)&&actions.includes('perch'))travel('perch');
-  timed('rest',1400);
+  timed('rest',restMs);
  }
  return {targetId,source,steps};
 }
