@@ -9,6 +9,7 @@ import {createMotionV8,motionPose,canonicalBoneName} from './m-lab/interactions/
 import {performanceStagePoseV15} from './m-lab/interactions/performance-v15.mjs?v16';
 import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=66';
 import {createSecondaryPoseCompositor} from './m-world-pose-compositor.mjs?v=66';
+import {weatherActorPose} from './m-world-weather-actor.mjs?v=66&sky=67';
 import {createAttentionDirector,createContextBlink,createFacialTargetMixer} from './m-world-attention.mjs?v=66';
 import {createPresenceDynamics} from './m-world-dynamics.mjs?v=66';
 import {createFacialContinuity} from './m-world-face-continuity.mjs?v=66';
@@ -155,7 +156,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
  const presence=createPresenceDynamics(),qualityGovernor=createRenderQualityGovernor(),microMotion=createMicroMotion(),livingPerformance=createLivingPerformance({seed:Math.floor(Math.random()*4294967295)}),surfaceContact=createSurfaceContact(),motionContinuity=createMotionContinuity(),emotionalBody=createEmotionalBody({seed:Math.floor(Math.random()*4294967295)}),lifeBridges=createLifeBridges(),spontaneousPlay=createSpontaneousPlay({seed:Math.floor(Math.random()*4294967295)}),betweenBeats=createBetweenBeats({seed:Math.floor(Math.random()*4294967295)}),intentCrossfade=createIntentCrossfade();
   // One total budget and one continuous handoff for all secondary joint targets.
   const attentionDirector=createAttentionDirector({seed:0x66a11}),contextBlink=createContextBlink({seed:0x66b11}),facialTargetMixer=createFacialTargetMixer();
-  const presentation={},secondaryTargets=Array.from({length:7},()=>({pose:null,weight:1}));
+  const presentation={},secondaryTargets=Array.from({length:8},()=>({pose:null,weight:1}));
   let lastAttention=attentionDirector.sample(),lastBlink=contextBlink.sample(),facialBlendRejected=0;
   const stageHandoff=createPoseHandoff({halfLife:.25,limit:1.7});
  let lastContact=surfaceContact.sample(),lastContinuity=motionContinuity.sample(),lastEmotional=emotionalBody.sample({reducedMotion:true}),lastBridge=lifeBridges.sample({reducedMotion:true}),lastPlay=spontaneousPlay.sample({reducedMotion:true}),lastAmbient=betweenBeats.sample({reducedMotion:true}),lastTransition=intentCrossfade.sample({reducedMotion:true});
@@ -368,6 +369,27 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   frameFit=fitCharacterFrame(framed,viewportSize);
   source.position.sub(center);container.scale.setScalar(frameFit.scale);
   const neutralSourcePosition=source.position.clone();
+   // Removable 3D umbrella, not part of M's original GLB or skeleton.
+   const umbrella=new THREE.Group(),umbrellaRadius=characterHeight*.19;
+   const canopy=new THREE.Mesh(
+    new THREE.SphereGeometry(umbrellaRadius,16,8,0,Math.PI*2,0,Math.PI/2),
+    new THREE.MeshStandardMaterial({color:0x89c4df,metalness:.08,roughness:.32,
+     transparent:true,opacity:.94,side:THREE.DoubleSide})
+   );
+   const stem=new THREE.Mesh(
+    new THREE.CylinderGeometry(umbrellaRadius*.022,umbrellaRadius*.022,umbrellaRadius*1.85,7),
+    new THREE.MeshStandardMaterial({color:0xdbeaf7,metalness:.4,roughness:.4})
+   );
+   stem.position.y=-umbrellaRadius*.9;
+   const handle=new THREE.Mesh(
+    new THREE.TorusGeometry(umbrellaRadius*.12,umbrellaRadius*.023,5,12,Math.PI),
+    new THREE.MeshStandardMaterial({color:0xdbeaf7,metalness:.4,roughness:.4})
+   );
+   handle.position.set(0,-umbrellaRadius*1.8,0);handle.rotation.z=Math.PI;
+   umbrella.add(canopy,stem,handle);
+   umbrella.position.set(-characterHeight*.20,characterHeight*.33,characterHeight*.10);
+   container.add(umbrella);umbrella.visible=false;
+   let umbrellaFade=0;
   depthRoot.position.x=-frameFit.center.x*frameFit.scale;depthRoot.position.y=-frameFit.center.y*frameFit.scale;updateWorld();
   const halfDepth=Math.max(Math.abs(framed.min.z),Math.abs(framed.max.z))*frameFit.scale,depthPlan=depthLayerPlacement(1,halfDepth);
   depthRoot.position.z=depthPlan.bodyZ;
@@ -439,6 +461,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     framing:{rest:boundsRecord(restBox),envelope:boundsRecord(envelope),framed:boundsRecord(framed),scale:frameFit.scale,samples:frameSamples},
     occlusion:{supported:depthSupported,depth,visualSide:visualDepthSide(depth),worldZ:depthRoot.position.z,surfaceZ:0,protectedZ:depthPlan.protectedZ,surfaceRects:surfaceBatch.rectCount,protectedRects:protectedBatch.rectCount,maskDrawCalls:Number(surfaceBatch.mesh.visible)+Number(protectedBatch.mesh.visible)},
     render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,points:renderer.info.render.points,lines:renderer.info.render.lines,programs:renderer.info.programs.length,textures:renderer.info.memory.textures,geometries:renderer.info.memory.geometries},
+     weather:{umbrella:umbrella.visible,fade:umbrellaFade},
     swimWeight,expression:facial.expression,gesture:{name:lastGesture.name,age:lastGesture.progress*lastGesture.duration,phase:lastGesture.phase,envelope:lastGesture.envelope,lift:lastGesture.lift,contact:lastGesture.contact},affect:{name:lastAffect.name,phase:lastAffect.phase,envelope:lastAffect.envelope,weights:facial.diagnostics().expressionWeights},facialIntensity:facial.intensity,blink:facial.diagnostics(),shaderErrors:[...shaderErrors]};
   }
   function render(){
@@ -518,10 +541,15 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    secondaryTargets[0].pose=lastLiving.pose;secondaryTargets[1].pose=lastContact.pose;
    secondaryTargets[2].pose=lastContinuity.pose;secondaryTargets[3].pose=lastEmotional.pose;
    secondaryTargets[4].pose=lastBridge.pose;secondaryTargets[5].pose=lastPlay.pose;secondaryTargets[6].pose=lastAmbient.pose;
-   const quiet=physical?.reading||physical?.blocked;
+   const weatherMotion=weatherActorPose(state.weather,{reducedMotion:reduced,
+     reading:Boolean(state.reading||physical?.reading),resting:calm||lastContact.supported,
+     gesture:Boolean(state.gesture)||Boolean(lastGesture.name),
+     sleeping:state.gesture?.name==='sleep'||physical?.intent==='sleep'});
+    const quiet=physical?.reading||physical?.blocked;
    secondaryTargets[0].weight=quiet?.35:.65;secondaryTargets[1].weight=1;
    secondaryTargets[2].weight=1;secondaryTargets[3].weight=.65;secondaryTargets[4].weight=.6;
    secondaryTargets[5].weight=quiet?0:physical?.intent==='play'?1:.45;secondaryTargets[6].weight=quiet?.2:.55;
+    secondaryTargets[7].pose=weatherMotion.pose;secondaryTargets[7].weight=.7;
    const combinedSecondary=secondaryPose.sample({dt,layers:secondaryTargets,reducedMotion:reduced});
    const expression=lastGesture.envelope>0?expressionFor(state.gesture?.expression??lastGesture.expression,state.mode||activity):expressionFor(state.emotion??state.mood,state.mode||activity);
    secondaryLayer.prepare();gestureLayer.prepare();locomotionLayer.prepare();motion.prepare();action.setEffectiveWeight(swimWeight);mixer.update(dt);
@@ -553,7 +581,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    // V50 stage punctuation is tiny, additive and goes through V41's final
    // stage handoff (never changes the real route, collision, X or depth).
    stage.rotation.x+=lastPlay.stage.rx;stage.rotation.y+=lastPlay.stage.ry;
-   stage.rotation.z+=lastPlay.stage.rz;stage.position.y+=lastPlay.stage.y;
+   stage.rotation.z+=lastPlay.stage.rz+weatherMotion.stageRoll;stage.position.y+=lastPlay.stage.y;
    stage.scale.multiplyScalar(1+lastPlay.stage.scale);
    // The expressive stage had instant mode/expression targets even when its
    // bones were spring-filtered. Filter the FINAL stage position/rotation/scale
@@ -564,6 +592,12 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    },dt,{immediate:reduced});
    const rotation=stagePose.rotation||[0,0,0],placement=stagePose.placement||[0,0,0];
    stage.rotation.set(...rotation);stage.position.x=placement[0];stage.position.y=placement[1];stage.scale.setScalar(1+placement[2]);
+    const umbrellaTarget=weatherMotion.umbrella?1:0;
+    if(dt===0)umbrellaFade=umbrellaTarget; // First static draw must already show known rain.
+    else umbrellaFade+=(umbrellaTarget-umbrellaFade)*(1-Math.exp(-6*dt));
+    umbrella.visible=umbrellaFade>.035;
+    canopy.material.opacity=.94*umbrellaFade;
+    umbrella.rotation.z+=(weatherMotion.umbrellaTilt-umbrella.rotation.z)*(1-Math.exp(-3*dt));
    if(!reduced&&dt>0&&qualityGovernor.observe(dt*1000))syncResolution();
    render();
   };

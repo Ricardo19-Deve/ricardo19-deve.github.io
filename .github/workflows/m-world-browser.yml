@@ -77,3 +77,31 @@ jobs:
           name: m-v24-native-contracts
           path: /tmp/m-world-v24/
           if-no-files-found: ignore
+
+  weather-3d:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BASE_URL: http://127.0.0.1:4173/
+      M_WORLD_ARTIFACT_DIR: /tmp/m-world-weather
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned browser driver
+        run: npm install --no-save --ignore-scripts --package-lock=false playwright-core@1.62.1
+      - name: Start website
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/m-weather-http.log 2>&1 &
+          sleep 2
+      - name: Verify umbrella and ambient rain, wind, sunshine in original M
+        run: node m-world-weather-browser.mjs
+      - name: Save weather screenshots for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m-v67-weather-chrome
+          path: /tmp/m-world-weather/
+          if-no-files-found: ignore

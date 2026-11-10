@@ -182,7 +182,7 @@ function reducedMotionFixture({width,height,gameName}){
  const scene={id:'scene-hide',status:'playing'},state={x:width-200,y:height-250,vx:40,vy:-25,ax:30,ay:20,heading:1,turn:.4,travel:.8,leanX:.2,leanY:-.3,depth:-.999,depthTarget:-1,mode:'peek',phase:'hold',emotion:'happy',emotionUntil:Infinity,clock:3,targetId:surface.id,gesture:{name:'wink',sceneId:scene.id},expressionHold:null,affect:{name:'delight'}};
  const context=createContext({
   characterPerformance:createCharacterState(),creatureEnergy,autonomyFatigue:0,autoExecution:null,
-  state,metrics,world,actorRect,bound,disposed:false,active:true,frozen:false,avatar:{getMetrics:()=>metrics,setSpatialFrame:frame=>spatialFrames.push(frame),update:(_dt,value)=>rendered.push(value)},
+  state,metrics,world,actorRect,bound,currentWeather:null,disposed:false,active:true,frozen:false,avatar:{getMetrics:()=>metrics,setSpatialFrame:frame=>spatialFrames.push(frame),update:(_dt,value)=>rendered.push(value)},
   document:{hidden:false,activeElement:focusedNode},performance:{now:()=>1000},devicePixelRatio:1,
   frameId:7,lastFrame:980,host:{style:{}},layer:{dataset:{}},renderFrame:null,
   reducedMotion:false,motionOptIn:false,motionPreference:{matches:true},lastLife:null,characterEnergy:.8,
