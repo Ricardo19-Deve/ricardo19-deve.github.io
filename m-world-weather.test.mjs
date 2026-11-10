@@ -133,8 +133,8 @@ test('V68 umbrella is proportionate, raised and tied to a paw without modifying 
 
 test('V69 umbrella canopy has believable depth and visible grip while preserving rig',()=>{
  const actor=readFileSync(new URL('m-world-3d.mjs',import.meta.url),'utf8');
- assert.match(actor,/canopyDepth=characterHeight\*\.24/);
- assert.match(actor,/canopyOffsetX=-characterHeight\*\.23/);
+ assert.match(actor,/canopyDepth=characterHeight\*\.20/);
+ assert.match(actor,/canopyOffsetX=-characterHeight\*\.36/);
  assert.match(actor,/CylinderGeometry\(umbrellaRadius\*\.043,umbrellaRadius\*\.043/);
  assert.match(actor,/color:0x617e98,metalness:/);
  assert.match(actor,/canopyDepthRatio:canopyDepth\/characterHeight/);
