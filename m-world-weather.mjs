@@ -106,6 +106,20 @@ export function weatherVisual(weather){
   umbrella:rainy,night:weather.isDay===false
  };
 }
+/** Explicit developer-only visual preview; NEVER used for production weather. */
+export function makeWeatherDemo(kind){
+ if(!['rain','wind','cloud','sun','snow'].includes(kind))return null;
+ const preset={
+  rain:{condition:'rain',precipitation:2.5,cloud:.98,windKmh:35,windDirection:90,isDay:true},
+  wind:{condition:'partly-cloudy',precipitation:0,cloud:.38,windKmh:58,windDirection:270,isDay:true},
+  cloud:{condition:'cloudy',precipitation:0,cloud:.95,windKmh:12,windDirection:50,isDay:true},
+  sun:{condition:'clear',precipitation:0,cloud:.02,windKmh:4,windDirection:0,isDay:true},
+  snow:{condition:'snow',precipitation:.8,cloud:.90,windKmh:15,windDirection:30,isDay:true}
+ }[kind];
+ return {status:'ready',place:M_WEATHER_SITE.name,...preset,storm:false,temperatureC:12,
+  observedAt:null,source:'DEMO — não é tempo real',nearbyObservation:false};
+}
+
 async function responseJson(fetchImpl,url,signal){
  const response=await fetchImpl(url,{method:'GET',signal,credentials:'omit',cache:'no-store',redirect:'follow'});
  if(!response.ok)throw Error('Weather provider HTTP '+response.status);
