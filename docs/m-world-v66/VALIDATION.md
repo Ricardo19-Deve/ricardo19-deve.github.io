@@ -6,7 +6,7 @@ Target: original M in desktop/mobile web; Godot is not applicable.
 
 ## Executed checks
 
-- 781/781 Node regression tests passed after independent integration review.
+- 782/782 Node regression tests passed after independent integration review.
 - 31/31 isolated native Chrome checks passed on Intel Arc 140T / D3D11.
 - All 19 original GLB chunks and 10 detail maps match immutable V65 SHA256.
 - 199 source files had the same manifest at native capture start/end:
@@ -75,3 +75,31 @@ The GLB, detail maps, site content/design/navigation and backend are unchanged.
 
 Suggested commit: feat(m): coordinate autonomous intent and original-rig presence.
 Publication: not confirmed; inspect the concrete PR and all required hosted checks.
+
+
+## Hosted QA follow-up
+
+The first V66 hosted smoke run (42825870791) exposed three inherited harness
+assumptions: its explicitly empty endpoint hid both composers, and its forced
+foreground expected the rectangular text cutouts removed by V30. The initial
+33-check report is preserved with 3 failures. Behind paragraph pixels were
+unchanged; 12246 forced-front paragraph pixels changed, as the diagnostic permits.
+
+The QA-only correction already reviewed in PR57 was inspected in full and reused
+with its narrow mobile blur fix/test, preserving the newer V65 controller,
+language and configuration. PR57 was not merged or cherry-picked. The harness
+now uses a configured local mock, checks Enter/readability, separates planned
+navigation from an intentionally unsafe forced depth override, and records
+same-task raw alpha plus transparent/hidden references. The original delta12 /
+2CSS-pixel inset and zero-change acceptance are retained.
+
+A new sequential native desktop/mobile smoke passed 37/37 on Chrome156.0.8078.80.
+The composer-to-header first tap now works without a premature viewport move;
+a regression also verifies queued cleanup cannot mutate a destroyed panel.
+The original 120s/35s observations were not repeated. No renderer/rig/tail/face
+change followed that original evidence. Latest complete Node suite:782/782.
+Workspace follow-up:work/M_NextGen_V66/qa-smoke-followup.
+
+Hosted checks at the new commit still need inspection before publication. Both
+Cloudflare branch-build failures expose only dashboard links and no error text;
+no cause or successful deployment is inferred. No manual Worker deploy is needed.
