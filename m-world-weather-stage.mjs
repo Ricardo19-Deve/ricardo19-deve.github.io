@@ -9,23 +9,15 @@ export function mountWeatherStage({doc=document,view=window}={}){
  style.textContent=[
   '.m-weather-sky{position:fixed;inset:0;z-index:3;pointer-events:none;overflow:hidden;contain:strict}',
   '.m-weather-sky canvas{display:block;width:100%;height:100%;pointer-events:none}',
-  '.m-weather-status{position:fixed;bottom:12px;left:12px;z-index:4;pointer-events:auto;',
-  'font:500 11px/1.45 system-ui,-apple-system,sans-serif;letter-spacing:.01em;color:#d1dfeb;',
-  'background:rgba(13,27,45,.68);border:1px solid rgba(183,216,242,.15);border-radius:999px;',
-  'box-shadow:0 4px 20px rgba(0,0,0,.10);padding:5px 10px;max-width:min(80vw,440px);',
-  'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;backdrop-filter:blur(7px)}',
-  '.m-weather-status a{color:#c4eaff;text-decoration:underline;text-underline-offset:2px}',
-  '.m-weather-status[hidden],.m-weather-sky[hidden]{display:none!important}',
-  '@media(max-width:720px){.m-weather-status{bottom:calc(8px + env(safe-area-inset-bottom));left:8px;',
-  'max-width:55vw;font-size:10px;padding:4px 7px}}',
+  '.m-weather-sky[hidden]{display:none!important}',
   '@media(prefers-reduced-motion:reduce){.m-weather-sky{display:none!important}}'
  ].join('');
  const shell=doc.createElement('div');shell.className='m-weather-sky';shell.dataset.mOverlay='true';
  shell.setAttribute('aria-hidden','true');shell.hidden=true;
  const canvas=doc.createElement('canvas');shell.append(canvas);
- const label=doc.createElement('div');label.className='m-weather-status';label.dataset.mOverlay='true';label.hidden=true;
- label.setAttribute('role','status');label.setAttribute('aria-live','polite');
- doc.head.append(style);doc.body.append(shell,label);
+ // Weather has no floating label or status control. Provider credit is in
+ // the public Integrations section of index.html, not overlaid on content.
+ doc.head.append(style);doc.body.append(shell);
  const ctx=canvas.getContext('2d',{alpha:true});
  const motion=view.matchMedia('(prefers-reduced-motion: reduce)');
  let sample=null,visual=weatherVisual(null),raf=null,frameTime=0,width=0,height=0,disposed=false;
@@ -38,12 +30,6 @@ export function mountWeatherStage({doc=document,view=window}={}){
   if(!width||!height||!ctx)return;
   canvas.width=Math.round(width*ratio);canvas.height=Math.round(height*ratio);
   ctx.setTransform(ratio,0,0,ratio,0,0);
- }
- function labelText(value){
-  const condition=({rain:'chuva',snow:'neve',cloudy:'nublado','partly-cloudy':'algumas nuvens',
-   clear:'céu limpo',unknown:'vento'})[value.condition]||'tempo variável';
-  const temp=Number.isFinite(value.temperatureC)?' · '+Math.round(value.temperatureC)+' °C':'';
-  return 'Leiria'+temp+' · '+condition+' · '+value.source;
  }
  function draw(now){
   raf=null;if(disposed||doc.hidden||motion.matches||shell.hidden||!ctx)return;
@@ -95,21 +81,8 @@ export function mountWeatherStage({doc=document,view=window}={}){
  }
  function setWeather(value){
   if(disposed)return;
-  sample=value?.status==='ready'?value:null;visual=weatherVisual(sample);label.hidden=!sample;
-  if(sample){
-   label.textContent=labelText(sample);
-   label.title='Previsão aproximada para Leiria (não observação local) · '+sample.source;
-   if(sample.source==='MET Norway'){
-    label.textContent=labelText(sample).replace(' · MET Norway',' · previsão: ');
-    const credit=doc.createElement('a'),license=doc.createElement('a');
-    credit.href='https://api.met.no/';credit.target='_blank';credit.rel='noopener noreferrer';
-    credit.textContent='MET Norway';
-    license.href='https://creativecommons.org/licenses/by/4.0/';
-    license.target='_blank';license.rel='noopener noreferrer';license.textContent='CC BY 4.0';
-    label.append(credit,doc.createTextNode(' · '),license);
-   }
-  }
-  else{label.textContent='';label.title='';}
+  sample=value?.status==='ready'?value:null;
+  visual=weatherVisual(sample);
   restart();
  }
  const visibility=()=>restart(),resize=()=>{size();restart();};
@@ -119,6 +92,6 @@ export function mountWeatherStage({doc=document,view=window}={}){
   source:sample?.source||null,rain:visual.rain,cloud:visual.cloud,wind:visual.wind,active:!shell.hidden}),
   destroy(){disposed=true;stop();doc.removeEventListener('visibilitychange',visibility);
    view.removeEventListener('resize',resize);motion.removeEventListener('change',visibility);
-   shell.remove();label.remove();style.remove();}
+   shell.remove();style.remove();}
  };
 }
