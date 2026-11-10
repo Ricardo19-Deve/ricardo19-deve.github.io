@@ -20,7 +20,7 @@ import {MWorldBrain} from './m-world-brain.mjs?v=66';
 import {M_GESTURES,GESTURE_DURATIONS,PAW_CONTACT_PROGRESS} from './m-world-acting.mjs?v=66';
 import {createMCompanion} from './m-world-companion.mjs?v=66&ui=59';
 import {M_WORLD_CONFIG} from './m-world-config.mjs?v=66';
-import {createWeatherReader,M_WEATHER_REFRESH_MS} from './m-world-weather.mjs?v=66&sky=67';
+import {createWeatherReader,M_WEATHER_REFRESH_MS,makeWeatherDemo} from './m-world-weather.mjs?v=66&sky=67';
 import {mountWeatherStage} from './m-world-weather-stage.mjs?v=66&sky=67';
 import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=66';
 
@@ -80,7 +80,9 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
    }catch{if(!disposed){currentWeather=null;sky.setWeather(null);}}
   }
   const weatherTimer=setInterval(()=>{void refreshWeather();},M_WEATHER_REFRESH_MS);
-  if(!debugEnabled)void refreshWeather();
+  const weatherDemo=debugEnabled?makeWeatherDemo(new URLSearchParams(location.search).get('m-weather-demo')):null;
+  if(weatherDemo){currentWeather=weatherDemo;sky.setWeather(weatherDemo);}
+  else if(!debugEnabled)void refreshWeather();
   const geometryTransitions=new Map();
  const ids=new WeakMap(),observedSurfaces=new Set();let nextId=0;
  const idOf=element=>{if(!ids.has(element))ids.set(element,'surface-'+(++nextId));return ids.get(element);};
