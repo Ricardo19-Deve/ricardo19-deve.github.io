@@ -9,11 +9,12 @@ export function mountWeatherStage({doc=document,view=window}={}){
  style.textContent=[
   '.m-weather-sky{position:fixed;inset:0;z-index:3;pointer-events:none;overflow:hidden;contain:strict}',
   '.m-weather-sky canvas{display:block;width:100%;height:100%;pointer-events:none}',
-  '.m-weather-status{position:fixed;bottom:12px;left:12px;z-index:4;pointer-events:none;',
+  '.m-weather-status{position:fixed;bottom:12px;left:12px;z-index:4;pointer-events:auto;',
   'font:500 11px/1.45 system-ui,-apple-system,sans-serif;letter-spacing:.01em;color:#d1dfeb;',
   'background:rgba(13,27,45,.68);border:1px solid rgba(183,216,242,.15);border-radius:999px;',
   'box-shadow:0 4px 20px rgba(0,0,0,.10);padding:5px 10px;max-width:min(80vw,440px);',
   'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;backdrop-filter:blur(7px)}',
+  '.m-weather-status a{color:#c4eaff;text-decoration:underline;text-underline-offset:2px}',
   '.m-weather-status[hidden],.m-weather-sky[hidden]{display:none!important}',
   '@media(max-width:720px){.m-weather-status{bottom:calc(8px + env(safe-area-inset-bottom));left:8px;',
   'max-width:55vw;font-size:10px;padding:4px 7px}}',
@@ -95,7 +96,19 @@ export function mountWeatherStage({doc=document,view=window}={}){
  function setWeather(value){
   if(disposed)return;
   sample=value?.status==='ready'?value:null;visual=weatherVisual(sample);label.hidden=!sample;
-  if(sample){label.textContent=labelText(sample);label.title='Condições aproximadas · '+sample.source;}
+  if(sample){
+   label.textContent=labelText(sample);
+   label.title='Previsão aproximada para Leiria (não observação local) · '+sample.source;
+   if(sample.source==='MET Norway'){
+    label.textContent=labelText(sample).replace(' · MET Norway',' · previsão: ');
+    const credit=doc.createElement('a'),license=doc.createElement('a');
+    credit.href='https://api.met.no/';credit.target='_blank';credit.rel='noopener noreferrer';
+    credit.textContent='MET Norway';
+    license.href='https://creativecommons.org/licenses/by/4.0/';
+    license.target='_blank';license.rel='noopener noreferrer';license.textContent='CC BY 4.0';
+    label.append(credit,doc.createTextNode(' · '),license);
+   }
+  }
   else{label.textContent='';label.title='';}
   restart();
  }
