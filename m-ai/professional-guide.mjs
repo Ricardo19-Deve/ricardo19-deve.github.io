@@ -26,7 +26,7 @@ const postContinuationCue=message=>{
 };
 
 export function isPublicationFollowUp(message='',history=[]){
- if(isPublicationQuestion(message)||!postContinuationCue(message)||!Array.isArray(history))return false;
+ if(!postContinuationCue(message)||!Array.isArray(history))return false;
  // Most recent user topic wins. Ignore assistant replies (which are
  // untrusted generated text and can be in a different language).
  const users=history.slice(-6).filter(row=>row?.role==='user'&&typeof row.content==='string').reverse();
