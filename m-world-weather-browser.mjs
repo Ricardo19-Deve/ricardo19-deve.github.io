@@ -34,6 +34,9 @@ try{
    const snap=window.MWorld.snapshot();
    const link=status?.querySelector('a'),canvas=sky?.querySelector('canvas');
    return {mode:snap.weather.condition,ready:snap.ready,umbrella:snap.renderer?.weather?.umbrella,
+    umbrellaFade:snap.renderer?.weather?.fade,frames:snap.stats?.frames,active:snap.active,frozen:snap.frozen,
+    gesture:snap.state?.gesture?.name,characterIntent:snap.character?.performance?.intent,
+    reduced:snap.preferences?.reducedMotion,
     label:status?.textContent,skyActive:!sky.hidden,weatherSource:snap.weather.source,
     skyPointerEvents:getComputedStyle(sky).pointerEvents,canvasSize:[canvas?.width,canvas?.height],
     hasAttribution:Boolean(link),reducedMotion:snap.preferences?.reducedMotion,
