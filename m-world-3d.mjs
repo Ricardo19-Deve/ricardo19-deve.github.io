@@ -593,7 +593,8 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    const rotation=stagePose.rotation||[0,0,0],placement=stagePose.placement||[0,0,0];
    stage.rotation.set(...rotation);stage.position.x=placement[0];stage.position.y=placement[1];stage.scale.setScalar(1+placement[2]);
     const umbrellaTarget=weatherMotion.umbrella?1:0;
-    umbrellaFade+=(umbrellaTarget-umbrellaFade)*(1-Math.exp(-6*dt));
+    if(dt===0)umbrellaFade=umbrellaTarget; // First static draw must already show known rain.
+    else umbrellaFade+=(umbrellaTarget-umbrellaFade)*(1-Math.exp(-6*dt));
     umbrella.visible=umbrellaFade>.035;
     canopy.material.opacity=.94*umbrellaFade;
     umbrella.rotation.z+=(weatherMotion.umbrellaTilt-umbrella.rotation.z)*(1-Math.exp(-3*dt));
