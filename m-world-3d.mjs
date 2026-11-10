@@ -379,7 +379,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     opacity:.94,side:THREE.DoubleSide
    });
    // Shallow canopy: wide coverage with a low arch, not a helmet.
-   const canopyDepth=characterHeight*.24;
+   const canopyDepth=characterHeight*.20;
    const canopyProfile=[
     new THREE.Vector2(0,canopyDepth),
     new THREE.Vector2(umbrellaRadius*.22,canopyDepth*.95),
@@ -432,7 +432,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    handle.position.set(0,-characterHeight*.042,0);handle.rotation.z=Math.PI;
    umbrella.add(umbrellaCrown,stem,handle);
    umbrella.rotation.set(.06,0,-.12);
-   const canopyOffsetX=-characterHeight*.23,canopyOffsetZ=characterHeight*.06;
+   const canopyOffsetX=-characterHeight*.36,canopyOffsetZ=characterHeight*.06;
    const gripStart=new THREE.Vector3(0,0,0),stemDirection=new THREE.Vector3();
    const shaftAxis=new THREE.Vector3(0,1,0);
    function setUmbrellaCrownHeight(crownY){
@@ -442,7 +442,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     stem.scale.y=stemDirection.length();
     stem.quaternion.setFromUnitVectors(shaftAxis,stemDirection.normalize());
    }
-   setUmbrellaCrownHeight(characterHeight*.82);
+   setUmbrellaCrownHeight(characterHeight*.72);
    const umbrellaHand=bones.get('Hand.R')||bones.get('Hand.L')||null,umbrellaHead=bones.get('Head')||null;
    const handWorld=new THREE.Vector3(),handLocal=new THREE.Vector3();
    const headWorld=new THREE.Vector3(),headLocal=new THREE.Vector3();
@@ -674,14 +674,14 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
      if(!umbrellaAnchored||dt===0){umbrella.position.copy(handLocal);umbrellaAnchored=true;}
      else umbrella.position.lerp(handLocal,1-Math.exp(-12*dt));
      umbrellaGripError=umbrella.position.distanceTo(handLocal);
-     let crownY=characterHeight*.82;
+     let crownY=characterHeight*.72;
      if(umbrellaHead){
       umbrellaHead.getWorldPosition(headWorld);
       headLocal.copy(headWorld);container.worldToLocal(headLocal);
       // The canopy rim clears the head even when she looks around.
       // Clamp shaft extension to avoid oversized swings while swimming.
-      crownY=Math.min(characterHeight*.95,Math.max(characterHeight*.74,
-       headLocal.y-umbrella.position.y+characterHeight*.18));
+      crownY=Math.min(characterHeight*.86,Math.max(characterHeight*.67,
+       headLocal.y-umbrella.position.y+characterHeight*.09));
       umbrellaCrownClearance=umbrella.position.y+crownY-headLocal.y;
      }
      setUmbrellaCrownHeight(crownY);
