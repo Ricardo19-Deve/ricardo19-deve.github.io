@@ -1,4 +1,5 @@
 import {worldCandidateWeight} from './m-world-world-rhythm.mjs?v=55';
+import {behaviorContinuityWeight,behaviorPhase} from './m-world-behavior-rhythm.mjs?v=65';
 /** Pure local intentions. Existing scene/spatial executors own every physical effect. */
 export const AUTONOMY_RESERVATION_MS=2000;
 const MAX_TARGETS=64,MAX_HISTORY=24,MAX_RECENT=8;
@@ -36,7 +37,7 @@ export function createAutonomy({seed=18421}={}){
  const random=()=>{randomState=(Math.imul(1664525,randomState)+1013904223)>>>0;return randomState/4294967296;};
  let serial=0,lastAt=0,nextDecisionAt=0,pending=null,active=null,reason='ready',lastOutcome=null;
  let completedCount=0,failedCount=0,lastAchievementAt=null,achievement=null,lastPlayAt=0;
- let routinesStartedAt=null,lastSleepAt=null;
+ let routinesStartedAt=null,lastSleepAt=null,lastSuccessful=null;
  const history=new Map(),familyUntil=new Map(),recent=[],recentGestures=[];
  const time=value=>validTime(value)?Math.max(lastAt,value):null;
  const remember=(id,entry)=>{
@@ -78,7 +79,9 @@ export function createAutonomy({seed=18421}={}){
    reservationUntil:pending?.expiresAt??null,nextDecisionAt,reason,lastOutcome:clone(lastOutcome),
    completedCount,failedCount,achievementPending:achievement!==null,
    ...(routinesStartedAt===null?{}:{needs:routineNeeds(lastAt)}),
-   recent:[...recent],recentGestures:[...recentGestures],targetHistory:[...history].map(([id,entry])=>({id,...entry}))};
+   recent:[...recent],recentGestures:[...recentGestures],
+    behavior:lastSuccessful?{phase:behaviorPhase(lastSuccessful.family),family:lastSuccessful.family,at:lastSuccessful.at}:null,
+    targetHistory:[...history].map(([id,entry])=>({id,...entry}))};
  }
  function choose(facts={}){
   facts=object(facts);
@@ -121,6 +124,7 @@ export function createAutonomy({seed=18421}={}){
   // diversity must keep working AFTER M's first scene; not only on frame one.
   // The unprofiled deterministic test contract remains unchanged.
   const variedGestures=hasOpening||Object.keys(learned).length>0;
+  const useContinuity=variedGestures&&facts.routinesAvailable===true;
   const candidates=[];
   const add=(family,score,decision,stableId=null)=>{
    if(at<(familyUntil.get(family)||0))return;
@@ -128,10 +132,11 @@ export function createAutonomy({seed=18421}={}){
    const variety=Math.pow(.68,repeats)*(recent.at(-1)===family?.3:1);
    const memoryWeight=Number.isFinite(learned[family])?Math.max(.7,Math.min(1.2,learned[family])):1;
    const rhythmWeight=worldCandidateWeight(family,facts.world);
+    const continuityWeight=useContinuity?behaviorContinuityWeight(lastSuccessful,family,{at,energy,reading}):1;
    const openingWeight=opening==='explore'?(['inspect','peek','orbit'].includes(family)?1.32:family==='goal-light'?.58:1):
     opening==='play'?(['light','ball','hop'].includes(family)?1.3:family==='goal-light'?.82:1):
     opening==='observe'?(['observe','think','rest'].includes(family)?1.44:family==='goal-light'?.44:1):1;
-   candidates.push({family,stableId,score:clamp(score*memoryWeight*openingWeight*rhythmWeight)*variety,
+   candidates.push({family,stableId,score:clamp(score*memoryWeight*openingWeight*rhythmWeight*continuityWeight)*variety,
     decision:{kind:'expression',targetId:null,action:'rest',gesture:'none',expression:'neutral',
      affect:'calm',play:null,quiet:true,reason:family,...decision}});
   };
@@ -236,6 +241,10 @@ export function createAutonomy({seed=18421}={}){
   lastAt=at;const choice=active;active=null;
   if(!success){fail(choice,safeReason(resultReason,'execution-failed'),at);return true;}
   completedCount=Math.min(1_000_000,completedCount+1);
+   // The next behavior may respond to THIS successfully finished action.
+   // Failed routes, unaccepted proposals, and interrupted scenes cannot
+   // create a fictional recovery or emotional progression.
+   lastSuccessful={family:choice.family,at};
   // Only a FINISHED real scene can be remembered as a gesture M performed.
   if(choice.decision.kind==='scene'&&choice.decision.gesture&&choice.decision.gesture!=='none'){
    recentGestures.push(choice.decision.gesture);
@@ -267,7 +276,7 @@ export function createAutonomy({seed=18421}={}){
  function resetMemory(nowMs=lastAt){
   const at=time(nowMs);if(at===null)return false;lastAt=at;
   release('memory-reset',at);history.clear();recent.length=0;recentGestures.length=0;familyUntil.clear();
-  achievement=null;lastAchievementAt=null;lastPlayAt=at;nextDecisionAt=at+1600;reason='memory-reset';return true;
+  achievement=null;lastAchievementAt=null;lastPlayAt=at;lastSuccessful=null;nextDecisionAt=at+1600;reason='memory-reset';return true;
  }
  return {choose,resolve,complete,cancel,resetMemory,snapshot};
 }
