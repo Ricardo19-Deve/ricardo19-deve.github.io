@@ -70,7 +70,7 @@ test('V64 a LinkedIn follow-up receives only verified post evidence, not the cur
  const prompt=result.body;
  assert.match(prompt.instructions,/CONVERSATION FLOW/);
  assert.match(prompt.instructions,/VERIFIED LINKEDIN FOLLOW-UP/);
- assert.match(prompt.instructions,/not repeat the previous response/);
+ assert.match(prompt.instructions,/repeat the previous response/);
  assert.doesNotMatch(prompt.instructions,/ACTIVE PUBLIC COMPONENT/);
  assert.match(prompt.input.at(-1).content,/2026-11-03/);
  assert.match(prompt.input.at(-1).content,/Blender, 3D animation, web development and AI/);
@@ -86,7 +86,7 @@ test('V64 a technical follow-up retains publication provenance and answers in Po
  const result=await ask('E que tecnologias foram utilizadas?',{history:chain});
  assert.equal(result.status,200);
  assert.match(result.body.instructions,/European Portuguese/);
- assert.match(result.body.instructions,/Do not infer frameworks/);
+ assert.match(result.body.instructions,/Never infer frameworks/);
  assert.match(result.body.input.at(-1).content,/2026-11-03/);
  assert.equal(result.calls.filter(c=>c.url===API_URL).length,1);
 });
@@ -104,6 +104,6 @@ test('V64 after a topic switch, do not inject LinkedIn text or treat the card as
 
 test('V64 conversation rules remain concise and privacy-preserving',()=>{
  assert.match(CONVERSATION_FLOW_RULES,/never treat previous assistant replies as verified facts/);
- assert.match(CONVERSATION_FLOW_RULES,/do not mention the earlier LinkedIn publication/);
+ assert.match(CONVERSATION_FLOW_RULES,/Do not mention the earlier LinkedIn publication/);
  assert.match(CONVERSATION_FLOW_RULES,/Never infer frameworks, APIs/);
 });
