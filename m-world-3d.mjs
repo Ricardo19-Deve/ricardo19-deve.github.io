@@ -543,7 +543,8 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    secondaryTargets[4].pose=lastBridge.pose;secondaryTargets[5].pose=lastPlay.pose;secondaryTargets[6].pose=lastAmbient.pose;
    const weatherMotion=weatherActorPose(state.weather,{reducedMotion:reduced,
      reading:Boolean(state.reading||physical?.reading),resting:calm||lastContact.supported,
-     gesture:Boolean(state.gesture)||Boolean(lastGesture.name)});
+     gesture:Boolean(state.gesture)||Boolean(lastGesture.name),
+     sleeping:state.gesture?.name==='sleep'||physical?.intent==='sleep'});
     const quiet=physical?.reading||physical?.blocked;
    secondaryTargets[0].weight=quiet?.35:.65;secondaryTargets[1].weight=1;
    secondaryTargets[2].weight=1;secondaryTargets[3].weight=.65;secondaryTargets[4].weight=.6;
