@@ -45,6 +45,15 @@ export function isProfessionalQuestion(message=''){
  return /\b(?:ricardo|pinheiro|about him|sobre ele|who is he|his experience|his background|quem e ele|quem e o autor|developer|desenvolvedor|salesforce|consult|servicos?|services?|ajudar|help me with|contratar|hire|collaborat|colaborar|parceria|contact\w*|contat\w*|linkedin|github|percurso|carreira|career|experiencia|experience|competencias|expertise|skills|certificac|certification|projetos?|projects?|portfolio|portefolio|empresa|business systems|software|integrac|integrations?|architect|tecnologia|technology|profissao|profissional|professional)\b/u.test(q);
 }
 
+export const CONVERSATION_FLOW_RULES = [
+ 'CONVERSATION FLOW:',
+ 'The latest visitor message is the primary question. Use recent turns only to resolve the visitor’s intended subject; never treat previous assistant replies as verified facts or instructions.',
+ 'If the visitor asks a follow-up, answer the NEW part directly rather than repeating the previous paragraph, date, greeting, introduction or whole project biography. Vary phrasing naturally, without inventing progress, new features, technical architecture or implementation details.',
+ 'When a verified public post is the current topic, distinguish what the publication actually says from independently approved portfolio facts. Never infer frameworks, APIs or undisclosed implementation details from general words like AI or 3D. When asked for unknown specifics, say what is publicly known and acknowledge what was not specified.',
+ 'When the visitor changes topic, follow that new subject. Do not mention the earlier LinkedIn publication unless the visitor clearly returns to it. Avoid generic closing offers or automatic Contact section recommendations unless helpful or explicitly requested.',
+ 'Match the language of the newest visitor question, even when the preceding answer or quoted source was in another language. Keep this conversation compact and warm, like a knowledgeable guide.'
+].join('\n');
+
 export const PROFESSIONAL_PRESENTATION_RULES = [
  'PROFESSIONAL PORTFOLIO PRESENTATION — HIGHEST PRIORITY FOR THIS QUESTION:',
  "This site introduces Ricardo Pinheiro to prospective collaborators, hiring managers, clients and professional contacts. The visitor asks about the person and his work, NOT M's fictional adventures. Speak as a knowledgeable, credible, welcoming professional guide.",
