@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {M_WEATHER_SITE,M_WEATHER_MODEL_URL,M_WEATHER_IPMA_URL,
  normalizeModelWeather,nearestIpmaObservation,combineWeather,weatherVisual,
- createWeatherReader} from './m-world-weather.mjs';
+ createWeatherReader,makeWeatherDemo} from './m-world-weather.mjs';
 import {weatherActorPose} from './m-world-weather-actor.mjs';
 
 const now=Date.parse('2026-11-10T14:30:00Z');
@@ -110,4 +110,16 @@ test('V67 weather canvas is non-interactive, reduced-motion-safe, and avoids a n
  assert.match(controller,/weather:currentWeather/);
  assert.match(controller,/clearInterval\(weatherTimer\);sky\.destroy\(\)/);
  assert.doesNotMatch(controller,/navigator\.geolocation|watchPosition/);
+});
+
+test('V67 debug-only weather demonstration is distinctly labelled and never mistaken for live meteorology',()=>{
+ const demo=makeWeatherDemo('rain');
+ assert.equal(demo.condition,'rain');
+ assert.equal(weatherVisual(demo).umbrella,true);
+ assert.match(demo.source,/DEMO/);
+ assert.match(demo.source,/não é tempo real/);
+ assert.equal(makeWeatherDemo('hailstorm'),null);
+ const script=readFileSync(new URL('scroll-buddy.js',import.meta.url),'utf8');
+ assert.match(script,/const weatherDemo=debugEnabled\?makeWeatherDemo/);
+ assert.match(script,/else if\(!debugEnabled\)void refreshWeather\(\)/);
 });
