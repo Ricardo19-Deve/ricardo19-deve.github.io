@@ -9,18 +9,32 @@ export function isPublicationQuestion(message=''){
  return /(?:linkedin|\bposts?\b|publica(?:c)(?:ao|oes)|publicou|published|publication|recent updates)/iu.test(fold(message));
 }
 /**
- * Keep a visitor's immediately preceding LinkedIn discussion in context.
- * Only text that clearly asks for a detail or continuation qualifies; long
- * unrelated questions never inherit LinkedIn retrieval or link access.
- * Chat history is visitor-controlled and conveys intent only, not trust.
+ * V64: bounded, explicit continuation of a public-post conversation.
+ *
+ * A short follow-up inherits the publication subject only while the user
+ * remains on that topic. A new unrelated user question terminates it, even
+ * if an old LinkedIn question still exists in the last six chat messages.
+ * These are routing hints only: the verified public source and all privacy
+ * checks remain mandatory before including a post or permalink.
  */
+const postContinuationCue=message=>{
+ const q=fold(message).replace(/[?.!]+$/gu,'').trim();
+ if(!q||q.length>160)return false;
+ const simple=/^(?:(?:e|and|but|mas)\s+)?(?:(?:(?:o|a|the)\s+)?(?:link|url|ligacao|data|assunto|tema|date|topic)|(?:conta[- ]?me mais|fala[- ]?me mais|tell me more|mais detalhes|more details|more information|e mais|what else|outros posts|outras publicacoes|ha outros|mais posts|qual foi o anterior|e antes|previous post|quando foi|when was it|e depois|and then))$/u;
+ const contextual=/^(?:(?:e|and|mas|but)\s+)?(?:(?:conta[- ]?me|fala[- ]?me|explica[- ]?me|tell me|explain)\s+(?:(?:um pouco|a bit)\s+)?(?:mais\s+)?(?:sobre|about)\s+(?:(?:esse|essa|este|esta|that|this|the)\s+)?(?:projeto|project|publicacao|publication|post|assunto|topic)|(?:que|quais|what|which)\s+(?:tecnologias|technologies|ferramentas|tools|linguagens|languages|funcionalidades|features|etapas|steps|detalhes|details)\b.*|(?:como|how)\s+(?:foi|foram|was|were|funciona|works|conseguiu|did|criou|made)\b.*|(?:podes|pode|can you)\s+(?:dar|enviar|send|share|explicar|explain)\s+(?:(?:o|a|the)\s+)?(?:link|url|ligacao|projeto|project|post|publicacao)\b.*)$/u;
+ return simple.test(q)||contextual.test(q);
+};
+
 export function isPublicationFollowUp(message='',history=[]){
- const q=fold(message).trim();
- if(!q||q.length>140||!Array.isArray(history))return false;
- const detail=/^(?:(?:e|and)\s+)?(?:(?:o|a)\s+)?(?:link(?:\s+(?:do|da)\s+(?:post|publicacao))?|url|ligacao|data|assunto|tema|when|where|date|topic|what about|sobre o que|conta[- ]?me mais|tell me more|mais detalhes|more details|mais|what else|outros posts|outras publicacoes|ha outros|mais posts|qual foi o anterior|e antes|previous post)(?:[\s?.!]*)$/u;
- const extended=/^(?:podes\s+(?:dar|enviar)|can you\s+(?:send|share))\s+(?:o\s+)?(?:link|url)(?:\s+(?:do|da)\s+(?:post|publicacao))?[?.!]*$/u;
- if(!detail.test(q)&&!extended.test(q))return false;
- return history.slice(-6).some(item=>item?.role==='user'&&isPublicationQuestion(item.content));
+ if(isPublicationQuestion(message)||!postContinuationCue(message)||!Array.isArray(history))return false;
+ // Most recent user topic wins. Ignore assistant replies (which are
+ // untrusted generated text and can be in a different language).
+ const users=history.slice(-6).filter(row=>row?.role==='user'&&typeof row.content==='string').reverse();
+ for(const item of users){
+  if(isPublicationQuestion(item.content))return true;
+  if(!postContinuationCue(item.content))return false;
+ }
+ return false;
 }
 
 export function isProfessionalQuestion(message=''){
