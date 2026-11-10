@@ -7,11 +7,11 @@
  */
 const lexicons={
  pt:{
-  strong:['qual','quais','ultimo','ultima','conta','podes','pode','queres','quero','consegues','consegue','tens','tenho','estou','gostava','obrigado','obrigada','portugues','publicacao','publicacoes','projeto','projetos','esse','essa','isto','diz','explica','explicar','falaste','tambem','entao','porque','pelo','pelos','sobre','fala','faz','fazer','como','quando','onde','quem','meu','minha','teu','tua','mais','nao','sim','este','esta','foi','sabes','preciso','ajudar','apresentou'],
+  strong:['qual','quais','ultimo','ultima','conta','podes','pode','queres','quero','consegues','consegue','tens','tenho','estou','gostava','obrigado','obrigada','portugues','publicacao','publicacoes','projeto','projetos','esse','essa','isto','diz','explica','explicar','falaste','tambem','entao','porque','pelo','pelos','sobre','fala','faz','fazer','foram','utilizadas','utilizados','usadas','usados','tecnologias','ferramentas','funcionalidades','criou','construiu','funciona','como','quando','onde','quem','meu','minha','teu','tua','mais','nao','sim','este','esta','foi','sabes','preciso','ajudar','apresentou'],
   short:['o','a','e','os','as','do','da','dos','das','um','uma','no','na','nos','nas','em','ao','aos','me','de','que','se','por','com']
  },
  en:{
-  strong:['what','which','who','when','where','why','how','tell','could','would','should','please','about','more','this','that','these','those','your','you','my','their','latest','last','project','projects','portfolio','posted','published','explain','explore','share','shared','hello','thanks','thank','describe','show','can','does','did','were','was','have','has','with','work','working','another','before','after','english'],
+  strong:['what','which','who','when','where','why','how','tell','could','would','should','please','about','more','technologies','frameworks','tools','built','using','implemented','created','worked','this','that','these','those','your','you','my','their','latest','last','project','projects','portfolio','posted','published','explain','explore','share','shared','hello','thanks','thank','describe','show','can','does','did','were','was','have','has','with','work','working','another','before','after','english'],
   short:['the','is','are','of','an','a','and','to','for','from','it','in','on','me','we','do','or','be']
  },
  es:{
