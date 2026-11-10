@@ -122,7 +122,7 @@ test('V68 umbrella is proportionate, raised and tied to a paw without modifying 
  assert.match(renderer,/umbrellaHand\.getWorldPosition\(handWorld\)/);
  assert.match(renderer,/container\.worldToLocal\(handLocal\)/);
  assert.match(renderer,/umbrella\.position\.lerp\(handLocal,1-Math\.exp\(-12\*dt\)\)/);
- assert.match(renderer,/headLocal\.y-umbrella\.position\.y\+characterHeight\*\.18/);
+ assert.match(renderer,/headLocal\.y-umbrella\.position\.y\+characterHeight\*\.09/);
  assert.match(renderer,/umbrellaCrown\.position\.set\(canopyOffsetX,crownY,canopyOffsetZ\)/);
  assert.match(renderer,/stem\.scale\.y=stemDirection\.length\(\)/);
  assert.match(renderer,/umbrellaRoll=-\.12\+weatherMotion\.umbrellaTilt/);
