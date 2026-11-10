@@ -375,11 +375,11 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    const umbrella=new THREE.Group(),umbrellaRadius=characterHeight*.42;
    const umbrellaCrown=new THREE.Group();
    const canopyMaterial=new THREE.MeshStandardMaterial({
-    color:0x89c4df,metalness:.06,roughness:.36,transparent:true,
+    color:0x7bbdd8,metalness:.07,roughness:.42,transparent:true,
     opacity:.94,side:THREE.DoubleSide
    });
    // Shallow canopy: wide coverage with a low arch, not a helmet.
-   const canopyDepth=characterHeight*.15;
+   const canopyDepth=characterHeight*.20;
    const canopyProfile=[
     new THREE.Vector2(0,canopyDepth),
     new THREE.Vector2(umbrellaRadius*.22,canopyDepth*.95),
@@ -414,10 +414,17 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     color:0xe0f4fb,transparent:true,opacity:.20,depthWrite:false
    }));
    umbrellaCrown.add(ribLines);
-   const metal=new THREE.MeshStandardMaterial({color:0xdbeaf7,metalness:.4,roughness:.4});
+   // A central tip and dark shaft complete the umbrella silhouette.
+   const topTip=new THREE.Mesh(
+    new THREE.SphereGeometry(umbrellaRadius*.033,8,6),
+    new THREE.MeshStandardMaterial({color:0xcbe4f2,metalness:.48,roughness:.34})
+   );
+   topTip.position.y=canopyDepth+characterHeight*.008;
+   umbrellaCrown.add(topTip);
+   const metal=new THREE.MeshStandardMaterial({color:0x617e98,metalness:.44,roughness:.31});
    // A unit cylinder stretches from the paw/handle to the canopy rim.
    const stem=new THREE.Mesh(
-    new THREE.CylinderGeometry(umbrellaRadius*.022,umbrellaRadius*.022,1,8),metal
+    new THREE.CylinderGeometry(umbrellaRadius*.043,umbrellaRadius*.043,1,10),metal
    );
    const handle=new THREE.Mesh(
     new THREE.TorusGeometry(umbrellaRadius*.12,umbrellaRadius*.023,6,14,Math.PI),metal
@@ -425,7 +432,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    handle.position.set(0,-characterHeight*.042,0);handle.rotation.z=Math.PI;
    umbrella.add(umbrellaCrown,stem,handle);
    umbrella.rotation.set(.06,0,-.12);
-   const canopyOffsetX=-characterHeight*.48,canopyOffsetZ=characterHeight*.03;
+   const canopyOffsetX=-characterHeight*.36,canopyOffsetZ=characterHeight*.06;
    const gripStart=new THREE.Vector3(0,0,0),stemDirection=new THREE.Vector3();
    const shaftAxis=new THREE.Vector3(0,1,0);
    function setUmbrellaCrownHeight(crownY){
@@ -435,7 +442,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     stem.scale.y=stemDirection.length();
     stem.quaternion.setFromUnitVectors(shaftAxis,stemDirection.normalize());
    }
-   setUmbrellaCrownHeight(characterHeight*.82);
+   setUmbrellaCrownHeight(characterHeight*.72);
    const umbrellaHand=bones.get('Hand.R')||bones.get('Hand.L')||null,umbrellaHead=bones.get('Head')||null;
    const handWorld=new THREE.Vector3(),handLocal=new THREE.Vector3();
    const headWorld=new THREE.Vector3(),headLocal=new THREE.Vector3();
@@ -515,6 +522,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     occlusion:{supported:depthSupported,depth,visualSide:visualDepthSide(depth),worldZ:depthRoot.position.z,surfaceZ:0,protectedZ:depthPlan.protectedZ,surfaceRects:surfaceBatch.rectCount,protectedRects:protectedBatch.rectCount,maskDrawCalls:Number(surfaceBatch.mesh.visible)+Number(protectedBatch.mesh.visible)},
     render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,points:renderer.info.render.points,lines:renderer.info.render.lines,programs:renderer.info.programs.length,textures:renderer.info.memory.textures,geometries:renderer.info.memory.geometries},
      weather:{umbrella:umbrella.visible,fade:umbrellaFade,radiusRatio:umbrellaRadius/characterHeight,
+      canopyDepthRatio:canopyDepth/characterHeight,shaftRadiusRatio:umbrellaRadius*.043/characterHeight,
      anchoredToHand:umbrellaAnchored,gripErrorRatio:umbrellaGripError/characterHeight,
      crownClearanceRatio:umbrellaCrownClearance/characterHeight},
     swimWeight,expression:facial.expression,gesture:{name:lastGesture.name,age:lastGesture.progress*lastGesture.duration,phase:lastGesture.phase,envelope:lastGesture.envelope,lift:lastGesture.lift,contact:lastGesture.contact},affect:{name:lastAffect.name,phase:lastAffect.phase,envelope:lastAffect.envelope,weights:facial.diagnostics().expressionWeights},facialIntensity:facial.intensity,blink:facial.diagnostics(),shaderErrors:[...shaderErrors]};
@@ -666,14 +674,14 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
      if(!umbrellaAnchored||dt===0){umbrella.position.copy(handLocal);umbrellaAnchored=true;}
      else umbrella.position.lerp(handLocal,1-Math.exp(-12*dt));
      umbrellaGripError=umbrella.position.distanceTo(handLocal);
-     let crownY=characterHeight*.82;
+     let crownY=characterHeight*.72;
      if(umbrellaHead){
       umbrellaHead.getWorldPosition(headWorld);
       headLocal.copy(headWorld);container.worldToLocal(headLocal);
       // The canopy rim clears the head even when she looks around.
       // Clamp shaft extension to avoid oversized swings while swimming.
-      crownY=Math.min(characterHeight*.95,Math.max(characterHeight*.74,
-       headLocal.y-umbrella.position.y+characterHeight*.18));
+      crownY=Math.min(characterHeight*.86,Math.max(characterHeight*.67,
+       headLocal.y-umbrella.position.y+characterHeight*.09));
       umbrellaCrownClearance=umbrella.position.y+crownY-headLocal.y;
      }
      setUmbrellaCrownHeight(crownY);

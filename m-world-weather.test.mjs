@@ -88,11 +88,17 @@ test('V67 weather layers do not intercept navigation and provide CC BY 4.0 links
  const sky=readFileSync(new URL('m-world-weather-stage.mjs',import.meta.url),'utf8');
  const actor=readFileSync(new URL('m-world-3d.mjs',import.meta.url),'utf8');
  const controller=readFileSync(new URL('scroll-buddy.js',import.meta.url),'utf8');
+ const portfolio=readFileSync(new URL('index.html',import.meta.url),'utf8');
+ const integrations=portfolio.match(/<article><h3>Integrations<\/h3>[\s\S]*?<\/article>/)?.[0]||'';
  assert.match(sky,/m-weather-sky\{position:fixed;inset:0;z-index:3;pointer-events:none/);
  assert.match(sky,/prefers-reduced-motion:reduce/);assert.match(sky,/doc\.hidden/);
  assert.match(sky,/cancelAnimationFrame/);
- assert.match(sky,/https:\/\/api\.met\.no\//);
- assert.match(sky,/https:\/\/creativecommons\.org\/licenses\/by\/4\.0\//);
+ assert.doesNotMatch(sky,/m-weather-status|label\.textContent|append\(shell,label\)/,
+  'Weather should never cover the page with a forecast chip');
+ assert.match(integrations,/integration-credit/);
+ assert.match(integrations,/https:\/\/api\.met\.no\//);
+ assert.match(integrations,/https:\/\/creativecommons\.org\/licenses\/by\/4\.0\//);
+ assert.match(integrations,/No visitor location is collected/);
  assert.match(actor,/umbrella\.visible/);assert.match(actor,/weatherActorPose/);
  assert.match(controller,/createWeatherReader/);assert.match(controller,/weather:currentWeather/);
  assert.match(controller,/clearInterval\(weatherTimer\);sky\.destroy\(\)/);
@@ -116,11 +122,22 @@ test('V68 umbrella is proportionate, raised and tied to a paw without modifying 
  assert.match(renderer,/umbrellaHand\.getWorldPosition\(handWorld\)/);
  assert.match(renderer,/container\.worldToLocal\(handLocal\)/);
  assert.match(renderer,/umbrella\.position\.lerp\(handLocal,1-Math\.exp\(-12\*dt\)\)/);
- assert.match(renderer,/headLocal\.y-umbrella\.position\.y\+characterHeight\*\.18/);
+ assert.match(renderer,/headLocal\.y-umbrella\.position\.y\+characterHeight\*\.09/);
  assert.match(renderer,/umbrellaCrown\.position\.set\(canopyOffsetX,crownY,canopyOffsetZ\)/);
  assert.match(renderer,/stem\.scale\.y=stemDirection\.length\(\)/);
  assert.match(renderer,/umbrellaRoll=-\.12\+weatherMotion\.umbrellaTilt/);
  assert.match(renderer,/radiusRatio:umbrellaRadius\/characterHeight/);
  assert.match(renderer,/crownClearanceRatio:umbrellaCrownClearance\/characterHeight/);
  assert.doesNotMatch(renderer,/\.add\(umbrella\).*bones|bones\.set\('Umbrella'/);
+});
+
+test('V69 umbrella canopy has believable depth and visible grip while preserving rig',()=>{
+ const actor=readFileSync(new URL('m-world-3d.mjs',import.meta.url),'utf8');
+ assert.match(actor,/canopyDepth=characterHeight\*\.20/);
+ assert.match(actor,/canopyOffsetX=-characterHeight\*\.36/);
+ assert.match(actor,/CylinderGeometry\(umbrellaRadius\*\.043,umbrellaRadius\*\.043/);
+ assert.match(actor,/color:0x617e98,metalness:/);
+ assert.match(actor,/canopyDepthRatio:canopyDepth\/characterHeight/);
+ assert.match(actor,/shaftRadiusRatio:umbrellaRadius\*\.043\/characterHeight/);
+ assert.match(actor,/umbrellaHand\.getWorldPosition\(handWorld\)/);
 });

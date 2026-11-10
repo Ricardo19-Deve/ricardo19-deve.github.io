@@ -31,27 +31,35 @@ try{
   await page.waitForTimeout(1500);
   const result=await page.evaluate(()=>{
    const status=document.querySelector('.m-weather-status'),sky=document.querySelector('.m-weather-sky');
+   const credit=document.querySelector('#expertise .integration-credit');
    const snap=window.MWorld.snapshot();
-   const link=status?.querySelector('a'),canvas=sky?.querySelector('canvas');
+   const link=credit?.querySelector('a[href="https://api.met.no/"]'),canvas=sky?.querySelector('canvas');
    return {mode:snap.weather.condition,ready:snap.ready,umbrella:snap.renderer?.weather?.umbrella,
     umbrellaFade:snap.renderer?.weather?.fade,radiusRatio:snap.renderer?.weather?.radiusRatio,
     anchoredToHand:snap.renderer?.weather?.anchoredToHand,
     gripErrorRatio:snap.renderer?.weather?.gripErrorRatio,
     crownClearanceRatio:snap.renderer?.weather?.crownClearanceRatio,
+    canopyDepthRatio:snap.renderer?.weather?.canopyDepthRatio,
+    shaftRadiusRatio:snap.renderer?.weather?.shaftRadiusRatio,
     frames:snap.stats?.frames,active:snap.active,frozen:snap.frozen,
     gesture:snap.state?.gesture?.name,characterIntent:snap.character?.performance?.intent,
     reduced:snap.preferences?.reducedMotion,
-    label:status?.textContent,skyActive:!sky.hidden,weatherSource:snap.weather.source,
+    statusAbsent:!status,creditText:credit?.textContent,skyActive:!sky.hidden,weatherSource:snap.weather.source,
     skyPointerEvents:getComputedStyle(sky).pointerEvents,canvasSize:[canvas?.width,canvas?.height],
     hasAttribution:Boolean(link),reducedMotion:snap.preferences?.reducedMotion,
     error:snap.error};
   });
   assert(result.ready&&result.error===null,'original 3D character loads in '+mode,result);
-  assert(result.label.includes('DEMO')&&result.weatherSource.includes('DEMO'),'diagnostic mode clearly labelled in '+mode,result);
+  assert(result.weatherSource.includes('DEMO'),'diagnostic weather stays marked simulated in model in '+mode,result);
+  assert(result.statusAbsent,'no weather forecast badge overlays the portfolio in '+mode,result);
+  assert(result.hasAttribution&&result.creditText.includes('MET Norway'),
+   'MET Norway credit is linked in the Integrations section in '+mode,result);
   assert(result.skyPointerEvents==='none','weather sky never catches pointer input in '+mode,result);
   assert(Boolean(result.umbrella)===(mode==='rain'),'umbrella follows rain only in '+mode,result);
   if(mode==='rain'){
-   assert(Math.abs(result.radiusRatio-.42)<.00001,'V68 canopy must scale to M height',result);
+   assert(Math.abs(result.radiusRatio-.42)<.00001,'V69 canopy must scale to M height',result);
+   assert(Math.abs(result.canopyDepthRatio-.20)<.00001,'V69 umbrella must have real dome depth',result);
+   assert(result.shaftRadiusRatio>.015,'V69 pole must remain visibly thick',result);
    assert(result.anchoredToHand===true,'V68 umbrella grip must follow Hand.L',result);
    assert(Number.isFinite(result.gripErrorRatio)&&result.gripErrorRatio<.18,
     'V68 grip should stay near the animated paw',result);
