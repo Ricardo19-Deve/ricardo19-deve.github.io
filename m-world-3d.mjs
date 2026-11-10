@@ -386,10 +386,10 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    const rimMaterial=new THREE.MeshStandardMaterial({
     color:0xc6eaf6,metalness:.14,roughness:.4,transparent:true,opacity:.72
    });
-   const rim=new THREE.Mesh(
+   const canopyRim=new THREE.Mesh(
     new THREE.TorusGeometry(umbrellaRadius*.99,umbrellaRadius*.014,5,32),rimMaterial
    );
-   rim.rotation.x=Math.PI/2;umbrellaCrown.add(rim);
+   canopyRim.rotation.x=Math.PI/2;umbrellaCrown.add(canopyRim);
    // Eight barely visible canopy seams distinguish an umbrella from a hat.
    const ribs=[];
    for(let spoke=0;spoke<8;spoke++){
