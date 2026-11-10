@@ -114,7 +114,7 @@ async function responseJson(fetchImpl,url,signal){
  return response.json();
 }
 export function createWeatherReader({fetchImpl=globalThis.fetch,now=()=>Date.now(),ttlMs=M_WEATHER_REFRESH_MS}={}){
- let cached=null,expiry=0,inflight=null;
+ let cached=null,expiry=0,lastSuccessAt=0,inflight=null;
  async function refresh(){
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),7000);
@@ -126,10 +126,11 @@ export function createWeatherReader({fetchImpl=globalThis.fetch,now=()=>Date.now
    const normalized=model.status==='fulfilled'?normalizeModelWeather(model.value,{now:now()}):null;
    const nearest=ipma.status==='fulfilled'?nearestIpmaObservation(ipma.value,{now:now()}):null;
    const result=combineWeather(normalized,nearest);
-   if(result)cached=result;
-   expiry=now()+Math.max(60_000,ttlMs);
-   return result||cached;
-  }catch{return cached;}finally{clearTimeout(timeout);}
+   if(result){cached=result;lastSuccessAt=now();}
+   if(!result&&now()-lastSuccessAt>60*60*1000)cached=null;
+   expiry=now()+Math.max(60_000,result?ttlMs:120_000);
+   return cached;
+  }catch{if(now()-lastSuccessAt>60*60*1000)cached=null;return cached;}finally{clearTimeout(timeout);}
  }
  async function get(){
   if(now()<expiry)return cached;
