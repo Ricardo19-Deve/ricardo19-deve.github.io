@@ -919,6 +919,12 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   },
   resume(){frozen=false;nextChoice=0;schedule();},
   playGesture:queueGesture,
+  // Exercise the same missing-pose handoff as a real interrupted action.
+  // Manual diagnostic gestures have no autonomous owner to acknowledge.
+  cancelGesture(){
+   cancelAutonomy('diagnostic-interruption');stopPlay('diagnostic-interruption');clearScene('diagnostic-interruption');
+   pendingGesture=null;state.gesture=null;return snapshot();
+  },
   setActive,
   dispose(){disposed=true;clearInterval(weatherTimer);sky.destroy();if(frameId!==null)cancelAnimationFrame(frameId);resizeObserver.disconnect();mutationObserver.disconnect();for(const type of ['transitionrun','transitionend','transitioncancel'])document.removeEventListener(type,geometryTransition,true);stopPlay('disposed');clearScene('disposed');playDock.remove();playLight.remove();playBall.remove();director?.dispose();observer?.dispose();companion?.destroy();avatar?.dispose();layer.remove();toggle.remove();}
  };

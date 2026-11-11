@@ -184,7 +184,8 @@ test('gestures use a reversible layer after base motion and join actual correlat
  assert.match(rendererSource,/import \{M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer\} from '.\/m-world-acting.mjs\?v=\d+'/);
  assert.match(rendererSource,/lastGesture=sampleGesture\(\{\.\.\.state.gesture,reducedMotion:reduced\}\)/);
  assert.match(rendererSource,/gestureLayer.prepare\(\);locomotionLayer.prepare\(\);motion.prepare\(\);action.setEffectiveWeight\(swimWeight\);mixer.update\(dt\)/);
- assert.ok(rendererSource.indexOf('gestureLayer.apply(lastGesture.pose)')>rendererSource.indexOf('motion.update(dt,'));
+ assert.ok(rendererSource.indexOf('gestureLayer.apply(lastVisualGesture.pose)')>rendererSource.indexOf('motion.update(dt,'));
+ assert.match(rendererSource,/lastVisualGesture=gestureHandoff.sample\(\{frame:lastGesture,dt,reducedMotion:reduced,side:state.gesture\?\.side\}\)/);
  assert.match(rendererSource,/lastGesture.envelope>0\?expressionFor\(state\.gesture\?\.expression\?\?lastGesture\.expression/);
  assert.match(rendererSource,/for\(const name of M_GESTURES\)for\(const side of \[-1,1\]\)for\(const progress of gestureTimes\)/);
  assert.match(rendererSource,/age:progress\*GESTURE_DURATIONS\[name\]/);
@@ -201,5 +202,5 @@ test('affect integration is independent of body skinning and yields to every ori
  assert.match(rendererSource,/facial.setRestBlink\(fade\?\.eyelids\|\|null\)/);
  assert.match(rendererSource,/gestureActive:Boolean\(lastGesture.name\)/);
  assert.match(rendererSource,/for\(const name of M_AFFECTS\)if\(AFFECT_DURATIONS\[name\]\)sample/);
- assert.ok(rendererSource.indexOf('facial.setExpressionBlend(fade?.weights||null)')>rendererSource.indexOf('gestureLayer.apply(lastGesture.pose)'));
+ assert.ok(rendererSource.indexOf('facial.setExpressionBlend(fade?.weights||null)')>rendererSource.indexOf('gestureLayer.apply(lastVisualGesture.pose)'));
 });

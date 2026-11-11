@@ -11,6 +11,7 @@ import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m
 import {createSecondaryPoseCompositor} from './m-world-pose-compositor.mjs?v=66';
 import {createUmbrella} from './m-world-umbrella.mjs?v=66';
 import {createHeadClearanceSampler} from './m-world-head-clearance.mjs?v=66';
+import {createGestureHandoff} from './m-world-gesture-handoff.mjs?v=66';
 import {configureActorOcclusion,configureCardOcclusion} from './m-world-actor-occlusion.mjs?v=66';
 import {weatherActorPose} from './m-world-weather-actor.mjs?v=66&sky=70';
 import {createAttentionDirector,createContextBlink,createFacialTargetMixer} from './m-world-attention.mjs?v=66';
@@ -290,7 +291,8 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   facial.setIntensity(1);facial.setAutoBlink(false);
   const bones=new Map();source.traverse(o=>{if(o.isBone)bones.set(canonicalBoneName(o.name),o);});
   const rest=new Map([...bones].map(([name,bone])=>[name,bone.quaternion.clone()]));
-  const gestureLayer=createGestureLayer(bones,THREE),locomotionLayer=createGestureLayer(bones,THREE),secondaryLayer=createGestureLayer(bones,THREE),secondaryPose=createSecondaryPoseCompositor([...bones.keys()]);let lastGesture=sampleGesture(),lastAffect=sampleAffect();
+  const gestureHandoff=createGestureHandoff();
+  const gestureLayer=createGestureLayer(bones,THREE),locomotionLayer=createGestureLayer(bones,THREE),secondaryLayer=createGestureLayer(bones,THREE),secondaryPose=createSecondaryPoseCompositor([...bones.keys()]);let lastGesture=sampleGesture(),lastVisualGesture=gestureHandoff.sample({frame:lastGesture,reducedMotion:true}),lastAffect=sampleAffect();
  let lastLiving= livingPerformance.sample({reducedMotion:true});
   function updateWorld(){scene.updateMatrixWorld(true);for(const mesh of skin.meshes)mesh.skeleton.update();}
   updateWorld();
@@ -460,7 +462,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,points:renderer.info.render.points,lines:renderer.info.render.lines,programs:renderer.info.programs.length,textures:renderer.info.memory.textures,geometries:renderer.info.memory.geometries},
      weather:{...weatherState,umbrella:umbrella.visible,fade:weatherState.openness,headTipSamples:headClearance.count,
       unifiedOcclusion:stencilSupported,clipMaterials:umbrellaClipMaterials},
-    swimWeight,expression:facial.expression,gesture:{name:lastGesture.name,age:lastGesture.progress*lastGesture.duration,phase:lastGesture.phase,envelope:lastGesture.envelope,lift:lastGesture.lift,contact:lastGesture.contact},affect:{name:lastAffect.name,phase:lastAffect.phase,envelope:lastAffect.envelope,weights:facial.diagnostics().expressionWeights},facialIntensity:facial.intensity,blink:facial.diagnostics(),shaderErrors:[...shaderErrors]};
+    swimWeight,expression:facial.expression,gesture:{name:lastGesture.name,age:lastGesture.progress*lastGesture.duration,phase:lastGesture.phase,envelope:lastGesture.envelope,lift:lastGesture.lift,contact:lastGesture.contact,handoff:gestureHandoff.snapshot()},affect:{name:lastAffect.name,phase:lastAffect.phase,envelope:lastAffect.envelope,weights:facial.diagnostics().expressionWeights},facialIntensity:facial.intensity,blink:facial.diagnostics(),shaderErrors:[...shaderErrors]};
   }
   function render(){
    if(disposed)return;renderer.render(scene,camera);updateContact();
@@ -482,6 +484,8 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    const target=reduced||calm?0:.8*dynamics.moving;swimWeight+=(target-swimWeight)*(1-Math.exp(-6*dt));if(swimWeight<1e-5)swimWeight=0;
    const mode=motionFor(state.mode||activity);
    lastGesture=sampleGesture({...state.gesture,reducedMotion:reduced});
+   // A visual recovery never keeps an interrupted action semantically active.
+   lastVisualGesture=gestureHandoff.sample({frame:lastGesture,dt,reducedMotion:reduced,side:state.gesture?.side});
    lastRestPose=sampleEmbodiedRest({...state.gesture,reducedMotion:reduced});
    lastAffect=sampleAffect({...state.affect,reducedMotion:reduced||Boolean(lastGesture.name)});
    lastLiving=livingPerformance.sample({dt,vx,vy,attention:dynamics.attention,
@@ -555,11 +559,11 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     tailEnergy:dynamics.tailEnergy,tailReactivity:dynamics.tailReactivity,tailFlow:dynamics.tailFlow,tailPhase:dynamics.tailPhase,tailMood:dynamics.tailMood,
     performanceImpact:dynamics.performanceImpact,swimWeight,bodyMotion:dynamics.bodyMotion});
    locomotionLayer.apply(sampleLocomotionPose(state.locomotion||{},{reducedMotion:reduced}));
-   gestureLayer.apply(lastGesture.pose);
+   gestureLayer.apply(lastVisualGesture.pose);
    secondaryLayer.apply(combinedSecondary);
-   source.position.copy(neutralSourcePosition);source.position.y+=lastGesture.lift*characterHeight;
+   source.position.copy(neutralSourcePosition);source.position.y+=lastVisualGesture.lift*characterHeight;
    lastBlink=contextBlink.sample({dt,performance:physical,attention:lastAttention,gestureActive:Boolean(state.gesture)||Boolean(lastGesture.name),reducedMotion:reduced});
-   facial.setGestureBlink(reduced?{left:0,right:0}:lastGesture.blink||lastBlink.blink,{relativeToRest:!reduced&&!lastGesture.blink});
+   facial.setGestureBlink(reduced?{left:0,right:0}:lastVisualGesture.blink||lastBlink.blink,{relativeToRest:!reduced&&!lastVisualGesture.blink});
    const microFace=!reduced&&!state.gesture&&lastAffect.envelope<.04?lastTransition.face:null;
    const facePriority=Boolean(lastGesture.name)||state.expressionPriority===true;
    const faceTarget=facialTargetMixer.sample({performance:physical,microFace,affect:lastAffect,gestureActive:facePriority,reducedMotion:reduced});
