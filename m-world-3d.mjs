@@ -9,6 +9,7 @@ import {createMotionV8,motionPose,canonicalBoneName} from './m-lab/interactions/
 import {performanceStagePoseV15} from './m-lab/interactions/performance-v15.mjs?v16';
 import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=66';
 import {createSecondaryPoseCompositor} from './m-world-pose-compositor.mjs?v=66';
+import {configureActorOcclusion,configureCardOcclusion} from './m-world-actor-occlusion.mjs?v=66';
 import {weatherActorPose} from './m-world-weather-actor.mjs?v=66&sky=67';
 import {createAttentionDirector,createContextBlink,createFacialTargetMixer} from './m-world-attention.mjs?v=66';
 import {createPresenceDynamics} from './m-world-dynamics.mjs?v=66';
@@ -146,7 +147,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
  if(!body||body.skeleton.bones.length!==31||new Set(body.skeleton.bones).size!==31||skin.maxUsed!==14||skin.sets!==4)
   throw new Error('M requires the original 31-bone, 14-influence skin; four-influence fallback is not allowed.');
  const canvas=document.createElement('canvas');canvas.className='m-world-canvas';canvas.setAttribute('aria-hidden','true');
- const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,depth:true,powerPreference:'low-power'});
+ const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,depth:true,stencil:true,powerPreference:'low-power'});
  renderer.setClearColor(0x000000,0);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.AgXToneMapping;renderer.toneMappingExposure=1;
  const shaderErrors=[];renderer.debug.onShaderError=(gl,program,vertex,fragment)=>{
   const text=[gl.getProgramInfoLog(program),gl.getShaderInfoLog(vertex),gl.getShaderInfoLog(fragment)].filter(Boolean).join('\n');
@@ -166,7 +167,13 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
  const depthRoot=new THREE.Group(),stage=new THREE.Group(),container=new THREE.Group();scene.add(depthRoot);depthRoot.add(stage);stage.add(container);container.add(source);
  const maskGroup=new THREE.Group();maskGroup.renderOrder=-1000;scene.add(maskGroup);
  const depthMaterial=new THREE.MeshBasicMaterial({colorWrite:false,depthWrite:true,depthTest:true,side:THREE.DoubleSide,toneMapped:false});
- const depthSupported=Boolean(renderer.getContext().getContextAttributes()?.depth)&&renderer.getContext().getParameter(renderer.getContext().DEPTH_BITS)>0;
+ const gl=renderer.getContext(),attributes=gl.getContextAttributes();
+ const stencilBits=gl.getParameter(gl.STENCIL_BITS),stencilSupported=Boolean(attributes?.stencil)&&stencilBits>0;
+ // Without a stencil buffer the planner stays in safe foreground corridors;
+ // it must never offer a behind-card route with incomplete accessory masking.
+ const depthSupported=Boolean(attributes?.depth)&&gl.getParameter(gl.DEPTH_BITS)>0&&stencilSupported;
+ const actorClipMaterials=configureActorOcclusion(source,THREE,{enabled:stencilSupported});
+ configureCardOcclusion(depthMaterial,THREE,{enabled:stencilSupported});
  const projected=new THREE.Vector3(),footPoint=new THREE.Vector3();
  function makeBatch(order){
   const geometry=new THREE.BufferGeometry(),mesh=new THREE.Mesh(geometry,depthMaterial);mesh.renderOrder=order;mesh.frustumCulled=false;mesh.visible=false;maskGroup.add(mesh);
@@ -448,6 +455,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    const headWorld=new THREE.Vector3(),headLocal=new THREE.Vector3();
    let umbrellaAnchored=false,umbrellaGripError=0,umbrellaCrownClearance=0;
    umbrella.position.set(-characterHeight*.20,characterHeight*.18,characterHeight*.12);
+   const umbrellaClipMaterials=configureActorOcclusion(umbrella,THREE,{enabled:stencilSupported});
    container.add(umbrella);umbrella.visible=false;
    let umbrellaFade=0;
   depthRoot.position.x=-frameFit.center.x*frameFit.scale;depthRoot.position.y=-frameFit.center.y*frameFit.scale;updateWorld();
@@ -519,9 +527,9 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     environment:{type:'PMREM RoomEnvironment',intensity:scene.environmentIntensity,toneMapping:'AgX'},
      quality:qualityGovernor.snapshot(),presence:presence.snapshot(),facialContinuity:facialContinuity.snapshot(),microMotion:microMotion.snapshot(),livingPerformance:{...livingPerformance.snapshot(),mode:lastLiving.mode,idle:lastLiving.idle,reaction:lastLiving.reaction},restPose:{...lastRestPose},contact:{...surfaceContact.snapshot(),supported:lastContact.supported},continuity:{...motionContinuity.snapshot(),mode:lastContinuity.mode},emotionalBody:{...emotionalBody.snapshot(),mood:lastEmotional.mood},characterPerformance:{...presentation},attention:{...lastAttention,attention:{...lastAttention.attention}},contextBlink:{...lastBlink,blink:lastBlink.blink?{...lastBlink.blink}:null},secondaryPose:secondaryPose.snapshot(),facialBlendRejected,handoff:{stage:stageHandoff.snapshot(),secondary:secondaryPose.snapshot()},lifeBridge:lifeBridges.snapshot(),spontaneousPlay:spontaneousPlay.snapshot(),betweenBeats:betweenBeats.snapshot(),intentCrossfade:intentCrossfade.snapshot(),
     framing:{rest:boundsRecord(restBox),envelope:boundsRecord(envelope),framed:boundsRecord(framed),scale:frameFit.scale,samples:frameSamples},
-    occlusion:{supported:depthSupported,depth,visualSide:visualDepthSide(depth),worldZ:depthRoot.position.z,surfaceZ:0,protectedZ:depthPlan.protectedZ,surfaceRects:surfaceBatch.rectCount,protectedRects:protectedBatch.rectCount,maskDrawCalls:Number(surfaceBatch.mesh.visible)+Number(protectedBatch.mesh.visible)},
+    occlusion:{supported:depthSupported,stencilSupported,stencilBits,actorClipMaterials,umbrellaClipMaterials,depth,visualSide:visualDepthSide(depth),worldZ:depthRoot.position.z,surfaceZ:0,protectedZ:depthPlan.protectedZ,surfaceRects:surfaceBatch.rectCount,protectedRects:protectedBatch.rectCount,maskDrawCalls:Number(surfaceBatch.mesh.visible)+Number(protectedBatch.mesh.visible)},
     render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,points:renderer.info.render.points,lines:renderer.info.render.lines,programs:renderer.info.programs.length,textures:renderer.info.memory.textures,geometries:renderer.info.memory.geometries},
-     weather:{umbrella:umbrella.visible,fade:umbrellaFade,radiusRatio:umbrellaRadius/characterHeight,
+     weather:{umbrella:umbrella.visible,unifiedOcclusion:stencilSupported,clipMaterials:umbrellaClipMaterials,fade:umbrellaFade,radiusRatio:umbrellaRadius/characterHeight,
       canopyDepthRatio:canopyDepth/characterHeight,shaftRadiusRatio:umbrellaRadius*.043/characterHeight,
      anchoredToHand:umbrellaAnchored,gripErrorRatio:umbrellaGripError/characterHeight,
      crownClearanceRatio:umbrellaCrownClearance/characterHeight},
