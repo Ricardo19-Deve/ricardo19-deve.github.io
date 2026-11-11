@@ -114,30 +114,26 @@ test('V67 explicitly debug-only demo is labelled and does not misrepresent live 
  assert.match(script,/else if\(!debugEnabled\)void refreshWeather\(\)/);
 });
 
-test('V68 umbrella is proportionate, raised and tied to a paw without modifying M skeleton',()=>{
+test('umbrella integration follows the actual paw and head through one masked accessory',()=>{
  const renderer=readFileSync(new URL('m-world-3d.mjs',import.meta.url),'utf8');
- assert.match(renderer,/umbrellaRadius=characterHeight\*\.42/);
+ assert.match(renderer,/createUmbrella\(THREE,\{height:characterHeight\}\)/);
  assert.match(renderer,/umbrellaHand=bones\.get\('Hand\.R'\)/);
  assert.match(renderer,/umbrellaHead=bones\.get\('Head'\)/);
  assert.match(renderer,/umbrellaHand\.getWorldPosition\(handWorld\)/);
  assert.match(renderer,/container\.worldToLocal\(handLocal\)/);
- assert.match(renderer,/umbrella\.position\.lerp\(handLocal,1-Math\.exp\(-12\*dt\)\)/);
- assert.match(renderer,/headLocal\.y-umbrella\.position\.y\+characterHeight\*\.09/);
- assert.match(renderer,/umbrellaCrown\.position\.set\(canopyOffsetX,crownY,canopyOffsetZ\)/);
- assert.match(renderer,/stem\.scale\.y=stemDirection\.length\(\)/);
- assert.match(renderer,/umbrellaRoll=-\.12\+weatherMotion\.umbrellaTilt/);
- assert.match(renderer,/radiusRatio:umbrellaRadius\/characterHeight/);
- assert.match(renderer,/crownClearanceRatio:umbrellaCrownClearance\/characterHeight/);
- assert.doesNotMatch(renderer,/\.add\(umbrella\).*bones|bones\.set\('Umbrella'/);
+ assert.match(renderer,/umbrellaRig\.update\(\{dt,target:weatherMotion\.umbrella/);
+ assert.match(renderer,/grip:umbrellaHand\?handLocal:null,head:umbrellaHead\?headLocal:null/);
+ assert.match(renderer,/configureActorOcclusion\(umbrella,THREE/);
+ assert.doesNotMatch(renderer,/handLocal\.z=Math\.max|umbrella\.position\.lerp/);
+ assert.doesNotMatch(renderer,/bones\.set\('Umbrella'/);
 });
 
-test('V69 umbrella canopy has believable depth and visible grip while preserving rig',()=>{
- const actor=readFileSync(new URL('m-world-3d.mjs',import.meta.url),'utf8');
- assert.match(actor,/canopyDepth=characterHeight\*\.20/);
- assert.match(actor,/canopyOffsetX=-characterHeight\*\.36/);
- assert.match(actor,/CylinderGeometry\(umbrellaRadius\*\.043,umbrellaRadius\*\.043/);
- assert.match(actor,/color:0x617e98,metalness:/);
- assert.match(actor,/canopyDepthRatio:canopyDepth\/characterHeight/);
- assert.match(actor,/shaftRadiusRatio:umbrellaRadius\*\.043\/characterHeight/);
- assert.match(actor,/umbrellaHand\.getWorldPosition\(handWorld\)/);
+test('weather accessory reuses a curved fabric shell and original M owns all skeletal movement',()=>{
+ const prop=readFileSync(new URL('m-world-umbrella.mjs',import.meta.url),'utf8');
+ assert.match(prop,/umbrellaCanopyProfile\(d\)/);
+ assert.match(prop,/M_Umbrella_Fabric/);assert.match(prop,/M_Umbrella_GripGuide/);
+ assert.match(prop,/M_Umbrella_Shaft/);assert.match(prop,/M_Umbrella_Neck/);
+ assert.match(prop,/crown\.scale\.set\(pose\.fold/);
+ assert.match(prop,/object\.position\.set\(pose\.grip\.x,pose\.grip\.y,pose\.grip\.z\)/);
+ assert.doesNotMatch(prop,/Skeleton|morphTargetInfluences|localStorage|fetch\(/);
 });

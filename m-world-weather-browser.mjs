@@ -39,6 +39,9 @@ try{
     anchoredToHand:snap.renderer?.weather?.anchoredToHand,
     gripErrorRatio:snap.renderer?.weather?.gripErrorRatio,
     crownClearanceRatio:snap.renderer?.weather?.crownClearanceRatio,
+    headTipSamples:snap.renderer?.weather?.headTipSamples,
+    headTopClearanceRatio:snap.renderer?.weather?.headTopClearanceRatio,
+    shaftFaceOffsetRatio:snap.renderer?.weather?.shaftFaceOffsetRatio,
     canopyDepthRatio:snap.renderer?.weather?.canopyDepthRatio,
     shaftRadiusRatio:snap.renderer?.weather?.shaftRadiusRatio,
     frames:snap.stats?.frames,active:snap.active,frozen:snap.frozen,
@@ -57,14 +60,18 @@ try{
   assert(result.skyPointerEvents==='none','weather sky never catches pointer input in '+mode,result);
   assert(Boolean(result.umbrella)===(mode==='rain'),'umbrella follows rain only in '+mode,result);
   if(mode==='rain'){
-   assert(Math.abs(result.radiusRatio-.42)<.00001,'V69 canopy must scale to M height',result);
-   assert(Math.abs(result.canopyDepthRatio-.20)<.00001,'V69 umbrella must have real dome depth',result);
-   assert(result.shaftRadiusRatio>.015,'V69 pole must remain visibly thick',result);
-   assert(result.anchoredToHand===true,'V68 umbrella grip must follow Hand.L',result);
-   assert(Number.isFinite(result.gripErrorRatio)&&result.gripErrorRatio<.18,
-    'V68 grip should stay near the animated paw',result);
-   assert(Number.isFinite(result.crownClearanceRatio)&&result.crownClearanceRatio>-.06,
-    'V68 umbrella crown must not collapse into the face',result);
+   assert(Math.abs(result.radiusRatio-.46)<.00001,'Canopy must scale to M height',result);
+   assert(Math.abs(result.canopyDepthRatio-.14)<.00001,'Umbrella must have real dome depth',result);
+   assert(Math.abs(result.shaftRadiusRatio-.009)<.00001,'Slim pole keeps its designed physical thickness',result);
+   assert(result.anchoredToHand===true,'Umbrella grip must follow the actual Hand.R',result);
+   assert(Number.isFinite(result.gripErrorRatio)&&result.gripErrorRatio<.00001,
+    'Grip stays exactly on the animated paw',result);
+   assert(Number.isFinite(result.crownClearanceRatio)&&result.crownClearanceRatio>.14,
+    'Umbrella rim remains above the head',result);
+   assert(result.headTipSamples>0&&result.headTipSamples<=9&&result.headTopClearanceRatio>=.08,
+    'Canopy clears the sampled original posed head and ear tips',result);
+   assert(result.shaftFaceOffsetRatio>=.35,
+    'Main shaft remains beside the face instead of crossing an eye',result);
   }
   assert(result.skyActive===(mode!=='sun'),'ambient layer matches conditions in '+mode,result);
   assert(result.canvasSize[0]>0,'weather canvas has valid pixel dimensions in '+mode,result);

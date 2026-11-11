@@ -70,18 +70,18 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   const weatherReader=createWeatherReader();
   const sky=mountWeatherStage();
   let currentWeather=null;
+  function applyWeather(value){currentWeather=value;sky.setWeather(value);}
   async function refreshWeather(){
    if(disposed||document.hidden||debugEnabled)return;
    try{
     const next=await weatherReader.get();
     if(disposed)return;
-    currentWeather=next;
-    sky.setWeather(next);
-   }catch{if(!disposed){currentWeather=null;sky.setWeather(null);}}
+    applyWeather(next);
+   }catch{if(!disposed)applyWeather(null);}
   }
   const weatherTimer=setInterval(()=>{void refreshWeather();},M_WEATHER_REFRESH_MS);
   const weatherDemo=debugEnabled?makeWeatherDemo(new URLSearchParams(location.search).get('m-weather-demo')):null;
-  if(weatherDemo){currentWeather=weatherDemo;sky.setWeather(weatherDemo);}
+  if(weatherDemo)applyWeather(weatherDemo);
   else if(!debugEnabled)void refreshWeather();
   const geometryTransitions=new Map();
  const ids=new WeakMap(),observedSurfaces=new Set();let nextId=0;
@@ -881,6 +881,15 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  }
  if(debugEnabled)window.MWorld={
   snapshot,
+  // Diagnostic-only transitions; simulated forecasts retain their DEMO source.
+  setWeatherDemo(kind){
+   const sample=kind===null?null:makeWeatherDemo(kind);
+   if(kind!==null&&!sample)return false;
+   applyWeather(sample);return true;
+  },
+  // Repaint the CURRENT pose for same-task raw-buffer evidence. No route,
+  // gesture, depth, clock or animation state is advanced by this diagnostic.
+  redraw(){avatar?.render();},
   async stepTo({selector='.card',index=0,kind='peek',side=1,progress=.5,depth,instant=true}={}){
    if(!avatar)await load();if(!avatar)throw new Error('Original M is not ready');
    metrics=avatar.getMetrics();frozen=true;if(frameId!==null)cancelAnimationFrame(frameId);frameId=null;

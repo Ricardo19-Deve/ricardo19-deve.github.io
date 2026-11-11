@@ -9,8 +9,10 @@ import {createMotionV8,motionPose,canonicalBoneName} from './m-lab/interactions/
 import {performanceStagePoseV15} from './m-lab/interactions/performance-v15.mjs?v16';
 import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=66';
 import {createSecondaryPoseCompositor} from './m-world-pose-compositor.mjs?v=66';
+import {createUmbrella} from './m-world-umbrella.mjs?v=66';
+import {createHeadClearanceSampler} from './m-world-head-clearance.mjs?v=66';
 import {configureActorOcclusion,configureCardOcclusion} from './m-world-actor-occlusion.mjs?v=66';
-import {weatherActorPose} from './m-world-weather-actor.mjs?v=66&sky=67';
+import {weatherActorPose} from './m-world-weather-actor.mjs?v=66&sky=70';
 import {createAttentionDirector,createContextBlink,createFacialTargetMixer} from './m-world-attention.mjs?v=66';
 import {createPresenceDynamics} from './m-world-dynamics.mjs?v=66';
 import {createFacialContinuity} from './m-world-face-continuity.mjs?v=66';
@@ -294,6 +296,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   updateWorld();
   const restBox=new THREE.Box3().setFromObject(source),envelope=restBox.clone(),frameSamples=[],posePoints=[];
   const sourceOrigin=source.position.clone(),characterHeight=restBox.getSize(new THREE.Vector3()).y;
+  const headClearance=createHeadClearanceSampler(skin.meshes,THREE,canonicalBoneName);
   const boundsRecord=box=>({min:box.min.toArray(),max:box.max.toArray(),size:box.getSize(new THREE.Vector3()).toArray()});
   const feet=[bones.get('Foot.L'),bones.get('Foot.R')].filter(Boolean);
   const rawFoot=new THREE.Vector3();for(const foot of feet)rawFoot.add(foot.getWorldPosition(new THREE.Vector3()));if(feet.length)rawFoot.multiplyScalar(1/feet.length);else rawFoot.set(restBox.getCenter(new THREE.Vector3()).x,restBox.min.y,0);
@@ -376,88 +379,13 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   frameFit=fitCharacterFrame(framed,viewportSize);
   source.position.sub(center);container.scale.setScalar(frameFit.scale);
   const neutralSourcePosition=source.position.clone();
-   // A removable, hand-held umbrella. It does not modify M's original
-   // GLB, skeleton, morphs or animations. The handle's local origin is at
-   // Hand.L, and its canopy clears the head rather than sitting on it.
-   const umbrella=new THREE.Group(),umbrellaRadius=characterHeight*.42;
-   const umbrellaCrown=new THREE.Group();
-   const canopyMaterial=new THREE.MeshStandardMaterial({
-    color:0x7bbdd8,metalness:.07,roughness:.42,transparent:true,
-    opacity:.94,side:THREE.DoubleSide
-   });
-   // Shallow canopy: wide coverage with a low arch, not a helmet.
-   const canopyDepth=characterHeight*.20;
-   const canopyProfile=[
-    new THREE.Vector2(0,canopyDepth),
-    new THREE.Vector2(umbrellaRadius*.22,canopyDepth*.95),
-    new THREE.Vector2(umbrellaRadius*.48,canopyDepth*.78),
-    new THREE.Vector2(umbrellaRadius*.73,canopyDepth*.50),
-    new THREE.Vector2(umbrellaRadius*.92,canopyDepth*.20),
-    new THREE.Vector2(umbrellaRadius,0)
-   ];
-   const canopy=new THREE.Mesh(new THREE.LatheGeometry(canopyProfile,32),canopyMaterial);
-   umbrellaCrown.add(canopy);
-   const rimMaterial=new THREE.MeshStandardMaterial({
-    color:0xc6eaf6,metalness:.14,roughness:.4,transparent:true,opacity:.72
-   });
-   const canopyRim=new THREE.Mesh(
-    new THREE.TorusGeometry(umbrellaRadius*.99,umbrellaRadius*.014,5,32),rimMaterial
-   );
-   canopyRim.rotation.x=Math.PI/2;umbrellaCrown.add(canopyRim);
-   // Eight barely visible canopy seams distinguish an umbrella from a hat.
-   const ribs=[];
-   for(let spoke=0;spoke<8;spoke++){
-    const angle=spoke*Math.PI/4;
-    for(let k=0;k<8;k++)for(const step of [k,k+1]){
-     const radial=step/8,rr=umbrellaRadius*radial;
-     ribs.push(rr*Math.cos(angle),
-      canopyDepth*(1-Math.pow(radial,1.7))+characterHeight*.003,
-      rr*Math.sin(angle));
-    }
-   }
-   const ribGeometry=new THREE.BufferGeometry();
-   ribGeometry.setAttribute('position',new THREE.Float32BufferAttribute(ribs,3));
-   const ribLines=new THREE.LineSegments(ribGeometry,new THREE.LineBasicMaterial({
-    color:0xe0f4fb,transparent:true,opacity:.20,depthWrite:false
-   }));
-   umbrellaCrown.add(ribLines);
-   // A central tip and dark shaft complete the umbrella silhouette.
-   const topTip=new THREE.Mesh(
-    new THREE.SphereGeometry(umbrellaRadius*.033,8,6),
-    new THREE.MeshStandardMaterial({color:0xcbe4f2,metalness:.48,roughness:.34})
-   );
-   topTip.position.y=canopyDepth+characterHeight*.008;
-   umbrellaCrown.add(topTip);
-   const metal=new THREE.MeshStandardMaterial({color:0x617e98,metalness:.44,roughness:.31});
-   // A unit cylinder stretches from the paw/handle to the canopy rim.
-   const stem=new THREE.Mesh(
-    new THREE.CylinderGeometry(umbrellaRadius*.043,umbrellaRadius*.043,1,10),metal
-   );
-   const handle=new THREE.Mesh(
-    new THREE.TorusGeometry(umbrellaRadius*.12,umbrellaRadius*.023,6,14,Math.PI),metal
-   );
-   handle.position.set(0,-characterHeight*.042,0);handle.rotation.z=Math.PI;
-   umbrella.add(umbrellaCrown,stem,handle);
-   umbrella.rotation.set(.06,0,-.12);
-   const canopyOffsetX=-characterHeight*.36,canopyOffsetZ=characterHeight*.06;
-   const gripStart=new THREE.Vector3(0,0,0),stemDirection=new THREE.Vector3();
-   const shaftAxis=new THREE.Vector3(0,1,0);
-   function setUmbrellaCrownHeight(crownY){
-    umbrellaCrown.position.set(canopyOffsetX,crownY,canopyOffsetZ);
-    stemDirection.copy(umbrellaCrown.position).sub(gripStart);
-    stem.position.copy(umbrellaCrown.position).add(gripStart).multiplyScalar(.5);
-    stem.scale.y=stemDirection.length();
-    stem.quaternion.setFromUnitVectors(shaftAxis,stemDirection.normalize());
-   }
-   setUmbrellaCrownHeight(characterHeight*.72);
-   const umbrellaHand=bones.get('Hand.R')||bones.get('Hand.L')||null,umbrellaHead=bones.get('Head')||null;
-   const handWorld=new THREE.Vector3(),handLocal=new THREE.Vector3();
-   const headWorld=new THREE.Vector3(),headLocal=new THREE.Vector3();
-   let umbrellaAnchored=false,umbrellaGripError=0,umbrellaCrownClearance=0;
-   umbrella.position.set(-characterHeight*.20,characterHeight*.18,characterHeight*.12);
-   const umbrellaClipMaterials=configureActorOcclusion(umbrella,THREE,{enabled:stencilSupported});
-   container.add(umbrella);umbrella.visible=false;
-   let umbrellaFade=0;
+  // A separate accessory shares the original actor's container and stencil.
+  // Only its own canopy/shaft transforms change; original rig data is untouched.
+  const umbrellaRig=createUmbrella(THREE,{height:characterHeight}),umbrella=umbrellaRig.object;
+  const umbrellaHand=bones.get('Hand.R')||bones.get('Hand.L')||null,umbrellaHead=bones.get('Head')||null;
+  const handWorld=new THREE.Vector3(),handLocal=new THREE.Vector3(),headWorld=new THREE.Vector3(),headLocal=new THREE.Vector3();
+  const umbrellaClipMaterials=configureActorOcclusion(umbrella,THREE,{enabled:stencilSupported});
+  container.add(umbrella);
   depthRoot.position.x=-frameFit.center.x*frameFit.scale;depthRoot.position.y=-frameFit.center.y*frameFit.scale;updateWorld();
   const halfDepth=Math.max(Math.abs(framed.min.z),Math.abs(framed.max.z))*frameFit.scale,depthPlan=depthLayerPlacement(1,halfDepth);
   depthRoot.position.z=depthPlan.bodyZ;
@@ -522,6 +450,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    return {x:(projected.x+1)*viewportSize/2,y:(1-projected.y)*viewportSize/2};
   }
   function getDiagnostics(){
+   const weatherState=umbrellaRig.snapshot();
    return {bones:31,rigBones:31,tailBones:motion.tailDiagnostics.connected,maxInfluences:skin.maxUsed,skinSets:skin.sets,
     clips:clips.map(c=>c.name),detailMaps:textures.size,detailSlots,viewportSize,pixelRatio,renderPixels:[canvas.width,canvas.height],
     environment:{type:'PMREM RoomEnvironment',intensity:scene.environmentIntensity,toneMapping:'AgX'},
@@ -529,10 +458,8 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     framing:{rest:boundsRecord(restBox),envelope:boundsRecord(envelope),framed:boundsRecord(framed),scale:frameFit.scale,samples:frameSamples},
     occlusion:{supported:depthSupported,stencilSupported,stencilBits,actorClipMaterials,umbrellaClipMaterials,depth,visualSide:visualDepthSide(depth),worldZ:depthRoot.position.z,surfaceZ:0,protectedZ:depthPlan.protectedZ,surfaceRects:surfaceBatch.rectCount,protectedRects:protectedBatch.rectCount,maskDrawCalls:Number(surfaceBatch.mesh.visible)+Number(protectedBatch.mesh.visible)},
     render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,points:renderer.info.render.points,lines:renderer.info.render.lines,programs:renderer.info.programs.length,textures:renderer.info.memory.textures,geometries:renderer.info.memory.geometries},
-     weather:{umbrella:umbrella.visible,unifiedOcclusion:stencilSupported,clipMaterials:umbrellaClipMaterials,fade:umbrellaFade,radiusRatio:umbrellaRadius/characterHeight,
-      canopyDepthRatio:canopyDepth/characterHeight,shaftRadiusRatio:umbrellaRadius*.043/characterHeight,
-     anchoredToHand:umbrellaAnchored,gripErrorRatio:umbrellaGripError/characterHeight,
-     crownClearanceRatio:umbrellaCrownClearance/characterHeight},
+     weather:{...weatherState,umbrella:umbrella.visible,fade:weatherState.openness,headTipSamples:headClearance.count,
+      unifiedOcclusion:stencilSupported,clipMaterials:umbrellaClipMaterials},
     swimWeight,expression:facial.expression,gesture:{name:lastGesture.name,age:lastGesture.progress*lastGesture.duration,phase:lastGesture.phase,envelope:lastGesture.envelope,lift:lastGesture.lift,contact:lastGesture.contact},affect:{name:lastAffect.name,phase:lastAffect.phase,envelope:lastAffect.envelope,weights:facial.diagnostics().expressionWeights},facialIntensity:facial.intensity,blink:facial.diagnostics(),shaderErrors:[...shaderErrors]};
   }
   function render(){
@@ -663,39 +590,17 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    },dt,{immediate:reduced});
    const rotation=stagePose.rotation||[0,0,0],placement=stagePose.placement||[0,0,0];
    stage.rotation.set(...rotation);stage.position.x=placement[0];stage.position.y=placement[1];stage.scale.setScalar(1+placement[2]);
-    const umbrellaTarget=weatherMotion.umbrella?1:0;
-    if(dt===0)umbrellaFade=umbrellaTarget; // First static draw shows known rain.
-    else umbrellaFade+=(umbrellaTarget-umbrellaFade)*(1-Math.exp(-6*dt));
-    umbrella.visible=umbrellaFade>.035;
-    canopyMaterial.opacity=.94*umbrellaFade;
-    rimMaterial.opacity=.72*umbrellaFade;
-    ribLines.material.opacity=.20*umbrellaFade;
-    if(umbrella.visible&&umbrellaHand){
-     // Follow the live posed left paw in container-local coordinates.
-     // No IK constraints or changes to original bone transforms.
-     umbrellaHand.getWorldPosition(handWorld);
-     handLocal.copy(handWorld);container.worldToLocal(handLocal);
-     // Keep the stem in front of the silhouette instead of disappearing
-     // behind M's face, while still following the paw's screen position.
-     handLocal.z=Math.max(handLocal.z+characterHeight*.08,
-      restBox.max.z-center.z+characterHeight*.14);
-     if(!umbrellaAnchored||dt===0){umbrella.position.copy(handLocal);umbrellaAnchored=true;}
-     else umbrella.position.lerp(handLocal,1-Math.exp(-12*dt));
-     umbrellaGripError=umbrella.position.distanceTo(handLocal);
-     let crownY=characterHeight*.72;
-     if(umbrellaHead){
-      umbrellaHead.getWorldPosition(headWorld);
-      headLocal.copy(headWorld);container.worldToLocal(headLocal);
-      // The canopy rim clears the head even when she looks around.
-      // Clamp shaft extension to avoid oversized swings while swimming.
-      crownY=Math.min(characterHeight*.86,Math.max(characterHeight*.67,
-       headLocal.y-umbrella.position.y+characterHeight*.09));
-      umbrellaCrownClearance=umbrella.position.y+crownY-headLocal.y;
-     }
-     setUmbrellaCrownHeight(crownY);
-    }
-    const umbrellaRoll=-.12+weatherMotion.umbrellaTilt;
-    umbrella.rotation.z+=(umbrellaRoll-umbrella.rotation.z)*(1-Math.exp(-3*dt));
+   if(umbrellaHand&&umbrellaHead){
+    if(weatherMotion.umbrella||umbrella.visible)updateWorld();
+    // Exact actual posed paw position: no front-Z hack and no grip lag.
+    umbrellaHand.getWorldPosition(handWorld);handLocal.copy(handWorld);container.worldToLocal(handLocal);
+    umbrellaHead.getWorldPosition(headWorld);headLocal.copy(headWorld);container.worldToLocal(headLocal);
+   }
+   umbrellaRig.update({dt,target:weatherMotion.umbrella,
+    grip:umbrellaHand?handLocal:null,head:umbrellaHead?headLocal:null,
+    headTop:weatherMotion.umbrella||umbrella.visible?headClearance.sample(container):null,
+    frontLimit:restBox.max.z-center.z,windDrift:weatherMotion.drift,
+    windForce:weatherMotion.ambientWind,reducedMotion:reduced});
    if(!reduced&&dt>0&&qualityGovernor.observe(dt*1000))syncResolution();
    render();
   };
