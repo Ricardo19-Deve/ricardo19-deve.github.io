@@ -53,7 +53,7 @@ test('the M entry point and every first-party runtime import share one cache rev
   const source=readFileSync(new URL(file,here),'utf8');
   for(const match of source.matchAll(/(['"])\.\/(m-world-[a-z0-9-]+\.mjs)([^'"]*)\1/g)){
    const uiRevision=file==='scroll-buddy.js'&&match[2]==='m-world-companion.mjs'?'&ui=59':
-    file==='scroll-buddy.js'&&match[2]==='m-world-autonomy.mjs'?'&life=65':
+    file==='scroll-buddy.js'&&match[2]==='m-world-autonomy.mjs'?'&life=70':
     file==='scroll-buddy.js'&&match[2]==='m-world-3d.mjs'?'&sky=70':
     file==='scroll-buddy.js'&&match[2]==='m-world-weather-stage.mjs'?'&sky=69':
     file==='m-world-3d.mjs'&&match[2]==='m-world-weather-actor.mjs'?'&sky=70':

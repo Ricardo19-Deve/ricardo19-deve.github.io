@@ -1,7 +1,7 @@
 import './m-analytics-bootstrap.mjs?v=34';
 import {createCharacter,characterReceiptId} from './m-world-character.mjs?v=66';
 import {createCharacterState,creatureEnergy} from './m-world-character-state.mjs?v=66';
-import {createAutonomy} from './m-world-autonomy.mjs?v=66&life=65';
+import {createAutonomy} from './m-world-autonomy.mjs?v=66&life=70';
 import {planBallFlight,sampleBallFlight} from './m-world-ball.mjs?v=66';
 import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=66';
 import {createSessionMemory} from './m-world-memory.mjs?v=66';
@@ -21,6 +21,7 @@ import {M_GESTURES,GESTURE_DURATIONS,PAW_CONTACT_PROGRESS} from './m-world-actin
 import {createMCompanion} from './m-world-companion.mjs?v=66&ui=59';
 import {M_WORLD_CONFIG} from './m-world-config.mjs?v=66';
 import {createWeatherReader,M_WEATHER_REFRESH_MS,makeWeatherDemo} from './m-world-weather.mjs?v=66&sky=67';
+import {weatherBehaviorProfile,weatherEffortMultiplier} from './m-world-weather-behavior.mjs?v=66';
 import {mountWeatherStage} from './m-world-weather-stage.mjs?v=66&sky=69';
 import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=66';
 
@@ -69,8 +70,8 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   // The existing M debug/pixel test mode remains deterministic and offline.
   const weatherReader=createWeatherReader();
   const sky=mountWeatherStage();
-  let currentWeather=null;
-  function applyWeather(value){currentWeather=value;sky.setWeather(value);}
+  let currentWeather=null,weatherProfile=null;
+  function applyWeather(value){currentWeather=value;weatherProfile=weatherBehaviorProfile(value);sky.setWeather(value);}
   async function refreshWeather(){
    if(disposed||document.hidden||debugEnabled)return;
    try{
@@ -438,7 +439,9 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   const selection=document.getSelection?.()?.isCollapsed===false;
   const metabolicDt=autonomyLastRead?Math.min(.1,Math.max(0,(now-autonomyLastRead)/1000)):0;autonomyLastRead=now;
   const energetic=autoExecution&&(game?.autonomous||route?.sceneCommandId||state.gesture?.name==='hop');
-  autonomyFatigue=bound(autonomyFatigue+(energetic?.008:state.gesture?.name==='sleep'?-.012:-.003)*metabolicDt,0,.6);
+  // Forecasts only modulate effort already performed by a real accepted action.
+  // Idle recovery and sleeping never acquire a weather-only energy drain.
+  autonomyFatigue=bound(autonomyFatigue+(energetic ? .008*weatherEffortMultiplier(weatherProfile):state.gesture?.name==='sleep'?-.012:-.003)*metabolicDt,0,.6);
   const hard=!active||document.hidden||frozen||reducedMotion||typing||selection||now<interest.scrollUntil;
   if(hard){if(autoExecution)cancelAutonomy(typing?'typing':selection?'selection':reducedMotion?'reduced-motion':'visitor-interaction',now);return;}
   if(autoExecution){
@@ -467,6 +470,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   const characterGoal=externalBusy||now<interest.readingUntil?null:currentCharacterGoal(targets,world);
   const routinesAvailable=gestureViewportFits(metrics,world.viewport);
   const decision=autonomy.choose({nowMs:now,goal:characterGoal,context:{active,hidden:document.hidden,reducedMotion,typing,selection,scrolling:false,reading:now<interest.readingUntil,busy:externalBusy,section:currentSection(world)},energy:creatureEnergy({fatigue:autonomyFatigue}),remotePending:director?.getStatus().pending,selfPlayAvailable:Boolean(corridor&&Math.hypot(corridor.x-state.x,corridor.y-state.y)>44),routinesAvailable,ballPlayAvailable:routinesAvailable,targets,
+   weather:weatherProfile,
    habits:typeof growth==='undefined'?undefined:{...growth.preferences(),opening},
    world:typeof senseWorldRhythm==='function'?{...senseWorldRhythm({date:new Date(),
     online:typeof navigator==='undefined'||navigator.onLine!==false}),
@@ -877,7 +881,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(avatar)metrics=avatar.getMetrics();
   const world=worldSnapshot();
   return {ready:Boolean(avatar),active,error:layer.dataset.error||null,state:{...state,gesture:state.gesture?{...state.gesture}:null,expressionHold:state.expressionHold?{...state.expressionHold}:null},acting:{attached:Boolean(route?.attached),cardContact:Boolean(route?.attached&&route?.plan?.kind==='perch'&&state.depthTarget>.95),externalPortal:Boolean(route?.plan?.externalPortal)},brain:brain.snapshot(),companion:companion?.snapshot(),pendingGesture:pendingGesture?.name||null,pendingIntent:pendingGesture?{...pendingGesture}:null,preferences:{reducedMotion,systemReducedMotion:motionPreference.matches,motionOptIn},character:{performance:characterPerformance.snapshot(),visitorPace,scene:scenes.snapshot(),game:game?{...game}:null,memory:memory.snapshot(),autonomy:autonomyStatus(),story:character.snapshot(),growth:growth.snapshot(),world:worldKnowledge.snapshot(),worldStory:worldStories.snapshot()},staging:route?.gestureStage?{escape:route.escape,target:{...route.target},egress:{...route.egress}}:null,metrics,actor:actorRect(renderFrame?{x:renderFrame.actor.left,y:renderFrame.actor.top}:state,metrics),
-   surfaces:world.surfaces.map(({element,...r})=>r),protectedRects:world.protectedRects,weather:sky.snapshot(),director:{...director?.getStatus(),perception:directorSnapshot,activity:directorActivity,lastExecution:directorLastExecution},renderer:avatar?.getDiagnostics(),life:lastLife,stats:{...stats},frozen};
+   surfaces:world.surfaces.map(({element,...r})=>r),protectedRects:world.protectedRects,weather:sky.snapshot(),weatherBehavior:weatherProfile,director:{...director?.getStatus(),perception:directorSnapshot,activity:directorActivity,lastExecution:directorLastExecution},renderer:avatar?.getDiagnostics(),life:lastLife,stats:{...stats},frozen};
  }
  if(debugEnabled)window.MWorld={
   snapshot,
