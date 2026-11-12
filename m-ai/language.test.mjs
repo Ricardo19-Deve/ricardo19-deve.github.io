@@ -39,6 +39,15 @@ test('V63 the newest question overrides English website locale and prior English
  assert.equal(questionLanguage('And the link?',[], 'pt'),'en');
  assert.equal(questionLanguage('Salesforce',[], 'pt'),'pt','ambiguous brand name uses site locale');
 });
+
+test('Portuguese posso disambiguates a Contact question from an English locale and history',()=>{
+ const question='Como posso contactar o Ricardo pela secção Contact?';
+ assert.equal(questionLanguage(question,[],'en'),'pt');
+ assert.equal(questionLanguage(question,[{role:'user',content:'Tell me about Ricardo.'}],'en'),'pt');
+ assert.equal(questionLanguage('How can I contact Ricardo?',[],'pt'),'en');
+ assert.equal(questionLanguage('¿Cómo puedo contactar con Ricardo?',[],'en'),'es');
+ assert.equal(questionLanguage('Comment contacter Ricardo ?',[],'en'),'fr');
+});
 test('V63 detects a wrong-language long answer without treating tech names as English prose',()=>{
  const english='Ricardo presented me as an experimental 3D character for his portfolio, a guided interface with AI integration to help visitors explore projects and context.';
  assert.equal(replyInDifferentLanguage(english,'pt'),true);

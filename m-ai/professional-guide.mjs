@@ -42,7 +42,7 @@ export function isProfessionalQuestion(message=''){
  if(!q)return false;
  if(/\b(?:quem es tu|quem e a m|who are you|what do you like|o que gostas|a tua historia|your story|pequena luz|little light|recanto|lookout|as tuas aventuras|your adventures)\b/u.test(q)
     && !/\b(?:ricardo|trabalho|servicos|services|professional|career|carreira)\b/u.test(q))return false;
- return /\b(?:ricardo|pinheiro|about him|sobre ele|who is he|his experience|his background|quem e ele|quem e o autor|developer|desenvolvedor|salesforce|consult|servicos?|services?|ajudar|help me with|contratar|hire|collaborat|colaborar|parceria|contact\w*|contat\w*|linkedin|github|percurso|carreira|career|experiencia|experience|competencias|expertise|skills|certificac|certification|projetos?|projects?|portfolio|portefolio|empresa|business systems|software|integrac|integrations?|architect|tecnologia|technology|profissao|profissional|professional)\b/u.test(q);
+ return /\b(?:ricardo|pinheiro|about him|sobre ele|who is he|his experience|his background|quem e ele|quem e o autor|developer|desenvolvedor|salesforce|consult|servicos?|servicios?|services?|ajudar|help me with|contratar|hire|collaborat|colaborar|parceria|contact\w*|contat\w*|linkedin|github|percurso|carreira|career|experiencia|experience|competencias|expertise|skills|certificac|certification|projetos?|projects?|portfolio|portefolio|empresa|business systems|software|integrac|integrations?|architect|tecnologia|technology|profissao|profissional|professional)\b/u.test(q);
 }
 
 export const CONVERSATION_FLOW_RULES = [
@@ -64,6 +64,31 @@ export const PROFESSIONAL_PRESENTATION_RULES = [
  'Answer in the visitor language. Use 2–4 cohesive short sentences with a conversational, credible tone, at most 700 characters. Keep the gentle warmth of M, but never her fictional mythology, in professional answers. Avoid unsupported metrics, employers, outcomes or claims.'
 ].join('\n');
 
+// These are the same approved public facts in each supported reply language.
+// Core resolves the visitor's language before calling this last-resort guard.
+const professionalFallbacks={
+ en:{
+  contact:'You can reach Ricardo through the public LinkedIn and GitHub links in the Contact section of this portfolio.',
+  services:'Ricardo has experience with Salesforce solution design, Apex/LWC, CRM workflows and system integrations, alongside independent web, mobile, cloud and AI projects. The Contact section links to his public LinkedIn and GitHub profiles.',
+  profile:'Ricardo Pinheiro is a Business Systems Lead Analyst and Salesforce Developer, with industry experience since 2020. He works on enterprise CRM systems and integrations and builds independent web, mobile, cloud and AI-enabled products. You can explore his projects and find his public contacts on this portfolio.'
+ },
+ pt:{
+  contact:'Podes contactar o Ricardo através das ligações públicas para o LinkedIn e GitHub na secção Contact deste portefólio.',
+  services:'O Ricardo tem experiência em desenho de soluções Salesforce, Apex/LWC, automatização de CRM e integrações entre sistemas. Também desenvolve projetos próprios em web, mobile, cloud e IA. Podes conhecer o trabalho dele e encontrar os contactos públicos na secção Contact.',
+  profile:'Ricardo Pinheiro é Business Systems Lead Analyst e Salesforce Developer, com experiência profissional desde 2020 em sistemas empresariais, CRM e integrações. Desenvolve também produtos independentes em web, mobile, cloud e IA. Neste portefólio podes conhecer os seus projetos e encontrar os contactos públicos na secção Contact.'
+ },
+ es:{
+  contact:'Puedes contactar con Ricardo a través de los enlaces públicos a LinkedIn y GitHub en la sección Contact de este portafolio.',
+  services:'Ricardo tiene experiencia en diseño de soluciones Salesforce, Apex/LWC, automatización de CRM e integraciones entre sistemas. También desarrolla proyectos independientes de web, móvil, nube e IA. Puedes conocer su trabajo y encontrar sus contactos públicos en la sección Contact.',
+  profile:'Ricardo Pinheiro es Business Systems Lead Analyst y Salesforce Developer, con experiencia profesional desde 2020 en sistemas empresariales, CRM e integraciones. También desarrolla productos independientes de web, móvil, nube e IA. En este portafolio puedes conocer sus proyectos y encontrar sus contactos públicos en la sección Contact.'
+ },
+ fr:{
+  contact:'Vous pouvez contacter Ricardo via les liens publics vers LinkedIn et GitHub dans la section Contact de ce portfolio.',
+  services:'Ricardo possède une expérience en conception de solutions Salesforce, Apex/LWC, automatisation CRM et intégrations entre systèmes. Il développe aussi des projets indépendants pour le web, le mobile, le cloud et l’IA. Vous pouvez découvrir son travail et trouver ses contacts publics dans la section Contact.',
+  profile:'Ricardo Pinheiro est Business Systems Lead Analyst et Salesforce Developer, avec une expérience professionnelle depuis 2020 dans les systèmes d’entreprise, le CRM et les intégrations. Il développe aussi des produits indépendants pour le web, le mobile, le cloud et l’IA. Ce portfolio présente ses projets et ses contacts publics dans la section Contact.'
+ }
+};
+
 /**
  * Last-resort quality guard if a model ignores the professional mode and
  * starts describing M's fictional lights or hiding places to a client.
@@ -73,23 +98,14 @@ export function normalizeProfessionalReply(output,message,language='pt'){
  // Do not rewrite navigation-only answers: an existing section suggestion
  // must remain intact. This safety net is for presenting the PERSON or
  // his practical capabilities, not every mention of a page section.
- const profile=/\b(?:ricardo|pinheiro|quem e ele|who is he|sobre ele|about him|servicos?|services?|consult\w*|contratar|hire|colaborar|collaborat\w*|ajudar|help me|contact\w*|contat\w*|reach ricardo)\b/u.test(fold(message));
+ const profile=/\b(?:ricardo|pinheiro|quem e ele|who is he|sobre ele|about him|servicos?|servicios?|services?|consult\w*|contratar|hire|colaborar|collaborat\w*|ajudar|help me|contact\w*|contat\w*|reach ricardo)\b/u.test(fold(message));
  if(!profile||!isProfessionalQuestion(message)||typeof output?.reply!=='string')return output;
- const stray=/\b(?:luzes?|recantos?|esconderijos|small lights?|little lights?|magical corners?|lookouts?)\b/iu;
+ const stray=/\b(?:luzes?|recantos?|esconderijos|small lights?|little lights?|magical corners?|lookouts?|pequenas luces|rincones magicos|petites lumieres|coins magiques)\b/iu;
  if(!stray.test(fold(output.reply)))return output;
- const q=fold(message),english=language==='en'||/\b(?:who|what|how|can|could|please|services|experience|contact|hire)\b/u.test(q);
+ const q=fold(message);
  const contact=/\b(?:contact\w*|contat\w*|linkedin|github|reach|encontrar)\b/u.test(q);
- const services=/\b(?:servicos?|services?|ajudar|help|consult|hire|colaborar|contratar)\b/u.test(q);
- const reply=english
-  ? contact
-   ? 'You can reach Ricardo through the public LinkedIn and GitHub links in the Contact section of this portfolio.'
-   : services
-    ? 'Ricardo has experience with Salesforce solution design, Apex/LWC, CRM workflows and system integrations, alongside independent web, mobile, cloud and AI projects. The Contact section links to his public LinkedIn and GitHub profiles.'
-    : 'Ricardo Pinheiro is a Business Systems Lead Analyst and Salesforce Developer, with industry experience since 2020. He works on enterprise CRM systems and integrations and builds independent web, mobile, cloud and AI-enabled products. You can explore his projects and find his public contacts on this portfolio.'
-  : contact
-   ? 'Podes contactar o Ricardo através das ligações públicas para o LinkedIn e GitHub na secção Contact deste portefólio.'
-   : services
-    ? 'O Ricardo tem experiência em desenho de soluções Salesforce, Apex/LWC, automatização de CRM e integrações entre sistemas. Também desenvolve projetos próprios em web, mobile, cloud e IA. Podes conhecer o trabalho dele e encontrar os contactos públicos na secção Contact.'
-    : 'Ricardo Pinheiro é Business Systems Lead Analyst e Salesforce Developer, com experiência profissional desde 2020 em sistemas empresariais, CRM e integrações. Desenvolve também produtos independentes em web, mobile, cloud e IA. Neste portefólio podes conhecer os seus projetos e encontrar os contactos públicos na secção Contact.';
+ const services=/\b(?:servicos?|servicios?|services?|ajudar|help|consult|hire|colaborar|contratar)\b/u.test(q);
+ const localized=Object.hasOwn(professionalFallbacks,language)?professionalFallbacks[language]:professionalFallbacks.pt;
+ const reply=localized[contact?'contact':services?'services':'profile'];
  return {...output,reply,expression:'neutral',gesture:'none'};
 }
