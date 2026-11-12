@@ -119,7 +119,7 @@ test('V35 renderer applies reversible bone layer after original motion and respe
  assert.match(code,/createLivingPerformance/);
  assert.match(code,/secondaryLayer=createGestureLayer\(bones,THREE\)/);
  assert.match(code,/secondaryLayer\.prepare\(\);gestureLayer\.prepare\(\)/);
- assert.match(code,/gestureLayer\.apply\(lastGesture\.pose\);\s*secondaryLayer\.apply\(combinedSecondary\)/);
+ assert.match(code,/gestureLayer\.apply\(lastVisualGesture\.pose\);\s*secondaryLayer\.apply\(combinedSecondary\)/);
  assert.match(code,/depthLayerPlacement\(visualSide,halfDepth\)/);
  assert.match(code,/lastRestPose\.rotationZ\+lastLiving\.stage\.rz/);
  assert.match(code,/preserveFullSkinning/);
