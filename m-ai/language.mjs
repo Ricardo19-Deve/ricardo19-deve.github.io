@@ -7,7 +7,7 @@
  */
 const lexicons={
  pt:{
-  strong:['qual','quais','ultimo','ultima','conta','podes','pode','queres','quero','consegues','consegue','tens','tenho','estou','gostava','obrigado','obrigada','portugues','publicacao','publicacoes','projeto','projetos','esse','essa','isto','diz','explica','explicar','falaste','tambem','entao','porque','pelo','pelos','sobre','fala','faz','fazer','foram','utilizadas','utilizados','usadas','usados','tecnologias','ferramentas','funcionalidades','criou','construiu','funciona','como','quando','onde','quem','meu','minha','teu','tua','mais','nao','sim','este','esta','foi','sabes','preciso','ajudar','apresentou'],
+  strong:['qual','quais','ultimo','ultima','conta','podes','pode','posso','queres','quero','consegues','consegue','tens','tenho','estou','gostava','obrigado','obrigada','portugues','publicacao','publicacoes','projeto','projetos','esse','essa','isto','diz','explica','explicar','falaste','tambem','entao','porque','pelo','pelos','sobre','fala','faz','fazer','foram','utilizadas','utilizados','usadas','usados','tecnologias','ferramentas','funcionalidades','criou','construiu','funciona','como','quando','onde','quem','meu','minha','teu','tua','mais','nao','sim','este','esta','foi','sabes','preciso','ajudar','apresentou'],
   short:['o','a','e','os','as','do','da','dos','das','um','uma','no','na','nos','nas','em','ao','aos','me','de','que','se','por','com']
  },
  en:{

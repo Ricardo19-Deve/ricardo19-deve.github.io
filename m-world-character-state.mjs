@@ -1,3 +1,4 @@
+import {weatherPresentation} from './m-world-weather-behavior.mjs?v=66';
 /** Shared physical motivation and presentation, not another action executor.
  * The controller supplies accepted work and acknowledges real terminal outcomes.
  * No visitor pace, wall clock, storage, randomness, network or page text is read.
@@ -58,7 +59,7 @@ export function createCharacterState(){
   mood:'neutral',eventId:null,eventAge:0,reading:false,blocked:false};
  const seen=new Set(),recent=[];
  let now=0,lastRecordAt=0,lastEvent=null,successful=null,activeId=null,activeAt=0,
-  pendingMood='neutral',moodAge=0;
+  pendingMood='neutral',moodAge=0,appliedWeather=null;
  function record(event={}){
   if(!event||typeof event!=='object'||Array.isArray(event))return false;
   const {decision,status,at}=event;
@@ -73,7 +74,8 @@ export function createCharacterState(){
  }
  function sample(input={}){
   const {dt=0,nowMs=0,energy=.7,active=null,reading=false,typing=false,
-   scrolling=false,reducedMotion=false,hidden=false,nearCard=false}=input??{};
+   scrolling=false,reducedMotion=false,hidden=false,nearCard=false,weather=null}=input??{};
+  appliedWeather=null;
   output.energy=clamp(energy,0,1,.7);output.reading=reading===true;
   const validClock=validTime(nowMs),validStep=Number.isFinite(dt)&&dt>=0;
   if(validClock)now=Math.max(now,nowMs);
@@ -112,6 +114,15 @@ export function createCharacterState(){
   }
   if(accepted?.gesture==='surprised')mood='surprised';
   if(nearCard===true&&intent!=='sleep'&&intent!=='recover')focus=Math.min(1,focus+.08);
+  // The same cached forecast that motivates a choice colours its presentation.
+  // Existing intent, acknowledged experience, sleep and safety remain the owners.
+  const forecast=weatherPresentation(weather);
+  if(intent!=='sleep'&&intent!=='recover'&&forecast.condition!=='unknown'){
+   appliedWeather=forecast;
+   arousal+=forecast.arousalOffset;
+   focus=clamp(focus+forecast.focusOffset,0,1);
+   valence=clamp(valence+forecast.valenceOffset,-1,1);
+  }
   arousal=Math.min(arousal,.035+.76*output.energy);
   if(output.reading){arousal*=.35;focus=Math.min(focus,.65);phase='reading';}
   output.arousal=follow(output.arousal,clamp(arousal,0,1),step,arousal>output.arousal?.28:.85);
@@ -122,9 +133,9 @@ export function createCharacterState(){
   output.intent=intent;output.phase=phase;
   return output;
  }
- function snapshot(){return {...output};}
+ function snapshot(){const result={...output};if(appliedWeather)result.weatherContext=appliedWeather;return result;}
  function reset(){
-  seen.clear();recent.length=0;now=lastRecordAt=activeAt=moodAge=0;lastEvent=successful=activeId=null;pendingMood='neutral';
+  seen.clear();recent.length=0;now=lastRecordAt=activeAt=moodAge=0;lastEvent=successful=activeId=appliedWeather=null;pendingMood='neutral';
   Object.assign(output,{intent:'idle',phase:'idle',energy:.7,arousal:0,valence:0,focus:0,mood:'neutral',eventId:null,eventAge:0,reading:false,blocked:false});
  }
  return {record,sample,snapshot,reset};

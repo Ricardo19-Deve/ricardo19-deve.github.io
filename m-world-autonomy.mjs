@@ -1,4 +1,5 @@
 import {worldCandidateWeight} from './m-world-world-rhythm.mjs?v=66';
+import {weatherCandidateWeight} from './m-world-weather-behavior.mjs?v=66';
 import {behaviorContinuityWeight,behaviorPhase} from './m-world-behavior-rhythm.mjs?v=65';
 /** Pure local intentions. Existing scene/spatial executors own every physical effect. */
 export const AUTONOMY_RESERVATION_MS=2000;
@@ -132,11 +133,12 @@ export function createAutonomy({seed=18421}={}){
    const variety=Math.pow(.68,repeats)*(recent.at(-1)===family?.3:1);
    const memoryWeight=Number.isFinite(learned[family])?Math.max(.7,Math.min(1.2,learned[family])):1;
    const rhythmWeight=worldCandidateWeight(family,facts.world);
+   const weatherWeight=weatherCandidateWeight(family,facts.weather);
     const continuityWeight=useContinuity?behaviorContinuityWeight(lastSuccessful,family,{at,energy,reading}):1;
    const openingWeight=opening==='explore'?(['inspect','peek','orbit'].includes(family)?1.32:family==='goal-light'?.58:1):
     opening==='play'?(['light','ball','hop'].includes(family)?1.3:family==='goal-light'?.82:1):
     opening==='observe'?(['observe','think','rest'].includes(family)?1.44:family==='goal-light'?.44:1):1;
-   candidates.push({family,stableId,score:clamp(score*memoryWeight*openingWeight*rhythmWeight*continuityWeight)*variety,
+   candidates.push({family,stableId,score:clamp(score*memoryWeight*openingWeight*rhythmWeight*continuityWeight*weatherWeight)*variety,
     decision:{kind:'expression',targetId:null,action:'rest',gesture:'none',expression:'neutral',
      affect:'calm',play:null,quiet:true,reason:family,...decision}});
   };

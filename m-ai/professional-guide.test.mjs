@@ -60,7 +60,7 @@ const response=reply=>new Response(JSON.stringify({status:'completed',
 const makeRequest=(message,language='pt')=>new Request('https://unit.test/api/m/respond',
  {method:'POST',headers:{origin:'https://ricardo19-deve.github.io','content-type':'application/json'},
   body:JSON.stringify({message,history:[],context:{section:'home',language}})});
-async function query(message,answer='Ricardo trabalha em desenho de soluções Salesforce.'){
+async function query(message,answer='Ricardo trabalha em desenho de soluções Salesforce.',language='pt'){
  const calls=[];
  const handler=createHandler({env:{OPENAI_API_KEY:'mock-secret'},quota,
   fetchImpl:async(url,opts)=>{
@@ -68,7 +68,7 @@ async function query(message,answer='Ricardo trabalha em desenho de soluções S
    if(url===API_URL)return response(answer);
    throw Error('Unexpected outbound connection to '+url);
   }});
- const res=await handler(makeRequest(message));
+ const res=await handler(makeRequest(message,language));
  assert.equal(res.status,200);
  assert.equal(calls.length,1);
  return {result:await res.json(),prompt:JSON.parse(calls[0].opts.body)};
@@ -127,4 +127,90 @@ test('V60 contextual LinkedIn follow-ups require a preceding post question',()=>
  assert.equal(isPublicationFollowUp('E o meu email pessoal?',history),false);
  assert.equal(isPublicationFollowUp('Dá-me o link de uma conta privada do LinkedIn',history),false);
  assert.equal(isPublicationFollowUp('O que faz Ricardo na Salesforce?',history),false);
+});
+
+test('professional fallback respects selected Portuguese when the question names the Contact section',()=>{
+ const output={reply:'Gosto de seguir as luzes do meu mundo.',expression:'happy',gesture:'wave',section:'none'};
+ const result=normalizeProfessionalReply(output,'Como posso contactar o Ricardo pela secção Contact?','pt');
+ assert.equal(result.reply,'Podes contactar o Ricardo através das ligações públicas para o LinkedIn e GitHub na secção Contact deste portefólio.');
+ assert.equal(result.expression,'neutral');
+ assert.equal(result.gesture,'none');
+ assert.equal(result.section,'none');
+});
+
+test('Portuguese Contact fallback avoids a second language-repair request from an English page context',async()=>{
+ const {result,prompt}=await query('Como posso contactar o Ricardo pela secção Contact?',
+  'Gosto de seguir as luzes do meu mundo.','en');
+ assert.match(result.reply,/^Podes contactar o Ricardo/);
+ assert.match(prompt.instructions,/STRICT ANSWER LANGUAGE: European Portuguese/);
+ assert.equal(result.section,'none');
+});
+
+const localizedProfessionalCases=[
+ {
+  language:'es',fantasy:'Me gusta seguir pequeñas luces por los rincones mágicos de mi mundo.',
+  cases:[
+   ['¿Quién es Ricardo?',/^Ricardo Pinheiro es Business Systems Lead Analyst y Salesforce Developer/,/desde 2020/],
+   ['¿Qué servicios puede prestar Ricardo?',/^Ricardo tiene experiencia en diseño de soluciones Salesforce/,/Apex\/LWC/],
+   ['¿Cómo puedo contactar con Ricardo?',/^Puedes contactar con Ricardo/,/LinkedIn y GitHub/]
+  ]
+ },
+ {
+  language:'fr',fantasy:"J'aime suivre les petites lumières dans les coins magiques de mon monde.",
+  cases:[
+   ['Qui est Ricardo ?',/^Ricardo Pinheiro est Business Systems Lead Analyst et Salesforce Developer/,/depuis 2020/],
+   ['Quels services propose Ricardo ?',/^Ricardo possède une expérience en conception de solutions Salesforce/,/Apex\/LWC/],
+   ['Comment contacter Ricardo ?',/^Vous pouvez contacter Ricardo/,/LinkedIn et GitHub/]
+  ]
+ }
+];
+
+test('Spanish and French fantasy fallbacks retain verified professional facts in the selected language',()=>{
+ for(const {language,fantasy,cases} of localizedProfessionalCases){
+  for(const [message,start,fact] of cases){
+   const output={reply:fantasy,expression:'curious',gesture:'shy',section:'none'};
+   const result=normalizeProfessionalReply(output,message,language);
+   assert.match(result.reply,start,message);
+   assert.match(result.reply,fact,message);
+   assert.equal(result.expression,'neutral');
+   assert.equal(result.gesture,'none');
+   assert.equal(result.section,'none');
+   assert.ok(result.reply.length<=700);
+   assert.doesNotMatch(result.reply,/@|https?:|garanti|garantiz|disponib|disponí|privad|privé|magique|mágic|lumière|luces/iu);
+  }
+ }
+});
+
+for(const {language,fantasy,cases} of localizedProfessionalCases){
+ test(`${language} known professional fallbacks answer directly with one mocked provider call`,async()=>{
+  for(const [message,start,fact] of cases){
+   const {result,prompt}=await query(message,fantasy,'en');
+   assert.match(result.reply,start,message);
+   assert.match(result.reply,fact,message);
+   assert.match(prompt.instructions,new RegExp('STRICT ANSWER LANGUAGE: '+(language==='es'?'Spanish':'French')));
+   assert.equal(result.section,'none');
+  }
+ });
+}
+
+test('Spanish service requests without a name use professional routing and one localized fallback call',async()=>{
+ const question='¿Qué servicios puede ofrecer?';
+ const {result,prompt}=await query(question,'Me gusta seguir pequeñas luces por los rincones mágicos de mi mundo.','en');
+ assert.equal(isProfessionalQuestion(question),true);
+ assert.match(prompt.instructions,/PROFESSIONAL PORTFOLIO PRESENTATION/);
+ assert.match(result.reply,/^Ricardo tiene experiencia en diseño de soluciones Salesforce/);
+ assert.match(result.reply,/Apex\/LWC/);
+ assert.equal(result.section,'none');
+});
+
+test('localized factual or unknown professional answers and unrelated character replies stay untouched',()=>{
+ for(const [message,language,reply] of [
+  ['Quels sont les projets privés de Ricardo ?','fr',"Je ne connais pas les détails de ses projets privés."],
+  ['¿Cuál es el correo privado de Ricardo?','es','No conozco su correo privado.'],
+  ['Quem és tu, M?','pt','Gosto de seguir as luzes do meu mundo.'],
+  ['What does Ricardo do?','en','Ricardo works on enterprise CRM systems and integrations.']
+ ]){
+  const output={reply,expression:'neutral',gesture:'none',section:'none'};
+  assert.equal(normalizeProfessionalReply(output,message,language),output);
+ }
 });

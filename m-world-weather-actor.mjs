@@ -17,5 +17,5 @@ export function weatherActorPose(weather,{reducedMotion=false,reading=false,rest
   }
  }
  return {pose,stageRoll:-cross*.028,umbrella:!reducedMotion&&!sleeping&&v.umbrella,
-  umbrellaTilt:!reducedMotion&&!sleeping?-v.drift*.15:0,wind:force,drift:v.drift};
+  umbrellaTilt:!reducedMotion&&!sleeping?-v.drift*.15:0,ambientWind:reducedMotion?0:v.wind,wind:force,drift:v.drift};
 }

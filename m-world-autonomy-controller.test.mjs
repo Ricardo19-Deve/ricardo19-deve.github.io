@@ -11,6 +11,8 @@ import {M_GESTURES,GESTURE_DURATIONS as AUTHORED_DURATIONS,PAW_CONTACT_PROGRESS}
 import {planBallFlight,sampleBallFlight} from './m-world-ball.mjs';
 import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
 import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,gestureViewportFits} from './m-world-action-policy.mjs';
+import {weatherBehaviorProfile,weatherEffortMultiplier} from './m-world-weather-behavior.mjs';
+import {makeWeatherDemo} from './m-world-weather.mjs';
 
 const source=readFileSync(new URL('./scroll-buddy.js',import.meta.url),'utf8').replaceAll('\r\n','\n');
 /** Exercise the shipped private functions, with browser/render/network boundaries supplied by a VM. */
@@ -38,7 +40,7 @@ function fixture(){
  const world={viewport:{width:900,height:700,headerBottom:60},surfaces:[],protectedRects:[],version:1};
  const calls={stages:0,scheduled:0,lightGoals:0,director:[]};
  const context=createContext({
-  characterPerformance:createCharacterState(),creatureEnergy,autonomyFatigue:0,autoExecution:null,
+  characterPerformance:createCharacterState(),creatureEnergy,autonomyFatigue:0,autoExecution:null,weatherProfile:null,weatherEffortMultiplier,
   actorRect,bound,gestureReady,gestureViewportFits,isExplicitGesture,selectGestureIntent,gestureIntentExpired,
   currentCharacterGoal:()=>null,recordCharacterExperience:()=>false,character:{snapshot:()=>({visits:1})},getContextComponent:()=>null,createScenePlan,AFFECT_DURATIONS,M_AFFECTS,M_GESTURES,GESTURE_DURATIONS:{...AUTHORED_DURATIONS,curious:2.2,playful:3,wave:2.4},PAW_CONTACT_PROGRESS,planBallFlight,sampleBallFlight,
   avatar:{},active:true,reducedMotion:false,frozen:false,document:{activeElement:null,hidden:false,getSelection:()=>({isCollapsed:true})},
@@ -234,14 +236,14 @@ test('a lost queued performance fails instead of inventing a completed expressio
  assert.equal(f.context.autoStats.events.at(-1).reason,'performance-unavailable');
 });
 
-function sceneFixture(){
+function sceneFixture({action='inspect'}={}){
  const f=fixture();
  const decision=f.context.autonomy.choose({nowMs:0,energy:.8,selfPlayAvailable:false,
-  context:{active:true},targets:[{id:'card',stableId:'project',actions:['inspect'],novelty:1,visibleShare:1,distance:100}]});
+  context:{active:true},targets:[{id:'card',stableId:'project',actions:[action],novelty:1,visibleShare:1,distance:100}]});
  assert.equal(decision.kind,'scene');
  assert.equal(f.context.autonomy.resolve(decision.id,{accepted:true,nowMs:0}),true);
  const plan=createScenePlan({source:'life',targetId:decision.targetId,action:decision.action,
-  gesture:decision.gesture,expression:decision.expression,actions:['inspect']});
+  gesture:decision.gesture,expression:decision.expression,actions:[action]});
  assert.equal(f.context.scenes.start(plan,{nowMs:0}),true);
  f.context.autoExecution={decision,kind:'scene',started:0,sceneId:f.context.scenes.snapshot().id,visible:false};
  return f;
@@ -302,6 +304,34 @@ test('a motionless visitor does not drain the autonomous internal energy',()=>{
  const f=fixture();let observed;f.context.visitorPace=.2;
  f.context.autonomy.choose=facts=>{observed=facts;return null;};f.context.updateAutonomy(1000,f.world);
  assert.ok(Math.abs(observed.energy-.82)<1e-9);assert.equal(observed.context.reading,false);
+});
+test('actual autonomy metabolism keeps recovery weather-neutral and bounds accepted-route storm effort',()=>{
+ const storm=weatherBehaviorProfile({...makeWeatherDemo('rain'),windKmh:72,precipitation:12,cloud:1});
+ assert.ok(storm);assert.ok(weatherEffortMultiplier(storm)>1);
+ const initial=.2;
+ function run(weatherProfile,activity){
+  const f=activity==='route'?sceneFixture({action:'peek'}):fixture();
+  if(activity==='route'){
+   const scene=f.context.scenes.step({nowMs:700});
+   assert.equal(scene.command.type,'travel');
+   assert.equal(scene.command.action,'peek');
+   assert.equal(f.context.autonomy.snapshot().active.id,f.context.autoExecution.decision.id);
+   f.context.route={sceneCommandId:scene.command.id,autonomyId:f.context.autoExecution.decision.id};
+  }else if(activity==='sleep')f.context.state.gesture={name:'sleep',source:'visitor',age:5.2};
+  f.context.weatherProfile=weatherProfile;f.context.autonomyFatigue=initial;
+  f.context.autonomyLastRead=1000;f.context.autonomyNextRead=Infinity;
+  for(let now=1100;now<=2000;now+=100)f.context.updateAutonomy(now,f.world);
+  assert.equal(f.context.autonomy.snapshot().completedCount,0,'Metabolic sampling is not an action completion');
+  if(activity==='route')assert.ok(f.context.autoExecution,'The real accepted scene still owns its unfinished travel');
+  return f.context.autonomyFatigue;
+ }
+ const idle=run(null,'idle'),wetIdle=run(storm,'idle'),sleep=run(null,'sleep'),wetSleep=run(storm,'sleep');
+ assert.equal(wetIdle,idle);assert.ok(Math.abs(idle-(initial-.003))<1e-12);
+ assert.equal(wetSleep,sleep);assert.ok(Math.abs(sleep-(initial-.012))<1e-12);
+ const effort=run(null,'route')-initial,wetEffort=run(storm,'route')-initial;
+ assert.ok(effort>0);assert.ok(wetEffort>effort,'A real storm must exercise the imported effort multiplier');
+ assert.ok(wetEffort<=effort*1.12+1e-12,'Storm effort cannot add more than twelve percent');
+ assert.ok(Math.abs(wetEffort-effort*weatherEffortMultiplier(storm))<1e-12);
 });
 test('without active reading M can reach a safe place for an unprompted quiet performance',()=>{
  const f=fixture();f.context.state.phase='approach';f.context.state.vx=10;
