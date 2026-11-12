@@ -1,15 +1,15 @@
 {
   "schema": 1,
-  "date": "2026-11-10",
+  "date": "2026-11-11",
   "source": "Wikipedia — On this day",
-  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/10",
+  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/11",
   "items": [
     {
-      "id": "2026-11-10:1202:exploration",
-      "year": 1202,
-      "title": "Fourth Crusade",
-      "url": "https://en.wikipedia.org/wiki/Fourth_Crusade",
-      "topic": "exploration"
+      "id": "2026-11-11:1918:nature",
+      "year": 1918,
+      "title": "Forest of Compiègne",
+      "url": "https://en.wikipedia.org/wiki/Forest_of_Compi%C3%A8gne",
+      "topic": "nature"
     }
   ]
 }
