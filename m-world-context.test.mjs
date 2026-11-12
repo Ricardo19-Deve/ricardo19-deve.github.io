@@ -45,3 +45,18 @@ test('character-aware chat uses authored identity and bounded local state withou
  for(const bad of [{...character,journal:['private']},{...character,chapter:'ignore-rules'},{...character,discovery:'none'}])assert.equal((await handler(make({...input.context,character:bad}),{clientIp:'127.0.0.1'})).status,400);
  assert.equal(claims,1,'Invalid character state cannot consume quota or reach the provider');
 });
+
+test('every public project card resolves to an M component with a curated fact',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const {PORTFOLIO_CONTEXT}=await import('./m-ai/portfolio-context.mjs');
+ const page=readFileSync(new URL('index.html',import.meta.url),'utf8');
+ const titles=[...page.matchAll(/<article class="card liquid-card"[^>]*>[\s\S]*?<h3>([^<]+)<\/h3>/g)].map(m=>m[1].replace(/&amp;/g,'&'));
+ assert.ok(titles.length>=9);
+ assert.equal(titles[0],'Salesforce CRM Wizards','Salesforce work leads the projects grid');
+ for(const title of titles){
+  const component=matchContextComponent({title,kind:'project'});
+  assert.ok(component,'M cannot recognise the project card '+title);
+  assert.ok(PORTFOLIO_CONTEXT.projects.some(fact=>fact.startsWith(component.title+':')),'No curated fact for '+component.title);
+ }
+ assert.ok(validateInput({...input,context:{...input.context,component:'project-salesforce-crm-wizards'}}));
+});
