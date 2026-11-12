@@ -1,6 +1,6 @@
 import './m-analytics-bootstrap.mjs?v=34';
 import {createCharacter,characterReceiptId} from './m-world-character.mjs?v=66';
-import {createCharacterState,creatureEnergy} from './m-world-character-state.mjs?v=66';
+import {createCharacterState,creatureEnergy} from './m-world-character-state.mjs?v=66&life=70';
 import {createAutonomy} from './m-world-autonomy.mjs?v=66&life=70';
 import {planBallFlight,sampleBallFlight} from './m-world-ball.mjs?v=66';
 import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=66';
@@ -740,6 +740,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   const gaze=game?.name==='ball'&&game.ballPoint?{x:bound((game.ballPoint.x-state.x-metrics.size*.5)/90,-1,1),y:bound((state.y+metrics.size*.45-game.ballPoint.y)/90,-1,1)}:game?.name==='light'&&game.goal?{x:bound((game.goal.x-state.x)/260,-1,1),y:bound((state.y-game.goal.y)/220,-1,1)}:lastLife?.attention==='pointer'&&scenes.snapshot().status!=='playing'?lastLife.gaze:target?{x:bound((target.left+target.width*.5-(state.x+(f.left+f.right)/2))/260,-1,1),y:bound(((state.y+(f.top+f.bottom)*.4)-(target.top+Math.min(100,target.height*.3)))/220,-1,1)}:lastLife?.gaze||{x:0,y:0};
   const now=performance.now(),field=document.activeElement,assistantIdleFocus=scenes.snapshot().source==='assistant'&&field?.id==='m-companion-message'&&field.value==='';
   const presentation=characterPerformance.sample({dt,nowMs:now,energy:creatureEnergy({fatigue:autonomyFatigue}),active:autoExecution?.decision||null,
+   weather:state.gesture?null:weatherProfile,
    reading:now<interest.readingUntil,typing:Boolean(field?.matches?.('input,textarea,select,[contenteditable="true"]'))&&!assistantIdleFocus,
    scrolling:now<interest.scrollUntil,reducedMotion,hidden:document.hidden,nearCard:Boolean(target)});
   if(frozen)avatar.render();
