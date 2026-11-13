@@ -60,7 +60,7 @@ Deployed on 2 November 2026 to https://m-portfolio-companion.ricardopacheco-pinh
 - `director.mjs`: bounded automatic intent prompt and operation; shares the existing HTTP, abort, timeout and quota lifecycle in `core.mjs`.
 - `../m-world-director-protocol.mjs`: shared exact-key request/reply validators and a dynamic strict schema.
 - `server.mjs`: loopback Node HTTP adapter for local development.
-- `portfolio-context.mjs`: manually curated public facts from `../index.html` and its case-study pages, reviewed 2026-11-12 (adds the open-source Salesforce CRM Wizards project and marks Word Pour as published, matching the page). Update this snapshot when the public page changes. Store-review claims are page snapshots, not live verification. Project facts are looked up by the exact component title in `../m-world-context.mjs`, so keep both titles identical.
+- `portfolio-context.mjs`: manually curated public facts from `../index.html` and its case-study pages, reviewed 2026-11-13 (adds the open-source Salesforce CRM Wizards and Salesforce Project Board projects and marks Word Pour as published, matching the page). Update this snapshot when the public page changes. Store-review claims are page snapshots, not live verification. Project facts are looked up by the exact component title in `../m-world-context.mjs`, so keep both titles identical.
 - `backend.test.mjs`: original offline chat security, quota and HTTP regressions.
 - `director.test.mjs` and `../m-world-director-protocol.test.mjs`: offline automatic request, protocol, cancellation and persistent quota checks.
 - `wrangler.jsonc`: proposed Worker name and SQLite binding; no account identifiers or credentials.

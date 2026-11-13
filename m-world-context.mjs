@@ -3,6 +3,7 @@ import {cloneCharacterContext} from './m-world-character-context.mjs?v=66';
 const records=[
  ['portrait-ricardo','Ricardo Pinheiro portrait','portrait','home'],
  ['project-salesforce-crm-wizards','Salesforce CRM Wizards','project','projects'],
+ ['project-salesforce-project-board','Salesforce Project Board','project','projects'],
  ['project-salesforce-mobile','Salesforce Mobile Platform','project','projects'],
  ['project-revmend','RevMend','project','projects'],
  ['project-epoxy','Epoxy Platform','project','projects'],
