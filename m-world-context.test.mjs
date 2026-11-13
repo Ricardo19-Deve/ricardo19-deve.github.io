@@ -59,4 +59,6 @@ test('every public project card resolves to an M component with a curated fact',
   assert.ok(PORTFOLIO_CONTEXT.projects.some(fact=>fact.startsWith(component.title+':')),'No curated fact for '+component.title);
  }
  assert.ok(validateInput({...input,context:{...input.context,component:'project-salesforce-crm-wizards'}}));
+ assert.equal(titles[1],'Salesforce Project Board','The second Salesforce project follows the wizards');
+ assert.ok(validateInput({...input,context:{...input.context,component:'project-salesforce-project-board'}}));
 });
