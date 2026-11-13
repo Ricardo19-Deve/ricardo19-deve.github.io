@@ -1,15 +1,15 @@
 {
   "schema": 1,
-  "date": "2026-11-12",
+  "date": "2026-11-13",
   "source": "Wikipedia — On this day",
-  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/12",
+  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/13",
   "items": [
     {
-      "id": "2026-11-12:2014:science",
-      "year": 2014,
-      "title": "European Space Agency",
-      "url": "https://en.wikipedia.org/wiki/European_Space_Agency",
-      "topic": "science"
+      "id": "2026-11-13:1927:nature",
+      "year": 1927,
+      "title": "Hudson River",
+      "url": "https://en.wikipedia.org/wiki/Hudson_River",
+      "topic": "nature"
     }
   ]
 }
