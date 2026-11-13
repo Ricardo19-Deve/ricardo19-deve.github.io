@@ -137,3 +137,6 @@ html{scroll-padding-top:112px}
 .expertise .integration-credit{margin-top:15px;padding-top:12px;border-top:1px solid var(--border);color:#9ab4ca;font-size:12px;line-height:1.6}
 .expertise .integration-credit a{color:#b5e8f4;text-decoration:underline;text-underline-offset:2px}
 .expertise .integration-credit a:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:2px}
+/* 2026-11 recruiter clarity: one visible availability line in the hero; readable mobile menu control. */
+.hero-open{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;margin:18px 0 0;max-width:680px;color:#cfe6f5;font-size:14px;font-weight:600;line-height:1.6}.hero-open a{color:#9fe3ff;text-decoration:underline;text-decoration-color:#9fe3ff66;text-underline-offset:3px}.hero-open a:hover{color:#fff}.hero-open a:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:2px}
+@media(max-width:720px){.mobile-menu-toggle{background:#13273cd9;border:1px solid #9dcdec55;border-radius:12px;color:#d9f1ff;font-family:inherit;font-size:12px;font-weight:700;letter-spacing:1.5px;padding:0 14px}.mobile-menu-toggle:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}.hero-open{font-size:13px}}

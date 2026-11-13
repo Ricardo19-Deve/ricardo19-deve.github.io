@@ -31,7 +31,7 @@ export function createMCompanion({document=globalThis.document,endpoint='',fetch
  privacyToggle.setAttribute('aria-controls','m-companion-settings');
  privacyToggle.setAttribute('aria-label','M settings and privacy');
  enableMotion.hidden=true;close.setAttribute('aria-label','Close M chat');
- const intro=make('p','m-companion-intro',target?'Ask M anything about the projects and experience behind Ricardo’s work, or his verified public posts.':'M explores the page on her own. Questions will be available when AI chat is connected.');
+ const intro=make('p','m-companion-intro',target?'Ask M anything about the projects and experience behind Ricardo’s work — for example his Salesforce experience or certifications — or his verified public posts.':'M explores the page on her own. Questions will be available when AI chat is connected.');
  const motionNote=make('p','m-companion-intro','Reduced motion is on. M stays still until you enable motion.');motionNote.hidden=true;
  // One collapsed, sourced observation, not an extra action-button panel.
  const worldNote=make('details','m-companion-world-note'),worldSummary=make('summary','','M’s discovery today'),

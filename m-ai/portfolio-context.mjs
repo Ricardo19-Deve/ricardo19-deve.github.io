@@ -1,4 +1,4 @@
-// Curated only from the public portfolio index.html; reviewed 2026-10-31.
+// Curated only from the public portfolio index.html and its case-study pages; reviewed 2026-11-12.
 // No repository access, private project data, CV extraction, or live browsing.
 export const PORTFOLIO_CONTEXT = Object.freeze({
   owner: 'Ricardo Pinheiro',
@@ -14,16 +14,17 @@ export const PORTFOLIO_CONTEXT = Object.freeze({
     'Step Ahead Consulting: Oracle APEX Consultant, August 2020 to March 2021. Oracle APEX applications, reporting and database solutions.'
   ],
   projects: [
+    'Salesforce CRM Wizards: independent open-source Salesforce reference for generic B2B CRM (Apex, Lightning Web Components, Custom Metadata, Flow) rewriting patterns from enterprise CRM work in a neutral form; never attribute its code, data or requirements to any employer or client. Metadata-driven record wizard: record types, fields, sections, pages, labels and duplicate-match rules configured in Custom Metadata without code changes. Contact flow with search-as-you-type matching across Contact and unconverted Lead records using weighted, configurable scoring (Shield Platform Encryption compatible through exact-match case variants), field-by-field merge of up to 3 Contact records with conversion of chosen Leads, account suggestions from the Lead company, related accounts via AccountContactRelation and duplicate-rule handling. Opportunity and products wizard with a country-specific price book and fallback, per-line product attributes and a single transaction; system-mode DML limited by a metadata field whitelist so users without Create permission can use a governed UI. Integration-ready sync pattern demonstrated with mock data: a source interface with a mock implementation reading sample JSON from a static resource, Queueable and Schedulable incremental sync with a watermark and upsert on an external ID; it makes no external API calls and holds no credentials, and a real API adapter would plug into the same interface. Bulk-safe before-save Flow that builds a consistent Campaign name (no queries, no DML). Apex tests, maintainer and AI-handover header comments, check-only validation before production; deployable to a Developer Edition org. Case study: salesforce-crm-wizards.html; public source: github.com/Ricardo19-Deve/salesforce-crm-wizards.',
     'Salesforce Mobile Platform: React Native, Expo Router and TypeScript mobile experience for Salesforce-oriented workflows.',
     'RevMend: validation-stage B2B revenue-operations product for service businesses. Cloudflare static site; payments and public lead collection are not yet live.',
     'Epoxy Platform: independent web/CRM project with an AI assistant, image visualization, quotations and management console. Demo mode pending production configuration.',
     'BUZZ Math Challenge: published mathematics reflex game built with Godot 4, iOS speech recognition and release automation.',
     'Magnet Bloom: published portrait-oriented polarity puzzle game built with Godot.',
     'STACKOUT - Math Blocks: published independent mobile number-puzzle game built with Godot.',
-    'WordPour: mobile game listed as undergoing store review; further details unconfirmed.',
+    'Word Pour: published word-puzzle game for iPhone where players pour letters to form words, chain bursts for double points and take on a daily challenge.',
     'Potion Mix: mobile game listed as undergoing store review; further details unconfirmed.'
   ],
-  expertise: ['Apex, Lightning Web Components, Visualforce, SOQL, Salesforce administration and solution design', 'REST, SOAP, Bulk API and system integrations', 'JavaScript, TypeScript, HTML/CSS, React Native, Oracle APEX, SQL/PLSQL', 'Cloudflare Workers, D1/R2 and AI API integrations in independent projects'],
+  expertise: ['Apex, Lightning Web Components, Visualforce, SOQL, Salesforce administration and solution design', 'Salesforce Custom Metadata-driven configuration, duplicate matching, Contact merge and Lead conversion, Flow, Queueable and Schedulable Apex incremental sync and Apex testing (shown in the open-source Salesforce CRM Wizards reference)', 'REST, SOAP, Bulk API and system integrations', 'JavaScript, TypeScript, HTML/CSS, React Native, Oracle APEX, SQL/PLSQL', 'Cloudflare Workers, D1/R2 and AI API integrations in independent projects'],
   certifications: ['Platform Sharing and Visibility Architect (October 2025)', 'Platform Developer I (June 2025)', 'Advanced Administrator (June 2025)', 'Agentforce Specialist (May 2025)', 'Administrator (November 2024)', 'AI Associate (July 2024)'],
   contact: 'The portfolio Contact section provides public LinkedIn and GitHub links. Do not invent an email address, availability, salary, client details or private contact information.',
   limits: 'Project and store status reflects the public page snapshot, not a live verification. No confidential employer information, private repository details, unlisted products, quantified business results or future promises are available.'

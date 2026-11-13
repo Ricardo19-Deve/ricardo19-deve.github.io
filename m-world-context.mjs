@@ -2,13 +2,14 @@ import {cloneCharacterContext} from './m-world-character-context.mjs?v=66';
 /** Public, stable component IDs shared by the page and contextual chat. */
 const records=[
  ['portrait-ricardo','Ricardo Pinheiro portrait','portrait','home'],
+ ['project-salesforce-crm-wizards','Salesforce CRM Wizards','project','projects'],
  ['project-salesforce-mobile','Salesforce Mobile Platform','project','projects'],
  ['project-revmend','RevMend','project','projects'],
  ['project-epoxy','Epoxy Platform','project','projects'],
  ['project-buzz','BUZZ Math Challenge','project','projects'],
  ['project-magnet-bloom','Magnet Bloom','project','projects'],
  ['project-stackout','STACKOUT - Math Blocks','project','projects'],
- ['project-wordpour','WordPour','project','projects'],
+ ['project-wordpour','Word Pour','project','projects'],
  ['project-potion-mix','Potion Mix','project','projects'],
  ['experience-systems-lead','Business Systems Lead Analyst','experience','experience'],
  ['experience-systems-engineer','CRM & Systems Software Engineer','experience','experience'],
