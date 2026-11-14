@@ -1,15 +1,15 @@
 {
   "schema": 1,
-  "date": "2026-11-13",
+  "date": "2026-11-14",
   "source": "Wikipedia — On this day",
-  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/13",
+  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/14",
   "items": [
     {
-      "id": "2026-11-13:1927:nature",
-      "year": 1927,
-      "title": "Hudson River",
-      "url": "https://en.wikipedia.org/wiki/Hudson_River",
-      "topic": "nature"
+      "id": "2026-11-14:1969:science",
+      "year": 1969,
+      "title": "Apollo 12",
+      "url": "https://en.wikipedia.org/wiki/Apollo_12",
+      "topic": "science"
     }
   ]
 }
