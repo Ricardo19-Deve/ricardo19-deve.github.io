@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NexField – Privacy &amp; Security</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <p><a href="index.html">← NexField</a></p>
+  <h1>Privacy &amp; Security</h1>
+  <p class="muted">Last updated: November 2026</p>
+
+  <p>NexField is a mobile companion for Salesforce. Your company's Salesforce administrator sets it up, and you sign in
+  with your own Salesforce account. This page explains, in plain words, what happens to your information and how the app
+  protects it.</p>
+
+  <h2>Our promise</h2>
+  <ul>
+    <li><strong>We do not store your data.</strong> NexField has no servers. Your Salesforce records, notes, photos, location
+    and voice requests never reach the NexField developer.</li>
+    <li><strong>We do not share or sell your data.</strong> There is nothing to share: we never receive it.</li>
+    <li><strong>No tracking.</strong> No advertising, no analytics, no crash-reporting or third-party tracking SDKs.</li>
+    <li><strong>Salesforce stays in charge.</strong> You only see and change what your own Salesforce permissions allow.</li>
+  </ul>
+
+  <h2>Where your information goes</h2>
+  <table>
+    <thead><tr><th>Information</th><th>Sent to</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Records you view, create or edit; visit reports; photos you add</td><td>Your company's Salesforce org only</td><td>That is where your company keeps them</td></tr>
+      <tr><td>Your sign-in</td><td>Salesforce (login page in a secure browser sheet)</td><td>NexField never sees your password</td></tr>
+      <tr><td>AI requests (only if your company enabled AI and you allowed it)</td><td>Your company's Salesforce org, which forwards them to the AI provider your company chose</td><td>To write summaries, emails and reports</td></tr>
+      <tr><td>Search area for Nearby Prospects (only if enabled)</td><td>OpenStreetMap (public map data service)</td><td>To find businesses near you; no name or account is sent</td></tr>
+      <tr><td>Siri and Shortcuts requests</td><td>Apple processes the voice request; NexField then calls your Salesforce org</td><td>To run the action you asked for</td></tr>
+      <tr><td>Subscription purchase</td><td>Apple</td><td>Apple handles payment; we never see payment details</td></tr>
+    </tbody>
+  </table>
+
+  <h2>What stays on your iPhone</h2>
+  <ul>
+    <li><strong>Your Salesforce session</strong> (access and refresh tokens) in the iOS Keychain, which iOS encrypts. Tokens
+    are only ever sent to your own Salesforce org.</li>
+    <li><strong>Workspace settings</strong> from your administrator (branding, objects and fields to show). No records.</li>
+    <li><strong>An encrypted offline copy</strong> of what you last saw (Today, recent lists and records you opened), so the
+    app works without signal. It is encrypted with XChaCha20-Poly1305 using a key kept in the Keychain on this iPhone only,
+    readable only while the iPhone is unlocked, never synced or backed up. It expires after 7 days.</li>
+    <li><strong>iPhone search (Spotlight)</strong>: the names of records you opened, so you can find them from the iPhone
+    search. The index stays on this iPhone and expires after 30 days.</li>
+    <li><strong>Your preferences</strong>: reminders, AI permission, and whether your subscription is active.</li>
+  </ul>
+  <p>All of this is deleted when you tap <strong>Sign Out</strong> or <strong>Remove Workspace from This Device</strong> in
+  Settings, or when you delete the app.</p>
+
+  <h2>How the app protects you</h2>
+  <ul>
+    <li><strong>Secure sign-in.</strong> OAuth 2.0 with PKCE through Salesforce's own login page. The app never asks for,
+    sees or stores your password; your company's single sign-on and multi-factor authentication apply.</li>
+    <li><strong>Encrypted connections only.</strong> All traffic uses HTTPS. The app refuses to send your token to any address
+    outside your company's Salesforce org, and only accepts setup links that point to Salesforce.</li>
+    <li><strong>Your permissions are enforced by Salesforce.</strong> Object, field and record access are checked by
+    Salesforce on every request; the configuration only lists fields you are allowed to see.</li>
+    <li><strong>No secrets on the phone.</strong> AI provider keys stay in your company's Salesforce org and are never sent to
+    the app.</li>
+    <li><strong>Safe searches.</strong> Text you type in searches is escaped so it cannot change a Salesforce query.</li>
+    <li><strong>Siri asks first.</strong> Siri actions need your iPhone to be unlocked and ask for confirmation before saving
+    or changing anything.</li>
+    <li><strong>Tamper-evident offline copy.</strong> If the encrypted copy is altered, it is discarded instead of shown. It
+    is only shown when Salesforce cannot be reached, never when your access has been removed.</li>
+    <li><strong>Session ends cleanly.</strong> Signing out revokes your Salesforce session and deletes the local data above.</li>
+  </ul>
+
+  <h2>Permissions the app asks for</h2>
+  <ul>
+    <li><strong>Camera</strong>: to scan the setup QR code and to take photos you choose to add to a Salesforce record.</li>
+    <li><strong>Photos</strong>: only the photos you pick are sent, to your company's Salesforce org.</li>
+    <li><strong>Location (while using the app)</strong>: to sort accounts by distance on your iPhone and, if enabled, to find
+    nearby prospects. Never in the background.</li>
+    <li><strong>Notifications</strong>: only for meeting reminders you turn on. They are created on your iPhone.</li>
+  </ul>
+
+  <h2>Who controls your data</h2>
+  <p>Data in Salesforce belongs to your employer or organisation, which acts as the data controller. Requests about access to,
+  correction of or deletion of that data should go to your Salesforce administrator.</p>
+
+  <h2>Children</h2>
+  <p>NexField is a business app and is not directed to children.</p>
+
+  <h2>Changes</h2>
+  <p>We will update this page when the app's handling of information changes.</p>
+
+  <h2>Contact</h2>
+  <p>Questions about privacy or security: <a href="support.html">NexField Support</a>.</p>
+</main>
+</body>
+</html>
