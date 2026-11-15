@@ -50,3 +50,10 @@ table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 
 th, td { text-align: left; vertical-align: top; padding: 10px 8px; border-bottom: 1px solid rgba(127, 127, 127, 0.25); }
 th { font-weight: 600; }
 @media (max-width: 600px) { table { font-size: 14px; } th, td { padding: 8px 4px; } }
+
+.app-icon {
+  display: block;
+  border-radius: 22%;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  margin-bottom: 16px;
+}
