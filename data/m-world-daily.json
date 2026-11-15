@@ -1,15 +1,15 @@
 {
   "schema": 1,
-  "date": "2026-11-14",
+  "date": "2026-11-15",
   "source": "Wikipedia — On this day",
-  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/14",
+  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/15",
   "items": [
     {
-      "id": "2026-11-14:1969:science",
-      "year": 1969,
-      "title": "Apollo 12",
-      "url": "https://en.wikipedia.org/wiki/Apollo_12",
-      "topic": "science"
+      "id": "2026-11-15:1959:culture",
+      "year": 1959,
+      "title": "In Cold Blood",
+      "url": "https://en.wikipedia.org/wiki/In_Cold_Blood",
+      "topic": "culture"
     }
   ]
 }
