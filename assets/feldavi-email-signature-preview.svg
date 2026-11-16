@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="360" viewBox="0 0 1300 360">
+  <rect width="1300" height="360" fill="#F5F7FC"/>
+  <circle cx="157" cy="180" r="121" fill="#0C396E"/>
+  <circle cx="157" cy="180" r="113" fill="#EFF4FA"/>
+  <circle cx="157" cy="180" r="81" fill="#E2EAF5"/>
+  <text x="157" y="207" font-family="Arial,Helvetica,sans-serif" font-size="79" font-weight="700" text-anchor="middle" fill="#0C396E">RP</text>
+  <text x="310" y="146" font-family="Arial,Helvetica,sans-serif" font-size="48" font-weight="700" fill="#0C396E">Ricardo Pinheiro</text>
+  <text x="312" y="202" font-family="Arial,Helvetica,sans-serif" font-size="30" fill="#263342">Salesforce Solutions</text>
+  <rect x="309" y="222" width="350" height="34" rx="7" fill="#E5ECF5"/>
+  <text x="323" y="245" font-family="Arial,Helvetica,sans-serif" font-size="17" font-style="italic" fill="#2E4358">Feldavi · Email signature test</text>
+  <rect x="755" y="62" width="6" height="236" rx="3" fill="#0C396E"/>
+  <g font-family="Arial,Helvetica,sans-serif">
+    <circle cx="812" cy="120" r="22" fill="#0C396E"/><text x="812" y="128" font-weight="700" font-size="20" text-anchor="middle" fill="white">T</text>
+    <circle cx="812" cy="190" r="22" fill="#0C396E"/><text x="812" y="199" font-weight="700" font-size="23" text-anchor="middle" fill="white">@</text>
+    <circle cx="812" cy="260" r="22" fill="#0C396E"/><text x="812" y="268" font-weight="700" font-size="18" text-anchor="middle" fill="white">W</text>
+    <text x="850" y="128" font-size="25" fill="#3C4C5D">+351 9XX XXX XXX</text>
+    <text x="850" y="198" font-size="25" fill="#3C4C5D">email@exemplo.com</text>
+    <text x="850" y="268" font-size="25" fill="#3C4C5D">www.exemplo.com</text>
+  </g>
+</svg>
