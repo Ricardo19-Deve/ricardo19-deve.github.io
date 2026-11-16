@@ -1,14 +1,14 @@
 {
   "schema": 1,
-  "date": "2026-11-15",
+  "date": "2026-11-16",
   "source": "Wikipedia — On this day",
-  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/15",
+  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/16",
   "items": [
     {
-      "id": "2026-11-15:1959:culture",
+      "id": "2026-11-16:1959:culture",
       "year": 1959,
-      "title": "In Cold Blood",
-      "url": "https://en.wikipedia.org/wiki/In_Cold_Blood",
+      "title": "Broadway theatre",
+      "url": "https://en.wikipedia.org/wiki/Broadway_theatre",
       "topic": "culture"
     }
   ]
