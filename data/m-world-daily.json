@@ -1,14 +1,14 @@
 {
   "schema": 1,
-  "date": "2026-11-16",
+  "date": "2026-11-17",
   "source": "Wikipedia — On this day",
-  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/16",
+  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/17",
   "items": [
     {
-      "id": "2026-11-16:1959:culture",
-      "year": 1959,
-      "title": "Broadway theatre",
-      "url": "https://en.wikipedia.org/wiki/Broadway_theatre",
+      "id": "2026-11-17:1989:culture",
+      "year": 1989,
+      "title": "The Little Mermaid (1989 film)",
+      "url": "https://en.wikipedia.org/wiki/The_Little_Mermaid_(1989_film)",
       "topic": "culture"
     }
   ]
