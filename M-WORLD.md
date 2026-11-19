@@ -2,7 +2,7 @@
 
 No telemóvel a M carrega uma versão própria do modelo V6 (o mesmo rig de 31 ossos, clips e expressões,
 corpo com 35% dos triângulos, 4 influências por vértice, comprimida): 7,0 MB num pedido em vez de 16,9 MB
-em 19. A densidade de píxeis no telemóvel fica em 1,25–1,75×. Em todos os ecrãs a M desenha no máximo
+em 19. A densidade de píxeis no telemóvel fica em 1,5–1,75×. Em todos os ecrãs a M desenha no máximo
 60 frames por segundo, 30 quando dorme ou está parada num cartão e 20 fora do ecrã. O desktop mantém o
 modelo original com 14 influências e o mesmo aspeto.
 

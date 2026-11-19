@@ -42,9 +42,10 @@ test('V70 loader: phones load the light model, desktop keeps the original 14-inf
  assert.match(renderer,/modelVariant:variant/);
 });
 
-test('V70 phones cap the pixel ratio at 1.75x (1.25x when slow); desktop keeps 2-2.5x',()=>{
+test('V70 phones cap the pixel ratio at 1.75x (1.5x when slow); desktop keeps 2-2.5x',()=>{
  assert.match(renderer,/ceiling=mobile\?Math\.min\(Math\.max\(window\.devicePixelRatio\|\|1,1\),1\.75\):Math\.max\(2,Math\.min\(window\.devicePixelRatio\|\|1,2\.5\)\)/);
- assert.match(renderer,/minRatio:mobile\?1\.25:1\.5/);
+ // 1.5x floor on phones keeps the 312px canvas above the 400px backing the real-render smoke requires.
+ assert.match(renderer,/minRatio:1\.5,device:/);
 });
 
 test('V70 frame pacing: 60 fps cap, 30 when calm, 20 off screen, full rate while scrolling',()=>{

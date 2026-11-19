@@ -27,7 +27,7 @@ o telemóvel pode usar uma versão mais leve da M (menos triângulos, 4 influên
   o scroll, para continuar presa ao cartão) e 20 quando está totalmente fora do ecrã. Os intervalos ficam
   dentro do passo de 50 ms do controlador, por isso o relógio da M não abranda. Com movimento reduzido, os
   frames continuam a ser desenhados a pedido.
-- **Densidade de píxeis:** no telemóvel no máximo 1,75× (1,25× com frames lentos sustentados), em vez de 2×;
+- **Densidade de píxeis:** no telemóvel no máximo 1,75× (1,5× com frames lentos sustentados), em vez de 2×;
   no desktop o mínimo com frames lentos passa de 1,75× para 1,5×, o máximo continua 2–2,5×.
 
 ## Medições (Chromium com GPU Intel Arc via ANGLE/D3D11, Playwright; telemóvel emulado 390×844 a 3×)
