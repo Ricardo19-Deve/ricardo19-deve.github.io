@@ -3,36 +3,36 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
-import {readGLB} from './m-lab/swim-v3/threejs/glb-reader.js?v=67';
+import {readGLB} from './m-lab/swim-v3/threejs/glb-reader.js?v=68';
 import {preserveFullSkinning} from './m-lab/swim-v3/threejs/full-skinning.js';
 import {createFacialV6} from './m-lab/interactions/facial-v6.mjs?blink=v66';
 import {createMotionV8,motionPose,canonicalBoneName} from './m-lab/interactions/motion-v8.mjs?rig=v66';
 import {performanceStagePoseV15} from './m-lab/interactions/performance-v15.mjs?v16';
-import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=67';
-import {createSecondaryPoseCompositor} from './m-world-pose-compositor.mjs?v=67';
-import {createUmbrella} from './m-world-umbrella.mjs?v=67';
-import {createHeadClearanceSampler} from './m-world-head-clearance.mjs?v=67';
-import {createGestureHandoff} from './m-world-gesture-handoff.mjs?v=67';
-import {configureActorOcclusion,configureCardOcclusion} from './m-world-actor-occlusion.mjs?v=67';
-import {weatherActorPose} from './m-world-weather-actor.mjs?v=67&sky=70';
-import {createAttentionDirector,createContextBlink,createFacialTargetMixer} from './m-world-attention.mjs?v=67';
-import {createPresenceDynamics} from './m-world-dynamics.mjs?v=67';
-import {createFacialContinuity} from './m-world-face-continuity.mjs?v=67';
-import {visualDepthMasks,visualDepthSide} from './m-world-occlusion.mjs?v=67';
-import {createMicroMotion} from './m-world-micro-motion.mjs?v=67';
-import {sampleEmbodiedRest} from './m-world-rest-pose.mjs?v=67';
-import {createLivingPerformance} from './m-world-living-performance.mjs?v=67';
-import {createSurfaceContact} from './m-world-surface-contact.mjs?v=67';
-import {createMotionContinuity} from './m-world-motion-continuity.mjs?v=67';
-import {createEmotionalBody} from './m-world-emotional-body.mjs?v=67';
-import {createPoseHandoff} from './m-world-pose-handoff.mjs?v=67';
-import {createLifeBridges} from './m-world-life-bridges.mjs?v=67';
-import {createSpontaneousPlay} from './m-world-spontaneous-play.mjs?v=67';
-import {createBetweenBeats} from './m-world-between-beats.mjs?v=67';
-import {createIntentCrossfade} from './m-world-intent-crossfade.mjs?v=67';
-import {createRenderQualityGovernor} from './m-world-quality.mjs?v=67';
-import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=67';
-import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs?v=67';
+import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=68';
+import {createSecondaryPoseCompositor} from './m-world-pose-compositor.mjs?v=68';
+import {createUmbrella} from './m-world-umbrella.mjs?v=68';
+import {createHeadClearanceSampler} from './m-world-head-clearance.mjs?v=68';
+import {createGestureHandoff} from './m-world-gesture-handoff.mjs?v=68';
+import {configureActorOcclusion,configureCardOcclusion} from './m-world-actor-occlusion.mjs?v=68';
+import {weatherActorPose} from './m-world-weather-actor.mjs?v=68&sky=70';
+import {createAttentionDirector,createContextBlink,createFacialTargetMixer} from './m-world-attention.mjs?v=68';
+import {createPresenceDynamics} from './m-world-dynamics.mjs?v=68';
+import {createFacialContinuity} from './m-world-face-continuity.mjs?v=68';
+import {visualDepthMasks,visualDepthSide} from './m-world-occlusion.mjs?v=68';
+import {createMicroMotion} from './m-world-micro-motion.mjs?v=68';
+import {sampleEmbodiedRest} from './m-world-rest-pose.mjs?v=68';
+import {createLivingPerformance} from './m-world-living-performance.mjs?v=68';
+import {createSurfaceContact} from './m-world-surface-contact.mjs?v=68';
+import {createMotionContinuity} from './m-world-motion-continuity.mjs?v=68';
+import {createEmotionalBody} from './m-world-emotional-body.mjs?v=68';
+import {createPoseHandoff} from './m-world-pose-handoff.mjs?v=68';
+import {createLifeBridges} from './m-world-life-bridges.mjs?v=68';
+import {createSpontaneousPlay} from './m-world-spontaneous-play.mjs?v=68';
+import {createBetweenBeats} from './m-world-between-beats.mjs?v=68';
+import {createIntentCrossfade} from './m-world-intent-crossfade.mjs?v=68';
+import {createRenderQualityGovernor} from './m-world-quality.mjs?v=68';
+import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=68';
+import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs?v=68';
 
 const PART_COUNT=19;
 const EXPECTED_SIZE=16899868;
@@ -66,7 +66,7 @@ async function downloadGLB(onProgress=()=>{}){
 // V70 phone variant, built by tools/m-assets from the original parts above: the same 31-bone rig,
 // clips and morph targets with a simplified body (35% of its triangles) and the 4 strongest joint
 // influences per vertex, quantized and meshopt-compressed (served gzipped as .bin).
-export const M_MOBILE_MODEL=Object.freeze({path:'./assets/m-v7-web/m-mobile.bin',size:7009688});
+export const M_MOBILE_MODEL=Object.freeze({path:'./assets/m-v7-web/m-mobile-v71.bin',size:7392848});
 /** Phones (the same breakpoint as the canvas size) load the lighter model; desktop keeps the original. */
 export function modelVariant(matches=query=>window.matchMedia(query).matches){
  return matches('(max-width:720px)')?'mobile':'desktop';

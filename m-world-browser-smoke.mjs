@@ -237,7 +237,7 @@ try{
    if(/Failed to load resource.*404/.test(item.text))result.resourceWarnings.push(item);
    else result.consoleErrors.push(item);
   });
-  page.on('request',request=>{if(/\/assets\/(?:m-v6-web\/part-\d+|m-v7-web\/m-mobile)\.bin(?:\?|$)/.test(request.url()))modelChunkRequests++;});
+  page.on('request',request=>{if(/\/assets\/(?:m-v6-web\/part-\d+|m-v7-web\/m-mobile(?:-v\d+)?)\.bin(?:\?|$)/.test(request.url()))modelChunkRequests++;});
   page.on('response',response=>{
    if(response.status()>=400&&!icon(response.url()))result.httpErrors.push({url:response.url(),status:response.status()});
   });

@@ -7,13 +7,13 @@ import {frameIntervalMs,isOffscreen,M_FRAME_INTERVALS} from './m-world-quality.m
 const here=new URL('.',import.meta.url);
 const renderer=readFileSync(new URL('m-world-3d.mjs',here),'utf8');
 const controller=readFileSync(new URL('scroll-buddy.js',here),'utf8');
-const mobile=readFileSync(new URL('assets/m-v7-web/m-mobile.bin',here));
+const mobile=readFileSync(new URL('assets/m-v7-web/m-mobile-v71.bin',here));
 const mobileJson=JSON.parse(mobile.subarray(20,20+mobile.readUInt32LE(12)).toString('utf8').trim());
 
 test('V70 phone model: same rig, clips and morphs; lighter body; four influences; compressed',()=>{
  assert.equal(mobile.subarray(0,4).toString(),'glTF');
  assert.equal(mobile.readUInt32LE(8),mobile.length);
- assert.equal(Number(renderer.match(/M_MOBILE_MODEL=Object\.freeze\(\{path:'\.\/assets\/m-v7-web\/m-mobile\.bin',size:(\d+)\}\)/)?.[1]),mobile.length,
+ assert.equal(Number(renderer.match(/M_MOBILE_MODEL=Object\.freeze\(\{path:'\.\/assets\/m-v7-web\/m-mobile-v71\.bin',size:(\d+)\}\)/)?.[1]),mobile.length,
   'The loader expects the exact size of the committed phone model.');
  assert.ok(mobileJson.extensionsRequired.includes('EXT_meshopt_compression'));
  assert.ok(mobileJson.extensionsRequired.includes('KHR_mesh_quantization'));
