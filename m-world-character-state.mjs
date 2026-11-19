@@ -1,4 +1,4 @@
-import {weatherPresentation} from './m-world-weather-behavior.mjs?v=66';
+import {weatherPresentation} from './m-world-weather-behavior.mjs?v=67';
 /** Shared physical motivation and presentation, not another action executor.
  * The controller supplies accepted work and acknowledges real terminal outcomes.
  * No visitor pace, wall clock, storage, randomness, network or page text is read.
