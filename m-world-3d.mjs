@@ -1,37 +1,38 @@
 /** M World: original V6, bounded framing and actual WebGL depth occlusion. */
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
-import {readGLB} from './m-lab/swim-v3/threejs/glb-reader.js';
+import {readGLB} from './m-lab/swim-v3/threejs/glb-reader.js?v=67';
 import {preserveFullSkinning} from './m-lab/swim-v3/threejs/full-skinning.js';
 import {createFacialV6} from './m-lab/interactions/facial-v6.mjs?blink=v66';
 import {createMotionV8,motionPose,canonicalBoneName} from './m-lab/interactions/motion-v8.mjs?rig=v66';
 import {performanceStagePoseV15} from './m-lab/interactions/performance-v15.mjs?v16';
-import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=66';
-import {createSecondaryPoseCompositor} from './m-world-pose-compositor.mjs?v=66';
-import {createUmbrella} from './m-world-umbrella.mjs?v=66';
-import {createHeadClearanceSampler} from './m-world-head-clearance.mjs?v=66';
-import {createGestureHandoff} from './m-world-gesture-handoff.mjs?v=66';
-import {configureActorOcclusion,configureCardOcclusion} from './m-world-actor-occlusion.mjs?v=66';
-import {weatherActorPose} from './m-world-weather-actor.mjs?v=66&sky=70';
-import {createAttentionDirector,createContextBlink,createFacialTargetMixer} from './m-world-attention.mjs?v=66';
-import {createPresenceDynamics} from './m-world-dynamics.mjs?v=66';
-import {createFacialContinuity} from './m-world-face-continuity.mjs?v=66';
-import {visualDepthMasks,visualDepthSide} from './m-world-occlusion.mjs?v=66';
-import {createMicroMotion} from './m-world-micro-motion.mjs?v=66';
-import {sampleEmbodiedRest} from './m-world-rest-pose.mjs?v=66';
-import {createLivingPerformance} from './m-world-living-performance.mjs?v=66';
-import {createSurfaceContact} from './m-world-surface-contact.mjs?v=66';
-import {createMotionContinuity} from './m-world-motion-continuity.mjs?v=66';
-import {createEmotionalBody} from './m-world-emotional-body.mjs?v=66';
-import {createPoseHandoff} from './m-world-pose-handoff.mjs?v=66';
-import {createLifeBridges} from './m-world-life-bridges.mjs?v=66';
-import {createSpontaneousPlay} from './m-world-spontaneous-play.mjs?v=66';
-import {createBetweenBeats} from './m-world-between-beats.mjs?v=66';
-import {createIntentCrossfade} from './m-world-intent-crossfade.mjs?v=66';
-import {createRenderQualityGovernor} from './m-world-quality.mjs?v=66';
-import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=66';
-import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs?v=66';
+import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=67';
+import {createSecondaryPoseCompositor} from './m-world-pose-compositor.mjs?v=67';
+import {createUmbrella} from './m-world-umbrella.mjs?v=67';
+import {createHeadClearanceSampler} from './m-world-head-clearance.mjs?v=67';
+import {createGestureHandoff} from './m-world-gesture-handoff.mjs?v=67';
+import {configureActorOcclusion,configureCardOcclusion} from './m-world-actor-occlusion.mjs?v=67';
+import {weatherActorPose} from './m-world-weather-actor.mjs?v=67&sky=70';
+import {createAttentionDirector,createContextBlink,createFacialTargetMixer} from './m-world-attention.mjs?v=67';
+import {createPresenceDynamics} from './m-world-dynamics.mjs?v=67';
+import {createFacialContinuity} from './m-world-face-continuity.mjs?v=67';
+import {visualDepthMasks,visualDepthSide} from './m-world-occlusion.mjs?v=67';
+import {createMicroMotion} from './m-world-micro-motion.mjs?v=67';
+import {sampleEmbodiedRest} from './m-world-rest-pose.mjs?v=67';
+import {createLivingPerformance} from './m-world-living-performance.mjs?v=67';
+import {createSurfaceContact} from './m-world-surface-contact.mjs?v=67';
+import {createMotionContinuity} from './m-world-motion-continuity.mjs?v=67';
+import {createEmotionalBody} from './m-world-emotional-body.mjs?v=67';
+import {createPoseHandoff} from './m-world-pose-handoff.mjs?v=67';
+import {createLifeBridges} from './m-world-life-bridges.mjs?v=67';
+import {createSpontaneousPlay} from './m-world-spontaneous-play.mjs?v=67';
+import {createBetweenBeats} from './m-world-between-beats.mjs?v=67';
+import {createIntentCrossfade} from './m-world-intent-crossfade.mjs?v=67';
+import {createRenderQualityGovernor} from './m-world-quality.mjs?v=67';
+import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=67';
+import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs?v=67';
 
 const PART_COUNT=19;
 const EXPECTED_SIZE=16899868;
@@ -59,6 +60,29 @@ async function downloadGLB(onProgress=()=>{}){
  for(const part of buffers){data.set(part,offset);offset+=part.byteLength;}
  if(new DataView(data.buffer).getUint32(0,true)!==0x46546c67)
   throw new Error('Modelo V6 não reconhecido');
+ return data.buffer;
+}
+
+// V70 phone variant, built by tools/m-assets from the original parts above: the same 31-bone rig,
+// clips and morph targets with a simplified body (35% of its triangles) and the 4 strongest joint
+// influences per vertex, quantized and meshopt-compressed (served gzipped as .bin).
+export const M_MOBILE_MODEL=Object.freeze({path:'./assets/m-v7-web/m-mobile.bin',size:7009688});
+/** Phones (the same breakpoint as the canvas size) load the lighter model; desktop keeps the original. */
+export function modelVariant(matches=query=>window.matchMedia(query).matches){
+ return matches('(max-width:720px)')?'mobile':'desktop';
+}
+async function downloadMobileGLB(onProgress=()=>{}){
+ const response=await fetch(M_MOBILE_MODEL.path,{cache:'force-cache',credentials:'omit'});
+ if(!response.ok)throw new Error('Falta o modelo móvel: '+response.status);
+ const data=new Uint8Array(M_MOBILE_MODEL.size);let offset=0;
+ const reader=response.body.getReader();
+ for(;;){
+  const {done,value}=await reader.read();if(done)break;
+  if(offset+value.byteLength>data.byteLength)throw new Error('Modelo móvel maior do que o esperado');
+  data.set(value,offset);offset+=value.byteLength;onProgress(Math.floor(offset/M_MOBILE_MODEL.size*100));
+ }
+ if(offset!==M_MOBILE_MODEL.size)throw new Error('Modelo móvel incompleto: '+offset+' / '+M_MOBILE_MODEL.size);
+ if(new DataView(data.buffer).getUint32(0,true)!==0x46546c67)throw new Error('Modelo móvel não reconhecido');
  return data.buffer;
 }
 
@@ -136,8 +160,12 @@ export function fitCharacterFrame(bounds,size,worldSpan=WORLD_SPAN,marginRatio=.
 
 export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
  if(!window.WebGLRenderingContext)throw new Error('WebGL unavailable');
- const raw=await downloadGLB(onProgress),rawInfo=readGLB(raw);
- const gltf=await new GLTFLoader().parseAsync(raw,'');
+ const variant=modelVariant();
+ const raw=variant==='mobile'?await downloadMobileGLB(onProgress):await downloadGLB(onProgress);
+ const gltfLoader=new GLTFLoader();
+ if(variant==='mobile'){await MeshoptDecoder.ready;gltfLoader.setMeshoptDecoder(MeshoptDecoder);}
+ const rawInfo=readGLB(raw,{meshopt:MeshoptDecoder});
+ const gltf=await gltfLoader.parseAsync(raw,'');
  const source=gltf.scene,ownedTextures=new Set();
  source.traverse(object=>{
   if(!object.isMesh)return;
@@ -147,8 +175,11 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
  });
  const skin=preserveFullSkinning(gltf,rawInfo);
  const body=skin.meshes.find(m=>m.morphTargetDictionary?.Shoulder_Propulsion_Corrective!==undefined);
- if(!body||body.skeleton.bones.length!==31||new Set(body.skeleton.bones).size!==31||skin.maxUsed!==14||skin.sets!==4)
-  throw new Error('M requires the original 31-bone, 14-influence skin; four-influence fallback is not allowed.');
+ // Desktop: the original 31-bone, 14-influence skin, never a four-influence fallback. Phones (V70, by the
+ // owner's decision): the same 31 bones with the 4 strongest influences of the mobile model.
+ const skinOk=variant==='mobile'?skin.maxUsed<=4&&skin.sets===1:skin.maxUsed===14&&skin.sets===4;
+ if(!body||body.skeleton.bones.length!==31||new Set(body.skeleton.bones).size!==31||!skinOk)
+  throw new Error(variant==='mobile'?'The phone M requires the 31-bone rig with at most four influences.':'M requires the original 31-bone, 14-influence skin; four-influence fallback is not allowed.');
  const canvas=document.createElement('canvas');canvas.className='m-world-canvas';canvas.setAttribute('aria-hidden','true');
  const renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true,depth:true,stencil:true,powerPreference:'low-power'});
  renderer.setClearColor(0x000000,0);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.AgXToneMapping;renderer.toneMappingExposure=1;
@@ -183,13 +214,14 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   return {mesh,capacity:0,points:[],perimeter:[],rectCount:0,vertices:0};
  }
  const surfaceBatch=makeBatch(-1000),protectedBatch=makeBatch(-999);
- // Fine facial details need supersampling even on DPR-1 desktop displays.
- // Keep the existing upper bounds: 680px desktop, 416px mobile.
+ // Fine facial details need supersampling even on DPR-1 desktop displays (upper bound 680px).
+ // V70 phones: at most 2x (the 208px canvas needs it to stay sharp) and down to 1.5x on sustained slow frames,
+ // since phones pay for every extra pixel in battery and heat. Desktop may drop to 1.5x only when slow.
  function syncResolution(){
   const mobile=window.matchMedia('(max-width:720px)').matches,nextSize=mobile?M_CANVAS_SIZES.mobile:M_CANVAS_SIZES.desktop;
-  const ceiling=Math.max(2,Math.min(window.devicePixelRatio||1,mobile?2:2.5));
+  const ceiling=mobile?Math.min(Math.max(window.devicePixelRatio||1,1),2):Math.max(2,Math.min(window.devicePixelRatio||1,2.5));
   // Change resolution only after sustained frame pacing evidence.
-  const nextRatio=qualityGovernor.configure({maxRatio:ceiling,minRatio:mobile?1.5:1.75,device:mobile?'mobile':'desktop'});
+  const nextRatio=qualityGovernor.configure({maxRatio:ceiling,minRatio:1.5,device:mobile?'mobile':'desktop'});
   if(viewportSize===nextSize&&pixelRatio===nextRatio)return;
   viewportSize=nextSize;pixelRatio=nextRatio;renderer.setPixelRatio(pixelRatio);renderer.setSize(viewportSize,viewportSize,false);
  }
@@ -453,7 +485,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   }
   function getDiagnostics(){
    const weatherState=umbrellaRig.snapshot();
-   return {bones:31,rigBones:31,tailBones:motion.tailDiagnostics.connected,maxInfluences:skin.maxUsed,skinSets:skin.sets,
+   return {modelVariant:variant,bones:31,rigBones:31,tailBones:motion.tailDiagnostics.connected,maxInfluences:skin.maxUsed,skinSets:skin.sets,
     clips:clips.map(c=>c.name),detailMaps:textures.size,detailSlots,viewportSize,pixelRatio,renderPixels:[canvas.width,canvas.height],
     environment:{type:'PMREM RoomEnvironment',intensity:scene.environmentIntensity,toneMapping:'AgX'},
      quality:qualityGovernor.snapshot(),presence:presence.snapshot(),facialContinuity:facialContinuity.snapshot(),microMotion:microMotion.snapshot(),livingPerformance:{...livingPerformance.snapshot(),mode:lastLiving.mode,idle:lastLiving.idle,reaction:lastLiving.reaction},restPose:{...lastRestPose},contact:{...surfaceContact.snapshot(),supported:lastContact.supported},continuity:{...motionContinuity.snapshot(),mode:lastContinuity.mode},emotionalBody:{...emotionalBody.snapshot(),mood:lastEmotional.mood},characterPerformance:{...presentation},attention:{...lastAttention,attention:{...lastAttention.attention}},contextBlink:{...lastBlink,blink:lastBlink.blink?{...lastBlink.blink}:null},secondaryPose:secondaryPose.snapshot(),facialBlendRejected,handoff:{stage:stageHandoff.snapshot(),secondary:secondaryPose.snapshot()},lifeBridge:lifeBridges.snapshot(),spontaneousPlay:spontaneousPlay.snapshot(),betweenBeats:betweenBeats.snapshot(),intentCrossfade:intentCrossfade.snapshot(),

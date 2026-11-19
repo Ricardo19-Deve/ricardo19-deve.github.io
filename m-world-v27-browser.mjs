@@ -173,7 +173,7 @@ async function profile(name){
   page.on('response',response=>{if(response.url().startsWith(base.origin)&&response.status()>=400&&!response.url().endsWith('/favicon.ico'))report.assetErrors.push({profile:name,status:response.status(),url:response.url()});});
   const url=new URL(base);url.searchParams.set('m-debug','1');await page.goto(url.href,{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>MWorld?.snapshot().ready,undefined,{timeout:90000});await page.evaluate(()=>document.fonts.ready);
   result.original=await read(page);const r=result.original.snapshot.renderer;
-  check(name+': original Meshy rig, full skinning, textures and clips remain intact',r.bones===31&&r.tailBones===10&&r.maxInfluences===14&&r.skinSets===4&&r.detailMaps===10&&r.clips.length===6,{bones:r.bones,tail:r.tailBones,maxInfluences:r.maxInfluences,sets:r.skinSets,maps:r.detailMaps,clips:r.clips});
+  check(name+': original Meshy rig, full skinning, textures and clips remain intact',r.bones===31&&r.tailBones===10&&(r.modelVariant==='mobile'?r.maxInfluences<=4&&r.skinSets===1:r.maxInfluences===14&&r.skinSets===4)&&r.detailMaps===10&&r.clips.length===6,{bones:r.bones,tail:r.tailBones,maxInfluences:r.maxInfluences,sets:r.skinSets,maps:r.detailMaps,clips:r.clips});
   check(name+': canvas is sharp and shaders are clean',result.original.filter==='none'&&r.shaderErrors.length===0,{filter:result.original.filter,pixels:r.renderPixels,shaderErrors:r.shaderErrors});
   result.cadence=await cadence(page);check(name+': native warm drawing stays within desktop budget',result.cadence.fps>=40,result.cadence);
   if(scope==='all'&&!mobile)result.natural=await natural(page,name);

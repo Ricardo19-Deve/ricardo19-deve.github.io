@@ -136,7 +136,7 @@ function revisitAvailability(value){
 }
 function validateOriginal(name,value){
  const r=value.snapshot.renderer;
- check(name+': original rig, full weights, maps and clips',r.bones===31&&r.tailBones===10&&r.maxInfluences===14&&r.skinSets===4&&r.detailMaps===10&&r.clips.length===6,{bones:r.bones,tail:r.tailBones,influences:r.maxInfluences,skinSets:r.skinSets,maps:r.detailMaps,clips:r.clips});
+ check(name+': original rig, full weights, maps and clips',r.bones===31&&r.tailBones===10&&(r.modelVariant==='mobile'?r.maxInfluences<=4&&r.skinSets===1:r.maxInfluences===14&&r.skinSets===4)&&r.detailMaps===10&&r.clips.length===6,{bones:r.bones,tail:r.tailBones,influences:r.maxInfluences,skinSets:r.skinSets,maps:r.detailMaps,clips:r.clips});
  check(name+': native sharp bounded render',r.renderPixels.every(n=>n===(name==='mobile'?416:544))&&value.canvasFilter==='none'&&r.shaderErrors.length===0,{pixels:r.renderPixels,filter:value.canvasFilter,shaderErrors:r.shaderErrors});
 }
 async function interactiveChecks(page,name){

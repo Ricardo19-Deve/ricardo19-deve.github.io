@@ -2,7 +2,7 @@
  * The controller creates it only when its existing MET forecast changes.
  * No clock, polling, visitor data, new action executor or remembered fact.
  */
-import {weatherVisual} from './m-world-weather.mjs?v=66&sky=67';
+import {weatherVisual} from './m-world-weather.mjs?v=67&sky=67';
 const conditions=new Set(['clear','partly-cloudy','cloudy','rain','snow']);
 const finite=(value,min,max)=>typeof value==='number'&&Number.isFinite(value)&&value>=min&&value<=max;
 const clamp=(value,min=0,max=1)=>Math.min(max,Math.max(min,value));

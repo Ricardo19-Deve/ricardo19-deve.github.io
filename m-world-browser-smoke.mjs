@@ -237,7 +237,7 @@ try{
    if(/Failed to load resource.*404/.test(item.text))result.resourceWarnings.push(item);
    else result.consoleErrors.push(item);
   });
-  page.on('request',request=>{if(/\/assets\/m-v6-web\/part-\d+\.bin(?:\?|$)/.test(request.url()))modelChunkRequests++;});
+  page.on('request',request=>{if(/\/assets\/(?:m-v6-web\/part-\d+|m-v7-web\/m-mobile)\.bin(?:\?|$)/.test(request.url()))modelChunkRequests++;});
   page.on('response',response=>{
    if(response.status()>=400&&!icon(response.url()))result.httpErrors.push({url:response.url(),status:response.status()});
   });
@@ -348,7 +348,7 @@ try{
     return {resources,encodedBytes:resources.reduce((s,e)=>s+e.encodedBodySize,0),observedTransferBytes:resources.reduce((s,e)=>s+e.transferSize,0),scope:'Same-origin observed resource timing before QA reload; encoded payload and transfer including headers are separate.'};
    });
    const d=result.hero.debug?.renderer;
-   check(name+': original rig, full skinning and six clips preserved',d?.bones===31&&d.tailBones===10&&d.maxInfluences===14&&d.skinSets===4&&d.clips?.length===6&&!d.shaderErrors?.length,{bones:d?.bones,tailBones:d?.tailBones,maxInfluences:d?.maxInfluences,skinSets:d?.skinSets,clips:d?.clips,shaderErrors:d?.shaderErrors,render:d?.render,stats:result.hero.debug?.stats});
+   check(name+': original rig, full skinning and six clips preserved',d?.bones===31&&d.tailBones===10&&(d.modelVariant==='mobile'?d.maxInfluences<=4&&d.skinSets===1:d.maxInfluences===14&&d.skinSets===4)&&d.clips?.length===6&&!d.shaderErrors?.length,{bones:d?.bones,tailBones:d?.tailBones,maxInfluences:d?.maxInfluences,skinSets:d?.skinSets,clips:d?.clips,shaderErrors:d?.shaderErrors,render:d?.render,stats:result.hero.debug?.stats});
    result.autonomous=await observeAutonomous(page,name);
    check(name+': autonomous director stays finite and live',result.autonomous.samples.length>80&&result.autonomous.samples.every(s=>s.active&&!s.frozen&&[s.x,s.y,s.depth].every(Number.isFinite)),{observedModes:result.autonomous.observedModes,observedPhases:result.autonomous.observedPhases,events:result.autonomous.events,maxFrameStep:result.autonomous.maxFrameStep});
    if(name==='desktop'){result.livePerch=await exerciseLivePerch(page);const p=result.livePerch;check('Desktop production perch stays attached while scrolling',p.available&&p.atContact!==null&&p.scrollAt!==null&&p.afterScrollHoldSamples>=5&&p.maxAfterScrollFootGap<=3,p);}

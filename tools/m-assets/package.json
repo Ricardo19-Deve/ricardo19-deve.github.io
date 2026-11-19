@@ -1,0 +1,15 @@
+{
+  "name": "m-assets",
+  "private": true,
+  "type": "module",
+  "description": "Builds the web GLB variants of M from the original V6 model (assets/m-v6-web).",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "@gltf-transform/functions": "^4.5.1",
+    "meshoptimizer": "^1.3.0"
+  }
+}

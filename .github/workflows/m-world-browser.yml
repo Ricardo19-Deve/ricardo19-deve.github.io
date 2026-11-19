@@ -9,6 +9,7 @@ on:
       - 'interactions.js'
       - 'styles.css'
       - 'assets/m-v6-web/**'
+      - 'assets/m-v7-web/**'
       - 'assets/m-v6-detail/**'
       - 'm-lab/interactions/**'
       - 'm-lab/swim-v3/threejs/**'

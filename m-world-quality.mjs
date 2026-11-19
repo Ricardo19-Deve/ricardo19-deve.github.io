@@ -34,3 +34,22 @@ export function createRenderQualityGovernor({maxRatio=2.5,minRatio=1.75}={}){
  }
  return {configure,observe,snapshot:()=>({ratio,maxRatio:ceiling,minRatio:floor,device:profile,changes,slowMs:slow,fastMs:fast})};
 }
+
+/**
+ * V70: frame pacing. M never draws more than 60 frames a second (120 Hz screens
+ * do half the work), 30 while she sleeps or rests still on a card (unless the page
+ * is scrolling, so a perched M stays attached), and 20 while she is entirely off
+ * screen. Intervals stay within the controller's 50 ms time step, so her clock does
+ * not slow down. Returns the minimum milliseconds between two drawn frames.
+ */
+export const M_FRAME_INTERVALS=Object.freeze({active:1000/60,calm:1000/30,offscreen:1000/20});
+export function frameIntervalMs({sleeping=false,resting=false,scrolling=false,offscreen=false}={}){
+ if(offscreen)return M_FRAME_INTERVALS.offscreen;
+ if((sleeping||resting)&&!scrolling)return M_FRAME_INTERVALS.calm;
+ return M_FRAME_INTERVALS.active;
+}
+/** True when the actor rectangle is completely outside the viewport. */
+export function isOffscreen(rect,viewport){
+ if(!rect||!viewport)return false;
+ return rect.right<0||rect.bottom<0||rect.left>viewport.width||rect.top>viewport.height;
+}
