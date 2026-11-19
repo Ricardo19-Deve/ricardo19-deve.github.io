@@ -27,7 +27,7 @@ o telemóvel pode usar uma versão mais leve da M (menos triângulos, 4 influên
   o scroll, para continuar presa ao cartão) e 20 quando está totalmente fora do ecrã. Os intervalos ficam
   dentro do passo de 50 ms do controlador, por isso o relógio da M não abranda. Com movimento reduzido, os
   frames continuam a ser desenhados a pedido.
-- **Densidade de píxeis:** no telemóvel no máximo 1,75× (1,5× com frames lentos sustentados), em vez de 2×;
+- **Densidade de píxeis:** no telemóvel no máximo 2× (1,5× com frames lentos sustentados), em vez de 2×;
   no desktop o mínimo com frames lentos passa de 1,75× para 1,5×, o máximo continua 2–2,5×.
 
 ## Medições (Chromium com GPU Intel Arc via ANGLE/D3D11, Playwright; telemóvel emulado 390×844 a 3×)
@@ -37,7 +37,7 @@ o telemóvel pode usar uma versão mais leve da M (menos triângulos, 4 influên
 | Modelo descarregado no telemóvel | 19 pedidos, 16,9 MB (≈9,9 MB com gzip) | 1 pedido, 7,0 MB (≈5,8 MB com gzip) |
 | Triângulos desenhados no telemóvel | 155 022 | 83 466 |
 | Influências por vértice no telemóvel | 14 (4 conjuntos) | 4 (1 conjunto) |
-| Canvas no telemóvel | 416×416 px | 312–364 px (1,5–1,75×) |
+| Canvas no telemóvel | 416×416 px | 416 px (312 px só com frames lentos sustentados) |
 | Frames da M por segundo a dormir | ~60 (desktop) / ~53 (telemóvel) | 30 / 30 |
 | Desktop: modelo, influências, resolução | 16,9 MB, 14, 544×544 | igual |
 

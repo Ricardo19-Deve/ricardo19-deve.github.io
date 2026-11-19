@@ -215,11 +215,11 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
  }
  const surfaceBatch=makeBatch(-1000),protectedBatch=makeBatch(-999);
  // Fine facial details need supersampling even on DPR-1 desktop displays (upper bound 680px).
- // V70 phones: at most 1.75x (the small canvas stays sharp) and down to 1.5x on sustained slow frames,
+ // V70 phones: at most 2x (the 208px canvas needs it to stay sharp) and down to 1.5x on sustained slow frames,
  // since phones pay for every extra pixel in battery and heat. Desktop may drop to 1.5x only when slow.
  function syncResolution(){
   const mobile=window.matchMedia('(max-width:720px)').matches,nextSize=mobile?M_CANVAS_SIZES.mobile:M_CANVAS_SIZES.desktop;
-  const ceiling=mobile?Math.min(Math.max(window.devicePixelRatio||1,1),1.75):Math.max(2,Math.min(window.devicePixelRatio||1,2.5));
+  const ceiling=mobile?Math.min(Math.max(window.devicePixelRatio||1,1),2):Math.max(2,Math.min(window.devicePixelRatio||1,2.5));
   // Change resolution only after sustained frame pacing evidence.
   const nextRatio=qualityGovernor.configure({maxRatio:ceiling,minRatio:1.5,device:mobile?'mobile':'desktop'});
   if(viewportSize===nextSize&&pixelRatio===nextRatio)return;
