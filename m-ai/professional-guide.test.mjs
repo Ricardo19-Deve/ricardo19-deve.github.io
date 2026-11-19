@@ -214,3 +214,31 @@ test('localized factual or unknown professional answers and unrelated character 
   assert.equal(normalizeProfessionalReply(output,message,language),output);
  }
 });
+
+test('V67 questions about the projects themselves get the plain-language professional guide',async()=>{
+ for(const q of ['a app é segura?','O Feldavi guarda os meus dados?','Is the app secure?','What happens to my personal data?',
+  'O RevMend já está disponível?','Que jogos publicou?'])assert.equal(isProfessionalQuestion(q),true,q);
+ for(const q of ['Quem és tu, M?','O que gostas de fazer?','Onde encontraste a pequena luz?'])assert.equal(isProfessionalQuestion(q),false,q);
+ const {prompt}=await query('a app é segura?');
+ assert.match(prompt.instructions,/PROFESSIONAL PORTFOLIO PRESENTATION/);
+ assert.match(prompt.instructions,/plain everyday language/);
+ assert.match(prompt.instructions,/Never mention file names, page paths or URLs/);
+ assert.match(prompt.instructions,/o Feldavi/);
+ const {PORTFOLIO_CONTEXT}=await import('./portfolio-context.mjs');
+ assert.equal(/\.html/.test(JSON.stringify(PORTFOLIO_CONTEXT)),false,'Facts carry no page file names');
+});
+
+test('V67 a question asked on a project card is about the project unless it is about M',async()=>{
+ const ask=async(message,component)=>{
+  const calls=[];
+  const handler=createHandler({env:{OPENAI_API_KEY:'mock-secret'},quota,
+   fetchImpl:async(url,opts)=>{calls.push(JSON.parse(opts.body));return response('Sim.');}});
+  const res=await handler(new Request('https://unit.test/api/m/respond',{method:'POST',
+   headers:{origin:'https://ricardo19-deve.github.io','content-type':'application/json'},
+   body:JSON.stringify({message,history:[],context:{section:'projects',language:'pt',component}})}));
+  assert.equal(res.status,200);
+  return calls[0].instructions;
+ };
+ assert.match(await ask('e isto funciona offline?','project-salesforce-mobile'),/PROFESSIONAL PORTFOLIO PRESENTATION/);
+ assert.doesNotMatch(await ask('Quem és tu, M?','project-salesforce-mobile'),/PROFESSIONAL PORTFOLIO PRESENTATION/);
+});

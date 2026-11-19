@@ -37,11 +37,19 @@ export function isPublicationFollowUp(message='',history=[]){
  return false;
 }
 
+/** Questions about M herself (her story, tastes, little light): answered in character, never as Ricardo's guide. */
+export function isCharacterQuestion(message=''){
+ const q=fold(message).trim();
+ return /\b(?:quem es tu|quem e a m|who are you|what do you like|o que gostas|a tua historia|your story|pequena luz|little light|recanto|lookout|as tuas aventuras|your adventures)\b/u.test(q)
+    && !/\b(?:ricardo|trabalho|servicos|services|professional|career|carreira)\b/u.test(q);
+}
+
 export function isProfessionalQuestion(message=''){
  const q=fold(message).trim();
  if(!q)return false;
- if(/\b(?:quem es tu|quem e a m|who are you|what do you like|o que gostas|a tua historia|your story|pequena luz|little light|recanto|lookout|as tuas aventuras|your adventures)\b/u.test(q)
-    && !/\b(?:ricardo|trabalho|servicos|services|professional|career|carreira)\b/u.test(q))return false;
+ if(isCharacterQuestion(q))return false;
+ // V67: questions about the projects themselves (is the app secure, what happens to my data) are professional too.
+ if(/\b(?:feldavi|revmend|epoxy|buzz|magnet bloom|stackout|word pour|potion mix|wizards?|project board|apps?|aplicac\w*|applications?|segur\w*|secur\w*|privacidade|privacy|dados|personal data|ios|iphone|appexchange|app store|open source|codigo|source code|jogos?|games?)\b/u.test(q))return true;
  return /\b(?:ricardo|pinheiro|about him|sobre ele|who is he|his experience|his background|quem e ele|quem e o autor|developer|desenvolvedor|salesforce|consult|servicos?|servicios?|services?|ajudar|help me with|contratar|hire|collaborat|colaborar|parceria|contact\w*|contat\w*|linkedin|github|percurso|carreira|career|experiencia|experience|competencias|expertise|skills|certificac|certification|projetos?|projects?|portfolio|portefolio|empresa|business systems|software|integrac|integrations?|architect|tecnologia|technology|profissao|profissional|professional)\b/u.test(q);
 }
 
@@ -57,11 +65,14 @@ export const CONVERSATION_FLOW_RULES = [
 export const PROFESSIONAL_PRESENTATION_RULES = [
  'PROFESSIONAL PORTFOLIO PRESENTATION — HIGHEST PRIORITY FOR THIS QUESTION:',
  "This site introduces Ricardo Pinheiro to prospective collaborators, hiring managers, clients and professional contacts. The visitor asks about the person and his work, NOT M's fictional adventures. Speak as a knowledgeable, credible, welcoming professional guide.",
- "Start DIRECTLY with Ricardo and the requested fact or value; never start with M's tastes, little lights, fictional corners, magical discoveries, what you like to explore or any fantasy metaphor.",
+ "Start DIRECTLY with Ricardo (or the project the visitor asks about) and the requested fact or value; never start with M's tastes, little lights, fictional corners, magical discoveries, what you like to explore or any fantasy metaphor.",
  'For open questions such as Who is Ricardo / O que podes dizer sobre o Ricardo: explain his professional role, Salesforce and enterprise-systems expertise, and independent software-product experience; naturally invite the visitor to explore relevant work or the Contact section.',
  'For what services / how can he help: explain capabilities verifiable in the public portfolio: Salesforce solution design, Apex/LWC, CRM workflows, system integrations, web/mobile/cloud applications, and AI-enabled independent projects if relevant. Do NOT promise packaged paid services, availability for freelance work, guaranteed results or confidential employer projects.',
  'For career questions, describe the progression and impact areas clearly instead of dumping a list of technologies. For contact questions, point to the Contact section with public LinkedIn/GitHub links; do not invent an email address.',
- 'Answer in the visitor language. Use 2–4 cohesive short sentences with a conversational, credible tone, at most 700 characters. Keep the gentle warmth of M, but never her fictional mythology, in professional answers. Avoid unsupported metrics, employers, outcomes or claims.'
+ 'Answer in the visitor language. Use 2–4 cohesive short sentences with a conversational, credible tone, at most 700 characters. Keep the gentle warmth of M, but never her fictional mythology, in professional answers. Avoid unsupported metrics, employers, outcomes or claims.',
+ 'For a question about a project (for example: is the app secure?, what happens to my data?, what is it for?), start with the direct answer in plain everyday language, then give at most two or three concrete reasons from the public facts, translating jargon for a non-technical visitor (say "you sign in with your company\'s own Salesforce login" rather than listing OAuth, PKCE or cipher names, unless the visitor asks for technical detail).',
+ 'Do not end with caveats about audits, certifications, guarantees or what the portfolio does not mention unless the visitor asks for them. Never mention file names, page paths or URLs (such as .html pages): say "the Feldavi case study on this portfolio" instead.',
+ 'In Portuguese, product names are masculine: o Feldavi, o RevMend (or a app Feldavi).'
 ].join('\n');
 
 // These are the same approved public facts in each supported reply language.
