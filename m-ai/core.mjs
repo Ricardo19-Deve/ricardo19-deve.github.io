@@ -2,7 +2,7 @@ import { PORTFOLIO_CONTEXT } from './portfolio-context.mjs';
 import {createPublicActivityReader,mergeVerifiedActivities} from './public-activity.mjs';
 import {createDMALiveReader} from './linkedin-live.mjs';
 import {createMemberPostsReader} from './member-posts.mjs';
-import {isPublicationQuestion,isPublicationFollowUp,isProfessionalQuestion,PROFESSIONAL_PRESENTATION_RULES,CONVERSATION_FLOW_RULES,normalizeProfessionalReply} from './professional-guide.mjs';
+import {isPublicationQuestion,isPublicationFollowUp,isProfessionalQuestion,isCharacterQuestion,PROFESSIONAL_PRESENTATION_RULES,CONVERSATION_FLOW_RULES,normalizeProfessionalReply} from './professional-guide.mjs';
 import { DIRECTOR_OPERATION } from './director.mjs';
 import {questionLanguage,languageInstruction,replyInDifferentLanguage,languageFallback} from './language.mjs';
 import { getContextComponent } from '../m-world-context.mjs';
@@ -55,7 +55,9 @@ const CHAT_OPERATION = Object.freeze({
   refusal: input => refusal(input.context.language),
   payload(input,publicActivity=null) {
     const postsQuestion=isPublicationQuestion(input.message)||isPublicationFollowUp(input.message,input.history);
-    const professional=isProfessionalQuestion(input.message)||postsQuestion;
+    // A question asked on a project card is about that project, unless it is about M herself.
+    const onProject=getContextComponent(input.context.component)?.kind==='project'&&!isCharacterQuestion(input.message);
+    const professional=isProfessionalQuestion(input.message)||onProject||postsQuestion;
     const state=publicActivity?.linkedinStatus;
     const detail={
      'not-ready':'LinkedIn returned HTTP 404 (No data found) for MEMBER_SHARE_INFO. The snapshot may still be preparing after consent, OR no data may be available for this member/domain. This does not prove there are no public posts or confirm the snapshot is processing. No verified posts are available yet; retry later.' ,
