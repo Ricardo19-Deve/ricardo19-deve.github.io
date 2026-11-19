@@ -1,6 +1,7 @@
 /** Expressive V6 acting: bounded local Euler offsets; no rig or asset changes. */
+import {SLEEP_DURATION,SLEEP_TIMELINE,sampleSleep} from './m-world-sleep.mjs?v=68';
 export const M_GESTURES=Object.freeze(['wave','curious','surprised','shy','playful','wink','nod','sleep','hop','think','paw']);
-export const GESTURE_DURATIONS=Object.freeze({wave:3.1,curious:3.6,surprised:2.25,shy:3.3,playful:3.7,wink:2.5,nod:2.8,sleep:12.4,hop:3.5,think:4.2,paw:3.2});
+export const GESTURE_DURATIONS=Object.freeze({wave:3.1,curious:3.6,surprised:2.25,shy:3.3,playful:3.7,wink:2.5,nod:2.8,sleep:SLEEP_DURATION,hop:3.5,think:4.2,paw:3.2});
 // A prop controller crosses this authored contact once; the sampler itself has
 // no side effects, physics, timers or completion accounting.
 export const PAW_CONTACT_PROGRESS=.43;
@@ -9,7 +10,7 @@ const smooth=n=>{const t=clamp(n);return t*t*t*(t*(t*6-15)+10);};
 const rise=(p,a,b)=>smooth((p-a)/(b-a));
 const window=(p,a,b,c,d)=>rise(p,a,b)*(1-rise(p,c,d));
 const pulse=(p,a,b,c)=>window(p,a,b,b,c);
-export const GESTURE_PHASES=Object.freeze(Object.fromEntries(Object.entries({wave:[.19,.72],curious:[.22,.75],surprised:[.12,.49],shy:[.23,.73],playful:[.20,.73],wink:[.23,.65],nod:[.22,.73],sleep:[.22,.77],hop:[.24,.67],think:[.26,.73],paw:[.24,.66]}).map(([name,bounds])=>[name,Object.freeze(bounds)])));
+export const GESTURE_PHASES=Object.freeze(Object.fromEntries(Object.entries({wave:[.19,.72],curious:[.22,.75],surprised:[.12,.49],shy:[.23,.73],playful:[.20,.73],wink:[.23,.65],nod:[.22,.73],sleep:[SLEEP_TIMELINE.settle,SLEEP_TIMELINE.sleep],hop:[.24,.67],think:[.26,.73],paw:[.24,.66]}).map(([name,bounds])=>[name,Object.freeze(bounds)])));
 const expressions=Object.freeze({wave:'happy',curious:'curious',surprised:'surprised',shy:'neutral',playful:'happy',wink:'happy',nod:'happy',sleep:'neutral',hop:'happy',think:'curious',paw:'happy'});
 
 /**
@@ -154,30 +155,9 @@ export function sampleGesture({name,age=0,side=1,reducedMotion=false}={}){
    add('Tail.'+String(i).padStart(2,'0'),-.016*follow,0,s*.008*follow);
   }
  }else if(name==='sleep'){
-  // A deliberate settle, several quiet breaths and a slower waking stretch.
-  // The original curved HAT targets do the closing; the eye meshes are intact.
-  const settle=window(p,.03,.27,.75,.99),cozy=window(p,.12,.31,.75,1);
-  const closure=window(p,.16,.30,.74,.94),wake=pulse(p,.78,.87,.99);
-  const breath=window(p,.25,.34,.72,.92)*Math.sin((p-.30)*Math.PI*8);
-  blink={left:closure,right:window(p,.17,.31,.75,.95)};
-  add('Body',.115*settle+.009*breath,0,s*.035*settle);
-  add('Chest',.145*settle+.014*breath,0,-s*.055*cozy);
-  add('Neck',.095*settle-.055*wake,0,s*.025*settle);
-  add('Head',.29*settle-.09*wake,s*.04*settle,s*.13*settle);
-  for(const [suffix,sign]of [['L',1],['R',-1]]){
-   add('Arm.'+suffix,.11*cozy-.07*wake,0,sign*.04*cozy);
-   add('Forearm.'+suffix,sign*.27*cozy,0,-sign*.23*cozy);
-   add('Hand.'+suffix,sign*.055*cozy,0,-sign*.07*cozy);
-   add('Leg.'+suffix,.22*cozy-.12*wake,0,sign*.03*cozy);
-   add('Foot.'+suffix,-.115*cozy+.065*wake);
-   add('Ear.'+suffix,.14*cozy-.06*wake,0,-sign*.065*cozy);
-   add('EarTip.'+suffix,.065*window(p,.18,.37,.78,1));
-  }
-  for(let i=1;i<=10;i++){
-   const lag=(i-1)*.008,curl=window(p,.14+lag,.34+lag,.74+lag,1);
-   const follow=window(p,.27+lag,.38+lag,.72+lag,1)*Math.sin((p-.30-lag)*Math.PI*8);
-   add('Tail.'+String(i).padStart(2,'0'),-.013*curl+.004*follow,s*.003*follow,s*.028*curl);
-  }
+  // V71: wind down, curl up, breathe, wake with a stretch (m-world-sleep.mjs).
+  const nap=sampleSleep({age,duration,side:s});
+  if(nap){Object.assign(pose,nap.pose);blink=nap.blink;}
  }else if(name==='hop'){
   const gather=pulse(p,.015,.18,.34),push=pulse(p,.19,.29,.48);
   const airborne=window(p,.25,.39,.59,.77),land=pulse(p,.64,.78,.97);

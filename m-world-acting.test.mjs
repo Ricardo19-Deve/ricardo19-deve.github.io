@@ -11,7 +11,8 @@ test('legacy and living-routine gestures have declared bounded durations and pha
  assert.deepEqual(M_GESTURES.slice(0,7),['wave','curious','surprised','shy','playful','wink','nod']);
  for(const name of ['sleep','hop','think','paw'])assert.ok(M_GESTURES.includes(name));
  assert.ok(Object.isFrozen(M_GESTURES)&&Object.isFrozen(GESTURE_DURATIONS));
- for(const name of M_GESTURES){assert.ok(GESTURE_DURATIONS[name]>1.5&&GESTURE_DURATIONS[name]<14);assert.ok(Object.isFrozen(GESTURE_PHASES[name]));assert.ok(0<GESTURE_PHASES[name][0]&&GESTURE_PHASES[name][0]<GESTURE_PHASES[name][1]&&GESTURE_PHASES[name][1]<1);}
+ // V71: the nap is the one long routine (wind down, curl up, about two breaths, wake), the rest stay short.
+ for(const name of M_GESTURES){assert.ok(GESTURE_DURATIONS[name]>1.5&&GESTURE_DURATIONS[name]<(name==='sleep'?24:14));assert.ok(Object.isFrozen(GESTURE_PHASES[name]));assert.ok(0<GESTURE_PHASES[name][0]&&GESTURE_PHASES[name][0]<GESTURE_PHASES[name][1]&&GESTURE_PHASES[name][1]<1);}
  for(const name of ['dance','__proto__',undefined])assert.deepEqual(sampleGesture({name,age:1}).pose,{});
 });
 test('gesture endpoints and invalid/reduced inputs have no additive motion',()=>{
@@ -181,18 +182,20 @@ test('wink closure uses independent source-compatible blink controls and release
  }
 });
 
-test('sleep closes the original lids progressively, holds both shut through breathing and wakes before completion',()=>{
+test('V71 sleep: heavy blinks, lids closed through the curled breathing hold, a sleepy blink on waking',()=>{
  const duration=GESTURE_DURATIONS.sleep,at=progress=>sampleGesture({name:'sleep',age:progress*duration});
- assert.ok(duration>=10&&duration<=14);
+ assert.ok(duration>=18&&duration<=24,'long enough for a wind-down, about two breaths and a wake');
+ assert.ok(at(.095).blink.left>.6&&at(.095).blink.left<.8,'first heavy blink only half closes');
+ assert.ok(at(.115).blink.left<at(.095).blink.left,'and reopens before the next one');
  assert.ok(at(.23).blink.left>0&&at(.23).blink.left<1);
- assert.ok(at(.23).blink.left>at(.23).blink.right,'the second lid follows the first subtly');
- for(const progress of [.32,.4,.5,.6,.7]){
+ assert.ok(at(.23).blink.left>=at(.23).blink.right,'the second lid follows the first subtly');
+ for(const progress of [.34,.4,.5,.6,.7,.78]){
   assert.equal(at(progress).blink.left,1);assert.equal(at(progress).blink.right,1);
   assert.equal(at(progress).lift,0);assert.equal(at(progress).contact,0);
  }
- assert.ok(Math.abs(at(.40).pose.Chest[0]-at(.52).pose.Chest[0])>.01,'sleep must visibly breathe during the closed hold');
- assert.ok(at(.85).blink.left>0&&at(.85).blink.left<.7);
- assert.ok(at(.96).pose.Head[0]<at(.6).pose.Head[0]*.2,'head comes back gently as lids reopen');
+ assert.ok(Math.abs(at(.42).pose.Chest[0]-at(.47).pose.Chest[0])>.01,'sleep must visibly breathe during the closed hold');
+ assert.ok(at(.88).blink.left>0&&at(.88).blink.left<.7);
+ assert.ok(at(.97).pose.Head[0]<at(.6).pose.Head[0]*.2,'head comes back gently as lids reopen');
  for(const age of [0,duration])assert.equal(sampleGesture({name:'sleep',age}).blink,null);
 });
 

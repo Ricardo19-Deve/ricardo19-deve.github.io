@@ -1,30 +1,30 @@
 import './m-analytics-bootstrap.mjs?v=34';
-import {createCharacter,characterReceiptId} from './m-world-character.mjs?v=67';
-import {createCharacterState,creatureEnergy} from './m-world-character-state.mjs?v=67&life=70';
-import {createAutonomy} from './m-world-autonomy.mjs?v=67&life=70';
-import {planBallFlight,sampleBallFlight} from './m-world-ball.mjs?v=67';
-import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=67';
-import {createSessionMemory} from './m-world-memory.mjs?v=67';
-import {createGrowthMemory,makeLivingSeed,growthFamilyForDecision} from './m-world-growth.mjs?v=67';
-import {createWorldKnowledge} from './m-world-world-knowledge.mjs?v=67';
-import {createLivedWorldStories} from './m-world-lived-stories.mjs?v=67';
-import {senseWorldRhythm} from './m-world-world-rhythm.mjs?v=67';
-import {getContextComponent,matchContextComponent} from './m-world-context.mjs?v=67';
-import {M_AFFECTS,AFFECT_DURATIONS} from './m-world-affect.mjs?v=67';
-import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=67';
-import {createWorldObserver} from './m-world-observer.mjs?v=67';
-import {frameIntervalMs,isOffscreen} from './m-world-quality.mjs?v=67';
-import {createWorldDirector} from './m-world-director.mjs?v=67';
-import {advanceLocomotion} from './m-world-locomotion.mjs?v=67';
+import {createCharacter,characterReceiptId} from './m-world-character.mjs?v=68';
+import {createCharacterState,creatureEnergy} from './m-world-character-state.mjs?v=68&life=70';
+import {createAutonomy} from './m-world-autonomy.mjs?v=68&life=70';
+import {planBallFlight,sampleBallFlight} from './m-world-ball.mjs?v=68';
+import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=68';
+import {createSessionMemory} from './m-world-memory.mjs?v=68';
+import {createGrowthMemory,makeLivingSeed,growthFamilyForDecision} from './m-world-growth.mjs?v=68';
+import {createWorldKnowledge} from './m-world-world-knowledge.mjs?v=68';
+import {createLivedWorldStories} from './m-world-lived-stories.mjs?v=68';
+import {senseWorldRhythm} from './m-world-world-rhythm.mjs?v=68';
+import {getContextComponent,matchContextComponent} from './m-world-context.mjs?v=68';
+import {M_AFFECTS,AFFECT_DURATIONS} from './m-world-affect.mjs?v=68';
+import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=68';
+import {createWorldObserver} from './m-world-observer.mjs?v=68';
+import {frameIntervalMs,isOffscreen} from './m-world-quality.mjs?v=68';
+import {createWorldDirector} from './m-world-director.mjs?v=68';
+import {advanceLocomotion} from './m-world-locomotion.mjs?v=68';
 import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
-import {MWorldBrain} from './m-world-brain.mjs?v=67';
-import {M_GESTURES,GESTURE_DURATIONS,PAW_CONTACT_PROGRESS} from './m-world-acting.mjs?v=67';
-import {createMCompanion} from './m-world-companion.mjs?v=67&ui=59';
-import {M_WORLD_CONFIG} from './m-world-config.mjs?v=67';
-import {createWeatherReader,M_WEATHER_REFRESH_MS,makeWeatherDemo} from './m-world-weather.mjs?v=67&sky=67';
-import {weatherBehaviorProfile,weatherEffortMultiplier} from './m-world-weather-behavior.mjs?v=67';
-import {mountWeatherStage} from './m-world-weather-stage.mjs?v=67&sky=69';
-import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=67';
+import {MWorldBrain} from './m-world-brain.mjs?v=68';
+import {M_GESTURES,GESTURE_DURATIONS,PAW_CONTACT_PROGRESS} from './m-world-acting.mjs?v=68';
+import {createMCompanion} from './m-world-companion.mjs?v=68&ui=59';
+import {M_WORLD_CONFIG} from './m-world-config.mjs?v=68';
+import {createWeatherReader,M_WEATHER_REFRESH_MS,makeWeatherDemo} from './m-world-weather.mjs?v=68&sky=67';
+import {weatherBehaviorProfile,weatherEffortMultiplier} from './m-world-weather-behavior.mjs?v=68';
+import {mountWeatherStage} from './m-world-weather-stage.mjs?v=68&sky=69';
+import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=68';
 
 (() => {
  'use strict';
@@ -817,7 +817,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(loading||avatar)return loading;
   loading=(async()=>{
    try{
-    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=67&sky=70');
+    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=68&sky=70');
     avatar=await mountMWorld3D(host,{onProgress(percent){layer.dataset.loadProgress=String(percent);if(active)toggle.textContent='M · '+percent+'%';}});
     metrics=avatar.getMetrics();cache.dirty=true;cache.lastRead=0;
     const world=worldSnapshot();

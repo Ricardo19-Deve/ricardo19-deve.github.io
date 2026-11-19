@@ -1,3 +1,15 @@
+# M World V71 — uma sesta natural
+
+A M já não tomba de lado como um bloco. Antes de dormir espreguiça-se e pisca os olhos devagar, depois
+aninha-se: baixa a cabeça, dobra a coluna e os joelhos, recolhe as patas e enrola a cauda à volta do
+corpo. Dorme a respirar devagar pelo peito, com um suspiro e pequenos estremecimentos, e acorda com uma
+piscadela e um espreguiçar. No telemóvel as pálpebras e as expressões voltam a mexer (correção do modelo
+da V70).
+
+[Fases, contratos alterados e verificação da V71](docs/m-world-v71/PROGRESS.md).
+
+---
+
 # M World V70 — mais leve no telemóvel, mais barata em todos os ecrãs
 
 No telemóvel a M carrega uma versão própria do modelo V6 (o mesmo rig de 31 ossos, clips e expressões,

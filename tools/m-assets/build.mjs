@@ -2,7 +2,7 @@
  * Builds the lighter phone variant of M from the original V6 model (assets/m-v6-web/part-*.bin,
  * the verified source asset the tests pin by hash). Desktop keeps loading the original parts.
  *
- * Output: assets/m-v7-web/m-mobile.bin (a GLB; the .bin name lets GitHub Pages serve it gzipped)
+ * Output: assets/m-v7-web/m-mobile-v71.bin (a GLB; the .bin name lets GitHub Pages serve it gzipped)
  *  - the body is simplified with meshoptimizer (open borders and UV seams locked);
  *  - every vertex keeps its 4 strongest joint influences, renormalised, in JOINTS_0 / WEIGHTS_0;
  *  - positions, normals, tangents and UVs are quantized (KHR_mesh_quantization) and all buffers are
@@ -92,7 +92,11 @@ for (const mesh of mobile.getRoot().listMeshes()) {
 const reduction = simplify(bodyPrimitive(mobile), MOBILE_BODY_RATIO);
 await mobile.transform(quantize({
   pattern: /^(POSITION|NORMAL|TANGENT|TEXCOORD_\d+)$/,
-  patternTargets: /^$/,
+  // V71: POSITION morph targets must be quantized with POSITION. Quantizing POSITION adds a
+  // dequantization scale to the mesh node; unquantized position targets were then scaled to almost
+  // nothing, so the phone model's eyelids could not close and its expressions were flat. Normal and
+  // tangent deltas are not scaled by the node, so they stay float (quantizing them darkened the face).
+  patternTargets: /^POSITION$/,
   quantizePosition: 16,
   quantizeNormal: 12,
   quantizeTexcoord: 14,
@@ -104,7 +108,7 @@ const bytes = await io.writeBinary(mobile);
 
 const outDir = new URL('assets/m-v7-web/', root);
 mkdirSync(outDir, {recursive: true});
-writeFileSync(new URL('m-mobile.bin', outDir), bytes);
+writeFileSync(new URL('m-mobile-v71.bin', outDir), bytes);
 
 console.log(JSON.stringify({
   source: {bytes: source.byteLength, gzip: gzipSync(source, {level: 9}).byteLength},
