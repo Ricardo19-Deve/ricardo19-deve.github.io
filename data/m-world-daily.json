@@ -1,15 +1,15 @@
 {
   "schema": 1,
-  "date": "2026-11-18",
+  "date": "2026-11-19",
   "source": "Wikipedia — On this day",
-  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/18",
+  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/19",
   "items": [
     {
-      "id": "2026-11-18:2011:science",
-      "year": 2011,
-      "title": "Software release life cycle",
-      "url": "https://en.wikipedia.org/wiki/Software_release_life_cycle",
-      "topic": "science"
+      "id": "2026-11-19:1991:culture",
+      "year": 1991,
+      "title": "Bolero",
+      "url": "https://en.wikipedia.org/wiki/Bolero",
+      "topic": "culture"
     }
   ]
 }
