@@ -1,3 +1,14 @@
+# M World V72 — cauda aconchegada, viagens fluidas e momentos de pausa
+
+Na sesta a cauda encosta-se ao corpo e enrola-se junto às patas, em vez de fazer um arco. As viagens
+entre cartões já não param em cada ponto intermédio. Quando está calma, a M tem agora cinco momentos de
+corpo inteiro (coçar a orelha, lavar a cara, olhar em volta, apanhar a cauda, sacudir-se), com intervalos
+e sem repetições seguidas; com movimento reduzido ficam desligados.
+
+[Implementação, contratos alterados e verificação da V72](docs/m-world-v72/PROGRESS.md).
+
+---
+
 # M World V71 — uma sesta natural
 
 A M já não tomba de lado como um bloco. Antes de dormir espreguiça-se e pisca os olhos devagar, depois
