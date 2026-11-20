@@ -479,14 +479,32 @@ export function planCardAction({rect,viewport,metrics,kind='peek',side=1,start={
 }
 
 /** A curved pose target. Steering the actual actor remains the caller's job. */
+// V72: consecutive moving segments are one gesture of travel. Each segment used
+// to ease in AND out, so M stopped at every waypoint (orbit corners, entry then
+// conceal then reveal). Now a run eases in on its first segment, moves through
+// the inner joins at speed and eases out on its last; anticipation and holds
+// still start and end at rest. The time -> segment mapping is unchanged.
+const MOVING_PHASES=new Set(['approach','arrival','reveal','recovery']);
+const moving=s=>Boolean(s)&&MOVING_PHASES.has(s.phase)&&!s.portalHold;
+const easeIn=u=>u*u*(2-u);
+const easeOut=u=>1-easeIn(1-u);
+export function travelEase(u,continuesFromPrevious=false,continuesIntoNext=false){
+ const x=bound(u,0,1);
+ if(continuesFromPrevious&&continuesIntoNext)return x;
+ if(continuesIntoNext)return easeIn(x);
+ if(continuesFromPrevious)return easeOut(x);
+ return ease(x);
+}
 export function sampleCardAction(plan,progress=0){
  const t=bound(progress,0,1),time=t*Math.max(1,finite(plan?.duration));
  const segments=plan?.segments||[];
- const segment=segments.find(s=>time<=s.end)||segments.at(-1);
+ const found=segments.findIndex(s=>time<=s.end),k=found<0?segments.length-1:found,segment=segments[k];
  if(!plan?.available||!segment)return {...(plan?.start||{x:0,y:0}),depth:1,phase:'hold',
   phaseProgress:0,portal:plan?.portal||null,portalHold:false,allowViewportExit:false,waitForArrival:false,available:false};
  const u=bound((time-segment.start)/Math.max(1,segment.end-segment.start),0,1);
- const p=cubic(segment.p0,segment.p1,segment.p2,segment.p3,ease(u));
+ const flowing=moving(segment);
+ const e=travelEase(u,flowing&&moving(segments[k-1]),flowing&&moving(segments[k+1]));
+ const p=cubic(segment.p0,segment.p1,segment.p2,segment.p3,e);
  return {...p,depth:segment.depth,phase:segment.phase,phaseProgress:u,portal:segment.portal,
   portalHold:segment.portalHold,waitForDepth:segment.portalHold,egress:segment.egress,
   allowViewportExit:segment.allowViewportExit,waitForArrival:segment.waitForArrival,

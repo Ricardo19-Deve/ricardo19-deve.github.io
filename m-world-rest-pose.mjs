@@ -8,7 +8,7 @@
  * breath. It is an additive render-only pose, not a new mesh, rig or asset.
  * All channels return to their neutral positions with zero slope.
  */
-import {SLEEP_DURATION,SLEEP_STAGE_ROLL,SLEEP_STAGE_SCALE,sampleSleep} from './m-world-sleep.mjs?v=68';
+import {SLEEP_DURATION,SLEEP_STAGE_ROLL,SLEEP_STAGE_SCALE,sampleSleep} from './m-world-sleep.mjs?v=69';
 
 export const REST_TILT_RADIANS=SLEEP_STAGE_ROLL;
 export const REST_MIN_SCALE=SLEEP_STAGE_SCALE;

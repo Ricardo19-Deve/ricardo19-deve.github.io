@@ -1,5 +1,5 @@
 /** Expressive V6 acting: bounded local Euler offsets; no rig or asset changes. */
-import {SLEEP_DURATION,SLEEP_TIMELINE,sampleSleep} from './m-world-sleep.mjs?v=68';
+import {SLEEP_DURATION,SLEEP_TIMELINE,sampleSleep} from './m-world-sleep.mjs?v=69';
 export const M_GESTURES=Object.freeze(['wave','curious','surprised','shy','playful','wink','nod','sleep','hop','think','paw']);
 export const GESTURE_DURATIONS=Object.freeze({wave:3.1,curious:3.6,surprised:2.25,shy:3.3,playful:3.7,wink:2.5,nod:2.8,sleep:SLEEP_DURATION,hop:3.5,think:4.2,paw:3.2});
 // A prop controller crosses this authored contact once; the sampler itself has

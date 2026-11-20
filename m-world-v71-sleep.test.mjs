@@ -23,14 +23,20 @@ test('V71 M curls up while asleep: spine, head, knees and a tail wrapped around 
  assert.equal(asleep.phase,'sleeping');
  for(const bone of ['Body','Chest','Neck','Head'])assert.ok(asleep.pose[bone][0]>.1,bone+' bends forward');
  assert.ok(asleep.pose['Leg.L'][0]>.3&&asleep.pose['Leg.R'][0]>.3,'knees drawn up');
- const curl=tail(asleep.pose).map(a=>a[2]);
- assert.ok(curl[0]<-.2&&curl[9]>.3,'the tail drops beside the body, then its outer half curls back underneath');
+ // V72: the root drops (Z) and the rest of the tail tucks under the body (X), curling toward the paws (Y).
+ const curl=tail(asleep.pose);
+ assert.ok(curl[0][2]<-.2&&curl[1][2]<-.2,'the tail root drops beside the body');
+ assert.ok(curl.slice(2).every(a=>a[0]<-.15),'the outer tail tucks snugly under the body, no hoop');
  assert.ok(Math.abs(asleep.stage.rotationZ)<=SLEEP_STAGE_ROLL+1e-9&&SLEEP_STAGE_ROLL<.35,'no rigid 76-degree tilt of the whole body');
 });
 
-test('V71 the tail curl is the same on both sides; the body roll mirrors',()=>{
+test('V72 the tail tuck mirrors only its sideways curl; the body roll mirrors',()=>{
  const left=sampleSleep({age:11,side:1}),right=sampleSleep({age:11,side:-1});
- assert.deepEqual(tail(left.pose),tail(right.pose),'the tail always leaves the body on the same side');
+ const a=tail(left.pose),b=tail(right.pose);
+ for(let i=0;i<10;i++){
+  assert.equal(a[i][0],b[i][0]);assert.equal(a[i][2],b[i][2]);
+  assert.ok(Math.abs(a[i][1]+b[i][1])<1e-12,'Tail.'+(i+1)+' curls toward the side M leans to');
+ }
  assert.equal(left.stage.rotationZ,-right.stage.rotationZ);
  assert.equal(left.pose.Head[2],-right.pose.Head[2]);
 });

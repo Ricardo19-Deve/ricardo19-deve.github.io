@@ -3,36 +3,37 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
-import {readGLB} from './m-lab/swim-v3/threejs/glb-reader.js?v=68';
+import {readGLB} from './m-lab/swim-v3/threejs/glb-reader.js?v=69';
 import {preserveFullSkinning} from './m-lab/swim-v3/threejs/full-skinning.js';
 import {createFacialV6} from './m-lab/interactions/facial-v6.mjs?blink=v66';
 import {createMotionV8,motionPose,canonicalBoneName} from './m-lab/interactions/motion-v8.mjs?rig=v66';
 import {performanceStagePoseV15} from './m-lab/interactions/performance-v15.mjs?v16';
-import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=68';
-import {createSecondaryPoseCompositor} from './m-world-pose-compositor.mjs?v=68';
-import {createUmbrella} from './m-world-umbrella.mjs?v=68';
-import {createHeadClearanceSampler} from './m-world-head-clearance.mjs?v=68';
-import {createGestureHandoff} from './m-world-gesture-handoff.mjs?v=68';
-import {configureActorOcclusion,configureCardOcclusion} from './m-world-actor-occlusion.mjs?v=68';
-import {weatherActorPose} from './m-world-weather-actor.mjs?v=68&sky=70';
-import {createAttentionDirector,createContextBlink,createFacialTargetMixer} from './m-world-attention.mjs?v=68';
-import {createPresenceDynamics} from './m-world-dynamics.mjs?v=68';
-import {createFacialContinuity} from './m-world-face-continuity.mjs?v=68';
-import {visualDepthMasks,visualDepthSide} from './m-world-occlusion.mjs?v=68';
-import {createMicroMotion} from './m-world-micro-motion.mjs?v=68';
-import {sampleEmbodiedRest} from './m-world-rest-pose.mjs?v=68';
-import {createLivingPerformance} from './m-world-living-performance.mjs?v=68';
-import {createSurfaceContact} from './m-world-surface-contact.mjs?v=68';
-import {createMotionContinuity} from './m-world-motion-continuity.mjs?v=68';
-import {createEmotionalBody} from './m-world-emotional-body.mjs?v=68';
-import {createPoseHandoff} from './m-world-pose-handoff.mjs?v=68';
-import {createLifeBridges} from './m-world-life-bridges.mjs?v=68';
-import {createSpontaneousPlay} from './m-world-spontaneous-play.mjs?v=68';
-import {createBetweenBeats} from './m-world-between-beats.mjs?v=68';
-import {createIntentCrossfade} from './m-world-intent-crossfade.mjs?v=68';
-import {createRenderQualityGovernor} from './m-world-quality.mjs?v=68';
-import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=68';
-import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs?v=68';
+import {M_GESTURES,GESTURE_DURATIONS,sampleGesture,createGestureLayer} from './m-world-acting.mjs?v=69';
+import {createSecondaryPoseCompositor} from './m-world-pose-compositor.mjs?v=69';
+import {createUmbrella} from './m-world-umbrella.mjs?v=69';
+import {createHeadClearanceSampler} from './m-world-head-clearance.mjs?v=69';
+import {createGestureHandoff} from './m-world-gesture-handoff.mjs?v=69';
+import {configureActorOcclusion,configureCardOcclusion} from './m-world-actor-occlusion.mjs?v=69';
+import {weatherActorPose} from './m-world-weather-actor.mjs?v=69&sky=70';
+import {createAttentionDirector,createContextBlink,createFacialTargetMixer} from './m-world-attention.mjs?v=69';
+import {createPresenceDynamics} from './m-world-dynamics.mjs?v=69';
+import {createFacialContinuity} from './m-world-face-continuity.mjs?v=69';
+import {visualDepthMasks,visualDepthSide} from './m-world-occlusion.mjs?v=69';
+import {createMicroMotion} from './m-world-micro-motion.mjs?v=69';
+import {sampleEmbodiedRest} from './m-world-rest-pose.mjs?v=69';
+import {createLivingPerformance} from './m-world-living-performance.mjs?v=69';
+import {createSurfaceContact} from './m-world-surface-contact.mjs?v=69';
+import {createMotionContinuity} from './m-world-motion-continuity.mjs?v=69';
+import {createEmotionalBody} from './m-world-emotional-body.mjs?v=69';
+import {createPoseHandoff} from './m-world-pose-handoff.mjs?v=69';
+import {createLifeBridges} from './m-world-life-bridges.mjs?v=69';
+import {createSpontaneousPlay} from './m-world-spontaneous-play.mjs?v=69';
+import {IDLE_MOMENTS,IDLE_DURATIONS,sampleIdleMoment,createIdleMoments} from './m-world-idle-moments.mjs?v=69';
+import {createBetweenBeats} from './m-world-between-beats.mjs?v=69';
+import {createIntentCrossfade} from './m-world-intent-crossfade.mjs?v=69';
+import {createRenderQualityGovernor} from './m-world-quality.mjs?v=69';
+import {advanceLocomotion,sampleLocomotionPose} from './m-world-locomotion.mjs?v=69';
+import {M_AFFECTS,AFFECT_DURATIONS,sampleAffect} from './m-world-affect.mjs?v=69';
 
 const PART_COUNT=19;
 const EXPECTED_SIZE=16899868;
@@ -88,6 +89,12 @@ async function downloadMobileGLB(onProgress=()=>{}){
 
 export const M_CANVAS_SIZES=Object.freeze({desktop:272,mobile:208});
 const WORLD_SPAN=3.2;
+/** Sum of two additive local-Euler poses (gesture layer + idle moment), within the ±.9 rad contract. */
+const mergePoses=(a={},b={})=>{
+ const out={...a};
+ for(const [name,angles] of Object.entries(b)){const base=out[name]||[0,0,0];out[name]=base.map((v,i)=>Math.max(-.9,Math.min(.9,v+angles[i])));}
+ return out;
+};
 const expressionFor=(mood,mode)=>{
  if(['neutral','happy','curious','surprised'].includes(mood))return mood;
  if(mood==='excited')return 'happy';
@@ -188,13 +195,13 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   shaderErrors.push(text);throw new Error('M skinning/depth shader compilation failed: '+text);
  };
  let viewportSize=0,pixelRatio=0,disposed=false,environmentTarget=null,clock=0,swimWeight=0,depth=1,spatialFrame=null,frameFit=null;
- const presence=createPresenceDynamics(),qualityGovernor=createRenderQualityGovernor(),microMotion=createMicroMotion(),livingPerformance=createLivingPerformance({seed:Math.floor(Math.random()*4294967295)}),surfaceContact=createSurfaceContact(),motionContinuity=createMotionContinuity(),emotionalBody=createEmotionalBody({seed:Math.floor(Math.random()*4294967295)}),lifeBridges=createLifeBridges(),spontaneousPlay=createSpontaneousPlay({seed:Math.floor(Math.random()*4294967295)}),betweenBeats=createBetweenBeats({seed:Math.floor(Math.random()*4294967295)}),intentCrossfade=createIntentCrossfade();
+ const presence=createPresenceDynamics(),qualityGovernor=createRenderQualityGovernor(),microMotion=createMicroMotion(),livingPerformance=createLivingPerformance({seed:Math.floor(Math.random()*4294967295)}),surfaceContact=createSurfaceContact(),motionContinuity=createMotionContinuity(),emotionalBody=createEmotionalBody({seed:Math.floor(Math.random()*4294967295)}),lifeBridges=createLifeBridges(),spontaneousPlay=createSpontaneousPlay({seed:Math.floor(Math.random()*4294967295)}),betweenBeats=createBetweenBeats({seed:Math.floor(Math.random()*4294967295)}),intentCrossfade=createIntentCrossfade(),idleMoments=createIdleMoments({seed:Math.floor(Math.random()*4294967295)});
   // One total budget and one continuous handoff for all secondary joint targets.
   const attentionDirector=createAttentionDirector({seed:0x66a11}),contextBlink=createContextBlink({seed:0x66b11}),facialTargetMixer=createFacialTargetMixer();
   const presentation={},secondaryTargets=Array.from({length:8},()=>({pose:null,weight:1}));
   let lastAttention=attentionDirector.sample(),lastBlink=contextBlink.sample(),facialBlendRejected=0;
   const stageHandoff=createPoseHandoff({halfLife:.25,limit:1.7});
- let lastContact=surfaceContact.sample(),lastContinuity=motionContinuity.sample(),lastEmotional=emotionalBody.sample({reducedMotion:true}),lastBridge=lifeBridges.sample({reducedMotion:true}),lastPlay=spontaneousPlay.sample({reducedMotion:true}),lastAmbient=betweenBeats.sample({reducedMotion:true}),lastTransition=intentCrossfade.sample({reducedMotion:true});
+ let lastContact=surfaceContact.sample(),lastContinuity=motionContinuity.sample(),lastEmotional=emotionalBody.sample({reducedMotion:true}),lastBridge=lifeBridges.sample({reducedMotion:true}),lastPlay=spontaneousPlay.sample({reducedMotion:true}),lastAmbient=betweenBeats.sample({reducedMotion:true}),lastTransition=intentCrossfade.sample({reducedMotion:true}),lastIdle=idleMoments.sample({reducedMotion:true});
  let lastRestPose=sampleEmbodiedRest();
  const scene=new THREE.Scene(),camera=new THREE.OrthographicCamera(-WORLD_SPAN/2,WORLD_SPAN/2,WORLD_SPAN/2,-WORLD_SPAN/2,.03,100);
  camera.position.set(0,0,8);camera.lookAt(0,0,0);camera.updateProjectionMatrix();camera.updateMatrixWorld(true);
@@ -346,11 +353,11 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    }
    frameSamples.push({...tag,...boundsRecord(poseBox)});
   }
-  function sample(time,{mode='float',expression='neutral',swimWeight=0,energy=.35,tailEnergy=.25,emotionAge=9,gesture=null,locomotion=null,affect=null,secondary=null,tailPhase,tailMood}={}){
+  function sample(time,{mode='float',expression='neutral',swimWeight=0,energy=.35,tailEnergy=.25,emotionAge=9,gesture=null,locomotion=null,affect=null,secondary=null,tailPhase,tailMood,idleLift=0}={}){
    const acting=sampleGesture(gesture||{});if(acting.envelope>0)expression=acting.expression;
    mixer.stopAllAction();for(const [name,bone]of bones)bone.quaternion.copy(rest.get(name));
    action.reset().setEffectiveWeight(swimWeight).play();action.paused=true;action.time=time;mixer.update(0);
-   source.position.copy(sourceOrigin);source.position.y+=acting.lift*characterHeight;
+   source.position.copy(sourceOrigin);source.position.y+=(acting.lift+idleLift)*characterHeight;
    if(energy>0){
     const poses=motionPose({time,modeAge:3,emotionAge,mode,expression,energy,tailEnergy,tailReactivity:1.5,tailFlow:.83,performanceImpact:1,swimWeight,tailPhase,tailMood});
     for(const [name,angles]of Object.entries(poses)){const bone=bones.get(name);if(!bone)continue;sampleEuler.set(...angles,'XYZ');sampleRotation.setFromEuler(sampleEuler);bone.quaternion.multiply(sampleRotation);}
@@ -378,6 +385,12 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    const gesture={name,side,age:progress*GESTURE_DURATIONS[name]};
    sample(2.2,{gesture});
    sample(2.2,{mode:'swim',swimWeight:.8,energy:.84,tailEnergy:.94,gesture});
+  }
+  // V72: full-body idle moments are fitted like gestures (their small lift is
+  // included through the same source offset the renderer applies).
+  for(const name of IDLE_MOMENTS)for(const side of [-1,1])for(const progress of gestureTimes){
+   const moment=sampleIdleMoment({name,side,age:progress*IDLE_DURATIONS[name]});
+   sample(2.2,{secondary:moment.pose,idleLift:moment.lift});
   }
   // Fit correlated, physically generated turn/arrival poses rather than independent joint maxima.
   for(const sign of [-1,1]){
@@ -488,7 +501,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    return {modelVariant:variant,bones:31,rigBones:31,tailBones:motion.tailDiagnostics.connected,maxInfluences:skin.maxUsed,skinSets:skin.sets,
     clips:clips.map(c=>c.name),detailMaps:textures.size,detailSlots,viewportSize,pixelRatio,renderPixels:[canvas.width,canvas.height],
     environment:{type:'PMREM RoomEnvironment',intensity:scene.environmentIntensity,toneMapping:'AgX'},
-     quality:qualityGovernor.snapshot(),presence:presence.snapshot(),facialContinuity:facialContinuity.snapshot(),microMotion:microMotion.snapshot(),livingPerformance:{...livingPerformance.snapshot(),mode:lastLiving.mode,idle:lastLiving.idle,reaction:lastLiving.reaction},restPose:{...lastRestPose},contact:{...surfaceContact.snapshot(),supported:lastContact.supported},continuity:{...motionContinuity.snapshot(),mode:lastContinuity.mode},emotionalBody:{...emotionalBody.snapshot(),mood:lastEmotional.mood},characterPerformance:{...presentation},attention:{...lastAttention,attention:{...lastAttention.attention}},contextBlink:{...lastBlink,blink:lastBlink.blink?{...lastBlink.blink}:null},secondaryPose:secondaryPose.snapshot(),facialBlendRejected,handoff:{stage:stageHandoff.snapshot(),secondary:secondaryPose.snapshot()},lifeBridge:lifeBridges.snapshot(),spontaneousPlay:spontaneousPlay.snapshot(),betweenBeats:betweenBeats.snapshot(),intentCrossfade:intentCrossfade.snapshot(),
+     quality:qualityGovernor.snapshot(),presence:presence.snapshot(),facialContinuity:facialContinuity.snapshot(),microMotion:microMotion.snapshot(),livingPerformance:{...livingPerformance.snapshot(),mode:lastLiving.mode,idle:lastLiving.idle,reaction:lastLiving.reaction},restPose:{...lastRestPose},contact:{...surfaceContact.snapshot(),supported:lastContact.supported},continuity:{...motionContinuity.snapshot(),mode:lastContinuity.mode},emotionalBody:{...emotionalBody.snapshot(),mood:lastEmotional.mood},characterPerformance:{...presentation},attention:{...lastAttention,attention:{...lastAttention.attention}},contextBlink:{...lastBlink,blink:lastBlink.blink?{...lastBlink.blink}:null},secondaryPose:secondaryPose.snapshot(),facialBlendRejected,handoff:{stage:stageHandoff.snapshot(),secondary:secondaryPose.snapshot()},lifeBridge:lifeBridges.snapshot(),spontaneousPlay:spontaneousPlay.snapshot(),idleMoment:{...idleMoments.snapshot(),weight:lastIdle.weight},betweenBeats:betweenBeats.snapshot(),intentCrossfade:intentCrossfade.snapshot(),
     framing:{rest:boundsRecord(restBox),envelope:boundsRecord(envelope),framed:boundsRecord(framed),scale:frameFit.scale,samples:frameSamples},
     occlusion:{supported:depthSupported,stencilSupported,stencilBits,actorClipMaterials,umbrellaClipMaterials,depth,visualSide:visualDepthSide(depth),worldZ:depthRoot.position.z,surfaceZ:0,protectedZ:depthPlan.protectedZ,surfaceRects:surfaceBatch.rectCount,protectedRects:protectedBatch.rectCount,maskDrawCalls:Number(surfaceBatch.mesh.visible)+Number(protectedBatch.mesh.visible)},
     render:{calls:renderer.info.render.calls,triangles:renderer.info.render.triangles,points:renderer.info.render.points,lines:renderer.info.render.lines,programs:renderer.info.programs.length,textures:renderer.info.memory.textures,geometries:renderer.info.memory.geometries},
@@ -518,6 +531,13 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    lastGesture=sampleGesture({...state.gesture,reducedMotion:reduced});
    // A visual recovery never keeps an interrupted action semantically active.
    lastVisualGesture=gestureHandoff.sample({frame:lastGesture,dt,reducedMotion:reduced,side:state.gesture?.side});
+   // V72: full-body idle moments only while M is genuinely quiet; anything
+   // else (a gesture, travel, reading, rest) takes over and the moment fades.
+   lastIdle=idleMoments.sample({dt,gesture:state.gesture||lastGesture.name||lastVisualGesture.transitioning,
+    moving:Math.hypot(vx,vy)>24||Boolean(state.routeActive)||(state.phase&&state.phase!=='hold'),reading:Boolean(state.reading),
+    resting:calm&&!['perch','perched'].includes(activity)&&state.mode!=='perch',perched:state.surfaceContact===true,
+    energy:Number.isFinite(state.characterEnergy)?state.characterEnergy:.65,
+    busy:Boolean(physical?.blocked),reducedMotion:reduced});
    lastRestPose=sampleEmbodiedRest({...state.gesture,reducedMotion:reduced});
    lastAffect=sampleAffect({...state.affect,reducedMotion:reduced||Boolean(lastGesture.name)});
    lastLiving=livingPerformance.sample({dt,vx,vy,attention:dynamics.attention,
@@ -548,7 +568,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    // V50: authored micro-adventures between genuine actions; never override
    // sleep, the gesture director, actual card contact or reduced motion.
    lastPlay=spontaneousPlay.sample({dt,mode:activity,phase:state.phase||'hold',
-    gesture:state.gesture,energy:state.characterEnergy,
+    gesture:state.gesture||(lastIdle.active?{name:'idle-moment'}:null),energy:state.characterEnergy,
     speed:Math.hypot(vx,vy),attached:lastContact.supported,
     attention:dynamics.attention,turn:state.locomotion?.turn||0,
     reading:Boolean(state.reading),reducedMotion:reduced,
@@ -558,7 +578,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
    lastAmbient=betweenBeats.sample({dt,mode:activity,phase:state.phase||'hold',
     energy:state.characterEnergy,speed:Math.hypot(vx,vy),
     attention:dynamics.attention,turn:state.locomotion?.turn||0,
-    gesture:state.gesture,attached:lastContact.supported,
+    gesture:state.gesture||(lastIdle.active?{name:'idle-moment'}:null),attached:lastContact.supported,
     reading:Boolean(state.reading),miniActive:lastPlay.active,
     affectActive:lastAffect.envelope>.04,reducedMotion:reduced});
    // V55: the face, eyes, neck and tail must hand off between PLAY and
@@ -591,12 +611,14 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
     tailEnergy:dynamics.tailEnergy,tailReactivity:dynamics.tailReactivity,tailFlow:dynamics.tailFlow,tailPhase:dynamics.tailPhase,tailMood:dynamics.tailMood,
     performanceImpact:dynamics.performanceImpact,swimWeight,bodyMotion:dynamics.bodyMotion});
    locomotionLayer.apply(sampleLocomotionPose(state.locomotion||{},{reducedMotion:reduced}));
-   gestureLayer.apply(lastVisualGesture.pose);
+   gestureLayer.apply(lastIdle.active?mergePoses(lastVisualGesture.pose,lastIdle.pose):lastVisualGesture.pose);
    secondaryLayer.apply(combinedSecondary);
-   source.position.copy(neutralSourcePosition);source.position.y+=lastVisualGesture.lift*characterHeight;
+   source.position.copy(neutralSourcePosition);source.position.y+=(lastVisualGesture.lift+lastIdle.lift)*characterHeight;
    lastBlink=contextBlink.sample({dt,performance:physical,attention:lastAttention,gestureActive:Boolean(state.gesture)||Boolean(lastGesture.name),reducedMotion:reduced});
-   facial.setGestureBlink(reduced?{left:0,right:0}:lastVisualGesture.blink||lastBlink.blink,{relativeToRest:!reduced&&!lastVisualGesture.blink});
-   const microFace=!reduced&&!state.gesture&&lastAffect.envelope<.04?lastTransition.face:null;
+   const idleBlink=lastIdle.active?lastIdle.blink:null;
+   facial.setGestureBlink(reduced?{left:0,right:0}:lastVisualGesture.blink||idleBlink||lastBlink.blink,{relativeToRest:!reduced&&!lastVisualGesture.blink&&!idleBlink});
+   const idleFace=lastIdle.active&&lastIdle.face?{weights:{happy:lastIdle.face.happy||0,curious:lastIdle.face.curious||0,surprised:lastIdle.face.surprised||0},eyelids:{left:0,right:0}}:null;
+   const microFace=!reduced&&!state.gesture&&lastAffect.envelope<.04?idleFace||lastTransition.face:null;
    const facePriority=Boolean(lastGesture.name)||state.expressionPriority===true;
    const faceTarget=facialTargetMixer.sample({performance:physical,microFace,affect:lastAffect,gestureActive:facePriority,reducedMotion:reduced});
    const fade=facialContinuity.sample({dt,weights:faceTarget?.weights,eyelids:faceTarget?.eyelids,reducedMotion:reduced,gestureActive:facePriority});
@@ -643,6 +665,7 @@ export async function mountMWorld3D(host,{onProgress=()=>{},onReady=()=>{}}={}){
   host.prepend(canvas);render();
   const metrics=getMetrics();onReady({...getDiagnostics(),footprint:metrics.footprint,contact:metrics.contact});
   return {canvas,update,render,setSpatialFrame,getMetrics,getInteractionPoint,getDiagnostics,dispose,ready:true,
+   playIdle:name=>idleMoments.force(name),idleActive:()=>Boolean(idleMoments.snapshot().active),
    diagnostics:{bones:motion.tailDiagnostics.connected,rigBones:31,maxInfluences:skin.maxUsed,skinSets:skin.sets,clips:clips.map(c=>c.name),detailMaps:textures.size,detailSlots,viewportSize,pixelRatio,depthSupported}};
  }catch(error){dispose();throw error;}
 }

@@ -3,7 +3,7 @@
  * their visual pose, lids and lift receive a decaying residual; gesture phase,
  * contact, action ownership and completion remain with the existing owner.
  */
-import {M_GESTURES,GESTURE_DURATIONS,sampleGesture} from './m-world-acting.mjs?v=68';
+import {M_GESTURES,GESTURE_DURATIONS,sampleGesture} from './m-world-acting.mjs?v=69';
 
 const bones=Object.freeze(['Body','Chest','Neck','Head',
  'Arm.L','Arm.R','Forearm.L','Forearm.R','Hand.L','Hand.R',
