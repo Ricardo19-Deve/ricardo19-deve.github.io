@@ -2,7 +2,7 @@
  * Lightweight ambient particles. The overlay never catches pointer input
  * and stops drawing when hidden or reduced-motion is requested.
  */
-import {weatherVisual} from './m-world-weather.mjs?v=68&sky=67';
+import {weatherVisual} from './m-world-weather.mjs?v=69&sky=67';
 
 export function mountWeatherStage({doc=document,view=window}={}){
  const style=doc.createElement('style');style.dataset.mWeatherStyle='true';

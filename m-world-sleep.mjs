@@ -7,7 +7,7 @@
  *
  *  winding-down  slower, a full stretch with a backward arch, two heavy blinks
  *  settling      head drops, spine and knees curl, arms fold under the chin,
- *                the tail wraps around the body, eyes close
+ *                the tail tucks under the body and curls up by the paws, eyes close
  *  sleeping      slow chest breathing (about 14 breaths a minute, from the
  *                real age in seconds), one deeper sigh, an ear twitch and a
  *                tail-tip flick
@@ -26,8 +26,13 @@ export const SLEEP_BREATHS_PER_MINUTE=14;
 /** The stage only rolls gently towards the resting side; the curl is in the rig. */
 export const SLEEP_STAGE_ROLL=.26;
 export const SLEEP_STAGE_SCALE=.93;
-const TAIL_CURL_X=Object.freeze([0,0,0,0,-.10,-.15,-.20,-.20,-.20,-.15]);
-const TAIL_CURL_Z=Object.freeze([-.35,-.30,-.25,-.10,.20,.30,.40,.45,.45,.40]);
+// V72: the root drops the tail (Z), the rest bends it forward and across under
+// the body (X and Y together), so the tip curls up beside the folded paws.
+// The V71 profile (outer half curling back on Z) drew a hoop away from the body.
+export const SLEEP_TAIL_WRAP=Object.freeze([
+ [0,0,-.34],[0,0,-.30],[-.22,-.11,0],[-.23,-.11,0],[-.24,-.12,0],
+ [-.24,-.12,0],[-.24,-.12,0],[-.25,-.13,0],[-.25,-.13,0],[-.24,-.12,0]
+].map(Object.freeze));
 
 const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,Number.isFinite(n)?n:0));
 const smooth=n=>{const t=clamp(n);return t*t*t*(t*(t*6-15)+10);};
@@ -93,13 +98,15 @@ export function sampleSleep({age=0,duration=SLEEP_DURATION,side=1}={}){
  }
  add('Ear.'+(s>0?'L':'R'),-.10*earTwitch,0,s*.06*earTwitch);
 
- // The tail drops beside the body, then its outer half curls back underneath
- // into a ring around the curled body (base first, tip last). Per-bone curl
- // profiles were tuned against renders of the original rig. The tail always
- // leaves the body on the same side, so its curl is not mirrored with side.
+ // The tail drops, then tucks under the curled body (base first, tip last).
+ // The per-bone profile was tuned against renders of the original rig on both
+ // sides (V72): the drop and the forward bend are the same on both sides, the
+ // sideways bend (Y) follows the side M curls towards so the tail tucks under
+ // her instead of sticking out on the open side.
  for(let i=1;i<=10;i++){
   const wrap=tailWrap(i-1),flick=i>=8?tipFlick*(i-7)/3:0;
-  add('Tail.'+String(i).padStart(2,'0'),TAIL_CURL_X[i-1]*wrap+.006*breath,0,TAIL_CURL_Z[i-1]*wrap+.12*flick+.02*stretch);
+  const [x,y,z]=SLEEP_TAIL_WRAP[i-1];
+  add('Tail.'+String(i).padStart(2,'0'),x*wrap+.006*breath,s*y*wrap,z*wrap+.12*flick+.02*stretch);
  }
 
  // Eyelids: two heavy blinks while winding down, closed through the nap,

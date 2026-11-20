@@ -1,30 +1,30 @@
 import './m-analytics-bootstrap.mjs?v=34';
-import {createCharacter,characterReceiptId} from './m-world-character.mjs?v=68';
-import {createCharacterState,creatureEnergy} from './m-world-character-state.mjs?v=68&life=70';
-import {createAutonomy} from './m-world-autonomy.mjs?v=68&life=70';
-import {planBallFlight,sampleBallFlight} from './m-world-ball.mjs?v=68';
-import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=68';
-import {createSessionMemory} from './m-world-memory.mjs?v=68';
-import {createGrowthMemory,makeLivingSeed,growthFamilyForDecision} from './m-world-growth.mjs?v=68';
-import {createWorldKnowledge} from './m-world-world-knowledge.mjs?v=68';
-import {createLivedWorldStories} from './m-world-lived-stories.mjs?v=68';
-import {senseWorldRhythm} from './m-world-world-rhythm.mjs?v=68';
-import {getContextComponent,matchContextComponent} from './m-world-context.mjs?v=68';
-import {M_AFFECTS,AFFECT_DURATIONS} from './m-world-affect.mjs?v=68';
-import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=68';
-import {createWorldObserver} from './m-world-observer.mjs?v=68';
-import {frameIntervalMs,isOffscreen} from './m-world-quality.mjs?v=68';
-import {createWorldDirector} from './m-world-director.mjs?v=68';
-import {advanceLocomotion} from './m-world-locomotion.mjs?v=68';
+import {createCharacter,characterReceiptId} from './m-world-character.mjs?v=69';
+import {createCharacterState,creatureEnergy} from './m-world-character-state.mjs?v=69&life=70';
+import {createAutonomy} from './m-world-autonomy.mjs?v=69&life=70';
+import {planBallFlight,sampleBallFlight} from './m-world-ball.mjs?v=69';
+import {createScenePlan,createScenePlayer} from './m-world-scenes.mjs?v=69';
+import {createSessionMemory} from './m-world-memory.mjs?v=69';
+import {createGrowthMemory,makeLivingSeed,growthFamilyForDecision} from './m-world-growth.mjs?v=69';
+import {createWorldKnowledge} from './m-world-world-knowledge.mjs?v=69';
+import {createLivedWorldStories} from './m-world-lived-stories.mjs?v=69';
+import {senseWorldRhythm} from './m-world-world-rhythm.mjs?v=69';
+import {getContextComponent,matchContextComponent} from './m-world-context.mjs?v=69';
+import {M_AFFECTS,AFFECT_DURATIONS} from './m-world-affect.mjs?v=69';
+import {sectionElements,interactiveTarget,bound,actorRect,planCardAction,sampleCardAction,resolveDepth,visibleAtPoint,chooseCorridorTarget} from './m-world-spatial.mjs?v=69';
+import {createWorldObserver} from './m-world-observer.mjs?v=69';
+import {frameIntervalMs,isOffscreen} from './m-world-quality.mjs?v=69';
+import {createWorldDirector} from './m-world-director.mjs?v=69';
+import {advanceLocomotion} from './m-world-locomotion.mjs?v=69';
 import {MLifeV16} from './m-lab/interactions/life-v16.mjs';
-import {MWorldBrain} from './m-world-brain.mjs?v=68';
-import {M_GESTURES,GESTURE_DURATIONS,PAW_CONTACT_PROGRESS} from './m-world-acting.mjs?v=68';
-import {createMCompanion} from './m-world-companion.mjs?v=68&ui=59';
-import {M_WORLD_CONFIG} from './m-world-config.mjs?v=68';
-import {createWeatherReader,M_WEATHER_REFRESH_MS,makeWeatherDemo} from './m-world-weather.mjs?v=68&sky=67';
-import {weatherBehaviorProfile,weatherEffortMultiplier} from './m-world-weather-behavior.mjs?v=68';
-import {mountWeatherStage} from './m-world-weather-stage.mjs?v=68&sky=69';
-import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=68';
+import {MWorldBrain} from './m-world-brain.mjs?v=69';
+import {M_GESTURES,GESTURE_DURATIONS,PAW_CONTACT_PROGRESS} from './m-world-acting.mjs?v=69';
+import {createMCompanion} from './m-world-companion.mjs?v=69&ui=59';
+import {M_WORLD_CONFIG} from './m-world-config.mjs?v=69';
+import {createWeatherReader,M_WEATHER_REFRESH_MS,makeWeatherDemo} from './m-world-weather.mjs?v=69&sky=67';
+import {weatherBehaviorProfile,weatherEffortMultiplier} from './m-world-weather-behavior.mjs?v=69';
+import {mountWeatherStage} from './m-world-weather-stage.mjs?v=69&sky=69';
+import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,planGestureStage,gestureViewportFits} from './m-world-action-policy.mjs?v=69';
 
 (() => {
  'use strict';
@@ -215,6 +215,8 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  function advanceRoute(dt,now,world){
   if(state.gesture||state.expressionHold)return {x:state.x,y:state.y,depth:state.depthTarget,phase:'hold'};
   if(!route&&now<nextChoice)return {x:state.x,y:state.y,depth:state.depthTarget,phase:'hold'};
+  // V72: a full-body idle moment (ear scratch, face wash...) finishes before M sets off again.
+  if(!route&&avatar?.idleActive?.())return {x:state.x,y:state.y,depth:state.depthTarget,phase:'hold'};
   if((!route||(route.free&&!route.gestureStage&&!route.escape&&now>=nextChoice))&&!state.gesture&&scenes.snapshot().status!=='playing'&&!game)startRoute(now,world);
   if(!route)return {x:state.x,y:state.y,depth:state.depthTarget,phase:'hold'};
   if(route?.free){
@@ -291,7 +293,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
  }
  function directorBlocked(now){
   const typing=Boolean(document.activeElement?.matches?.('input,textarea,select,[contenteditable="true"]'));
-  return {hidden:document.hidden||!active||frozen,reducedMotion,typing,reading:now<interest.readingUntil||document.getSelection()?.isCollapsed===false,scrolling:now<interest.scrollUntil,busy:Boolean(companion?.isOpen()||state.gesture||state.expressionHold||isExplicitGesture(pendingGesture)||pendingGesture?.autonomyId||route?.gestureStage||scenes.snapshot().status==='playing'||game||route?.explicit)};
+  return {hidden:document.hidden||!active||frozen,reducedMotion,typing,reading:now<interest.readingUntil||document.getSelection()?.isCollapsed===false,scrolling:now<interest.scrollUntil,busy:Boolean(companion?.isOpen()||avatar?.idleActive?.()||state.gesture||state.expressionHold||isExplicitGesture(pendingGesture)||pendingGesture?.autonomyId||route?.gestureStage||scenes.snapshot().status==='playing'||game||route?.explicit)};
  }
  function rememberDirector(decision){
   directorRecent.push({targetId:decision.targetId,action:decision.action});if(directorRecent.length>6)directorRecent.shift();
@@ -678,9 +680,9 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(isExplicitGesture(incoming)||(incoming.autonomyId&&!incoming.quiet)){if(isExplicitGesture(incoming))life.manual();if(avatar&&!state.gesture&&!state.expressionHold&&!incoming.reuseStage)stageGesture(worldSnapshot());}
   schedule();return true;
  }
- function queueGesture(name,{source='visitor',expression}={}){
+ function queueGesture(name,{source='visitor',expression,side}={}){
   if(!M_GESTURES.includes(name))return false;
-  return queueIntent({name,source,expression,queuedAt:state.clock});
+  return queueIntent({name,source,expression,queuedAt:state.clock,...(side===1||side===-1?{side}:{})});
  }
  function queueExpression(expression){
   if(!['neutral','happy','curious','surprised'].includes(expression))return false;
@@ -745,7 +747,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
    reading:now<interest.readingUntil,typing:Boolean(field?.matches?.('input,textarea,select,[contenteditable="true"]'))&&!assistantIdleFocus,
    scrolling:now<interest.scrollUntil,reducedMotion,hidden:document.hidden,nearCard:Boolean(target)});
   if(frozen)avatar.render();
-  else avatar.update(dt,{mode:state.mode,activity:state.mode==='perch'&&state.phase==='hold'?'perch':state.mode,emotion:reducedMotion?'neutral':state.emotion,vx:state.vx,vy:state.vy,clock:state.clock,gesture:state.gesture,expressionPriority:Boolean(state.expressionHold&&!state.affect),affect:state.affect,characterEnergy:presentation.energy,performance:presentation,attentionId:game?`game:${game.name}`:target?.id||lastLife?.attention||null,reducedMotion,locomotion:{ax:state.ax,ay:state.ay,heading:state.heading,turn:state.turn,travel:state.travel,leanX:state.leanX,leanY:state.leanY},attention:gaze,nearCard:Boolean(target),depth:state.depth,
+  else avatar.update(dt,{routeActive:Boolean(route),mode:state.mode,activity:state.mode==='perch'&&state.phase==='hold'?'perch':state.mode,emotion:reducedMotion?'neutral':state.emotion,vx:state.vx,vy:state.vy,clock:state.clock,gesture:state.gesture,expressionPriority:Boolean(state.expressionHold&&!state.affect),affect:state.affect,characterEnergy:presentation.energy,performance:presentation,attentionId:game?`game:${game.name}`:target?.id||lastLife?.attention||null,reducedMotion,locomotion:{ax:state.ax,ay:state.ay,heading:state.heading,turn:state.turn,travel:state.travel,leanX:state.leanX,leanY:state.leanY},attention:gaze,nearCard:Boolean(target),depth:state.depth,
    // Use the existing planner's TRUE contact only. Card animations and
    // scroll anchoring remain owned by the spatial route, not by Three.js.
    surfaceContact:Boolean(route?.attached&&route?.plan?.kind==='perch'&&
@@ -817,7 +819,7 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   if(loading||avatar)return loading;
   loading=(async()=>{
    try{
-    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=68&sky=70');
+    const {mountMWorld3D}=await import('./m-world-3d.mjs?v=69&sky=70');
     avatar=await mountMWorld3D(host,{onProgress(percent){layer.dataset.loadProgress=String(percent);if(active)toggle.textContent='M · '+percent+'%';}});
     metrics=avatar.getMetrics();cache.dirty=true;cache.lastRead=0;
     const world=worldSnapshot();
@@ -936,6 +938,8 @@ import {isExplicitGesture,selectGestureIntent,gestureIntentExpired,gestureReady,
   },
   resume(){frozen=false;nextChoice=0;schedule();},
   playGesture:queueGesture,
+  // V72 diagnostics: start a full-body idle moment now (it still yields to anything else).
+  playIdle(name){if(route&&!route.free){route=null;nextChoice=performance.now()+8000;}return Boolean(avatar?.playIdle?.(name));},
   // Exercise the same missing-pose handoff as a real interrupted action.
   // Manual diagnostic gestures have no autonomous owner to acknowledge.
   cancelGesture(){

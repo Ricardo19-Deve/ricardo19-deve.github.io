@@ -1,5 +1,5 @@
 /** V67: bounded secondary wind response for the ORIGINAL M rig. */
-import {weatherVisual} from './m-world-weather.mjs?v=68&sky=67';
+import {weatherVisual} from './m-world-weather.mjs?v=69&sky=67';
 const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,Number.isFinite(n)?n:a));
 export function weatherActorPose(weather,{reducedMotion=false,reading=false,resting=false,gesture=false,sleeping=false}={}){
  const v=weatherVisual(weather);
