@@ -1,15 +1,15 @@
 {
   "schema": 1,
-  "date": "2026-11-21",
+  "date": "2026-11-22",
   "source": "Wikipedia — On this day",
-  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/21",
+  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/22",
   "items": [
     {
-      "id": "2026-11-21:1961:science",
-      "year": 1961,
-      "title": "Revolving restaurant",
-      "url": "https://en.wikipedia.org/wiki/Revolving_restaurant",
-      "topic": "science"
+      "id": "2026-11-22:1995:culture",
+      "year": 1995,
+      "title": "Toy Story",
+      "url": "https://en.wikipedia.org/wiki/Toy_Story",
+      "topic": "culture"
     }
   ]
 }
