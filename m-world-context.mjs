@@ -4,6 +4,7 @@ const records=[
  ['portrait-ricardo','Ricardo Pinheiro portrait','portrait','home'],
  ['project-salesforce-crm-wizards','Salesforce CRM Wizards','project','projects'],
  ['project-salesforce-project-board','Salesforce Project Board','project','projects'],
+ ['project-salesforce-win-room','Salesforce Win Room','project','projects'],
  ['project-salesforce-mobile','Feldavi','project','projects'],
  ['project-revmend','RevMend','project','projects'],
  ['project-epoxy','Epoxy Platform','project','projects'],

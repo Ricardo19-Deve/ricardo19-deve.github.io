@@ -11,7 +11,7 @@ const canonicalHTML=page.replace(/^\uFEFF/,'').replace(/\r\n/g,'\n')
 
 test('M integration preserves the complete portfolio content, links, navigation and design markup',()=>{
  assert.equal(createHash('sha256').update(canonicalHTML).digest('hex'),
-  '4fece58d668f2d94b21d031bee045a25f46f13ef7ec2b41b1256122704a87c8b');
+  '8c93dd0025f5fdee8ca3409381c9de08f81508eead60c2455751221c78b25b96');
 });
 
 const bytes=Buffer.concat(Array.from({length:19},(_,i)=>
