@@ -1,15 +1,15 @@
 {
   "schema": 1,
-  "date": "2026-11-23",
+  "date": "2026-11-24",
   "source": "Wikipedia — On this day",
-  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/23",
+  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/24",
   "items": [
     {
-      "id": "2026-11-23:1924:science",
-      "year": 1924,
-      "title": "Milky Way",
-      "url": "https://en.wikipedia.org/wiki/Milky_Way",
-      "topic": "science"
+      "id": "2026-11-24:2023:culture",
+      "year": 2023,
+      "title": "Hibiscus Rising",
+      "url": "https://en.wikipedia.org/wiki/Hibiscus_Rising",
+      "topic": "culture"
     }
   ]
 }
