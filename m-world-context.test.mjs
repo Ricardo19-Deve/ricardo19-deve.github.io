@@ -61,6 +61,6 @@ test('every public project card resolves to an M component with a curated fact',
  assert.ok(validateInput({...input,context:{...input.context,component:'project-salesforce-crm-wizards'}}));
  assert.equal(titles[1],'Salesforce Project Board','The second Salesforce project follows the wizards');
  assert.ok(validateInput({...input,context:{...input.context,component:'project-salesforce-project-board'}}));
- assert.equal(titles[2],'Salesforce Win Room','The third Salesforce project follows the project board');
- assert.ok(validateInput({...input,context:{...input.context,component:'project-salesforce-win-room'}}));
+ assert.equal(titles[2],'Salesforce Signal Room','The third Salesforce project follows the project board');
+ assert.ok(validateInput({...input,context:{...input.context,component:'project-salesforce-signal-room'}}));
 });
