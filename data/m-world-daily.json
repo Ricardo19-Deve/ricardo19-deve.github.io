@@ -1,15 +1,15 @@
 {
   "schema": 1,
-  "date": "2026-11-25",
+  "date": "2026-11-26",
   "source": "Wikipedia — On this day",
-  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/25",
+  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/26",
   "items": [
     {
-      "id": "2026-11-25:1901:culture",
-      "year": 1901,
-      "title": "Gustav Mahler",
-      "url": "https://en.wikipedia.org/wiki/Gustav_Mahler",
-      "topic": "culture"
+      "id": "2026-11-26:1965:science",
+      "year": 1965,
+      "title": "Astérix (satellite)",
+      "url": "https://en.wikipedia.org/wiki/Ast%C3%A9rix_(satellite)",
+      "topic": "science"
     }
   ]
 }
