@@ -1,15 +1,15 @@
 {
   "schema": 1,
-  "date": "2026-11-26",
+  "date": "2026-11-27",
   "source": "Wikipedia — On this day",
-  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/26",
+  "sourceUrl": "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected/11/27",
   "items": [
     {
-      "id": "2026-11-26:1965:science",
-      "year": 1965,
-      "title": "Astérix (satellite)",
-      "url": "https://en.wikipedia.org/wiki/Ast%C3%A9rix_(satellite)",
-      "topic": "science"
+      "id": "2026-11-27:1835:nature",
+      "year": 1835,
+      "title": "Sodomy",
+      "url": "https://en.wikipedia.org/wiki/Sodomy",
+      "topic": "nature"
     }
   ]
 }
